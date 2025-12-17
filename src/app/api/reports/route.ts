@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 
 import { authOptions } from "@/lib/auth";
 import { kpiInputSchema } from "@/features/kpi/schema";
@@ -20,7 +20,6 @@ const resultsSchema: z.ZodType<KPIResult> = z.object({
   ltv: numberOrNull,
   ltgpPerCustomer: numberOrNull,
   ltgpToCacRatio: numberOrNull,
-  growthAssessment: numberOrNull,
   hypotheticalMaxRevenuePerYear: numberOrNull,
   hypotheticalMaxProfitPerYear: numberOrNull,
   car: numberOrNull,
@@ -28,6 +27,8 @@ const resultsSchema: z.ZodType<KPIResult> = z.object({
 
 const saveReportSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
+  cohortLabel: z.string().trim().min(1).max(120).optional(),
+  channel: z.string().trim().min(1).max(120).optional(),
   inputs: kpiInputSchema,
   results: resultsSchema,
   warnings: z.array(z.string()),
@@ -88,6 +89,8 @@ export const POST = async (request: Request) => {
     .values({
       userId,
       title: data.title ?? null,
+      cohortLabel: data.cohortLabel ?? null,
+      channel: data.channel ?? null,
       period: data.inputs.period,
       businessModel: data.inputs.businessModel,
       inputJson: data.inputs,
@@ -97,6 +100,8 @@ export const POST = async (request: Request) => {
     .returning({
       id: kpiReports.id,
       title: kpiReports.title,
+      cohortLabel: kpiReports.cohortLabel,
+      channel: kpiReports.channel,
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
@@ -105,7 +110,7 @@ export const POST = async (request: Request) => {
   return NextResponse.json({ report }, { status: 201 });
 };
 
-export const GET = async () => {
+export const GET = async (request: Request) => {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -116,10 +121,16 @@ export const GET = async () => {
     return NextResponse.json({ error: "Unable to resolve user." }, { status: 401 });
   }
 
+  const url = new URL(request.url);
+  const sortParam = url.searchParams.get("sort");
+  const sortClause = sortParam === "desc" ? desc(kpiReports.createdAt) : asc(kpiReports.createdAt);
+
   const reports = await db
     .select({
       id: kpiReports.id,
       title: kpiReports.title,
+      cohortLabel: kpiReports.cohortLabel,
+      channel: kpiReports.channel,
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
@@ -129,7 +140,12 @@ export const GET = async () => {
     })
     .from(kpiReports)
     .where(eq(kpiReports.userId, userId))
-    .orderBy(desc(kpiReports.createdAt));
+    .orderBy(sortClause);
 
-  return NextResponse.json({ reports }, { status: 200 });
+  const serialized = reports.map((report) => ({
+    ...report,
+    createdAt: report.createdAt ? report.createdAt.toISOString() : null,
+  }));
+
+  return NextResponse.json({ reports: serialized }, { status: 200 });
 };

@@ -26,6 +26,8 @@ export const kpiReports = pgTable("kpi_reports", {
     .notNull()
     .defaultNow(),
   title: text("title"),
+  cohortLabel: text("cohort_label"),
+  channel: text("channel"),
   period: text("period").notNull(),
   businessModel: text("business_model").notNull(),
   inputJson: jsonb("input_json").notNull(),

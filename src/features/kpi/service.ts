@@ -35,121 +35,120 @@ const nullMetrics: ModelMetrics = {
   ltgpPerCustomer: null,
 };
 
+type SubscriptionDerived = {
+  churnRate: number | null;
+  retentionRate: number | null;
+  derivedEndCustomers: number | null;
+  hasData: boolean;
+};
+
+type TransactionalDerived = {
+  churnRate: number | null;
+  retentionRate: number | null;
+  hasData: boolean;
+};
+
+const nullSubscriptionDerived: SubscriptionDerived = {
+  churnRate: null,
+  retentionRate: null,
+  derivedEndCustomers: null,
+  hasData: false,
+};
+
+const nullTransactionalDerived: TransactionalDerived = {
+  churnRate: null,
+  retentionRate: null,
+  hasData: false,
+};
+
 export const evaluateKpis = (payload: unknown): KpiEvaluation => {
   const parsed = kpiInputSchema.parse(payload) as KPIInput;
   const warnings: string[] = [];
 
-  const endCustomers =
-    parsed.activeCustomersEnd != null
-      ? parsed.activeCustomersEnd
-      : parsed.activeCustomersStart;
-  const avgCustomers = averageActiveCustomers(
-    parsed.activeCustomersStart,
-    endCustomers,
-  );
-  if (parsed.activeCustomersEnd == null) {
+  const subscriptionDerived =
+    parsed.businessModel === "subscription"
+      ? getSubscriptionDerived(
+          parsed,
+          warnings,
+          "Provide either churned customers or retained-from-start to compute churn.",
+        )
+      : parsed.businessModel === "hybrid"
+        ? getSubscriptionDerived(
+            parsed,
+            warnings,
+            "Hybrid: subscription retention missing; subscription churn not computed.",
+          )
+        : nullSubscriptionDerived;
+
+  const transactionalDerived =
+    parsed.businessModel === "transactional"
+      ? getTransactionalDerived(
+          parsed,
+          warnings,
+          "Transactional model requires retention rate per period.",
+        )
+      : parsed.businessModel === "hybrid"
+        ? getTransactionalDerived(
+            parsed,
+            warnings,
+            "Hybrid: transactional retention missing; transactional churn not computed.",
+          )
+        : nullTransactionalDerived;
+
+  let impliedEndCustomers =
+    parsed.activeCustomersEnd ?? subscriptionDerived.derivedEndCustomers;
+
+  if (impliedEndCustomers != null && impliedEndCustomers < 0) {
     warnings.push(
-      "Active customers at end not provided; ARPC uses start customers as an approximation.",
+      "Derived end customers is negative; check start, new, and churn inputs.",
+    );
+    impliedEndCustomers = null;
+  }
+
+  let avgCustomers = parsed.activeCustomersStart;
+  if (impliedEndCustomers != null) {
+    avgCustomers = averageActiveCustomers(parsed.activeCustomersStart, impliedEndCustomers);
+  } else {
+    warnings.push(
+      "Active customers at end is not provided; ARPC uses start customers as an approximation.",
     );
   }
+
   const arpcValue = arpc(parsed.revenuePerPeriod, avgCustomers);
   const cacValue = cac(parsed.marketingSpendPerPeriod, parsed.newCustomersPerPeriod);
+  const grossProfitPerCustomer =
+    arpcValue != null ? arpcValue * parsed.grossMargin : null;
+  const cacPaybackPeriods =
+    cacValue != null && grossProfitPerCustomer != null && grossProfitPerCustomer > 0
+      ? cacValue / grossProfitPerCustomer
+      : null;
 
-  const subscriptionMetrics = (missingMessage: string): ModelMetrics => {
-    const retained = parsed.retainedCustomersFromStartAtEnd;
-    const churned = parsed.churnedCustomersPerPeriod;
-
-    let derivedChurned: number | null = null;
-    if (retained != null) {
-      derivedChurned = churnedFromStart(parsed.activeCustomersStart, retained);
-    } else if (churned != null) {
-      derivedChurned = churned;
-    } else {
-      warnings.push(missingMessage);
-    }
-
-    const churn = churnRate(derivedChurned ?? undefined, parsed.activeCustomersStart);
-    const retention = churn == null ? null : 1 - churn;
-    const ltv = ltvSubscription(arpcValue, parsed.grossMargin, churn);
-    const ltgp = ltgpPerCustomer(ltv);
-
-    if (retained != null && parsed.activeCustomersEnd != null) {
-      const derivedNew = parsed.activeCustomersEnd - retained;
-      if (parsed.newCustomersPerPeriod > 0) {
-        const diff =
-          Math.abs(derivedNew - parsed.newCustomersPerPeriod) /
-          parsed.newCustomersPerPeriod;
-        if (diff > 0.1) {
-          warnings.push(
-            `Subscription: derived new customers (${derivedNew}) differs from input (${parsed.newCustomersPerPeriod}).`,
-          );
-        }
-      } else if (derivedNew > 0) {
-        warnings.push(
-          `Subscription: derived new customers (${derivedNew}) but input newCustomersPerPeriod is 0.`,
-        );
-      }
-    }
-
-    if (churn != null && churn < 0.005) {
-      warnings.push("Churn is very low; LTV may be inflated.");
-    }
-
-    return {
-      churnRate: churn,
-      retentionRate: retention,
-      ltv,
-      ltgpPerCustomer: ltgp,
-    };
-  };
-
-  const transactionalMetrics = (missingMessage: string): ModelMetrics => {
-    const retention = parsed.retentionRatePerPeriod;
-    if (retention == null) {
-      warnings.push(missingMessage);
-      return nullMetrics;
-    }
-
-    if (retention > 0.98) {
-      warnings.push("Retention is very high; LTV may be inflated.");
-    }
-
-    const churn = transactionalChurnRate(retention);
-    const ltv = ltvTransactional(arpcValue, parsed.grossMargin, retention);
-    const ltgp = ltgpPerCustomer(ltv);
-
-    return {
-      churnRate: churn,
-      retentionRate: retention,
-      ltv,
-      ltgpPerCustomer: ltgp,
-    };
-  };
+  if (cacPaybackPeriods != null && cacPaybackPeriods > 12) {
+    warnings.push("Payback is long; growth may be cash constrained.");
+  }
 
   let modelMetrics: ModelMetrics = nullMetrics;
-
   if (parsed.businessModel === "subscription") {
-    modelMetrics = subscriptionMetrics(
-      "Subscription model requires retained-from-start count to compute churn.",
-    );
+    modelMetrics = finalizeSubscriptionMetrics(subscriptionDerived, arpcValue, parsed.grossMargin);
   } else if (parsed.businessModel === "transactional") {
-    modelMetrics = transactionalMetrics(
-      "Transactional model requires retention rate per period.",
+    modelMetrics = finalizeTransactionalMetrics(
+      transactionalDerived,
+      arpcValue,
+      parsed.grossMargin,
     );
   } else {
-    const sub = subscriptionMetrics(
-      "Hybrid: subscription retention missing; subscription churn not computed.",
+    const subMetrics = finalizeSubscriptionMetrics(
+      subscriptionDerived,
+      arpcValue,
+      parsed.grossMargin,
     );
-    const tx = transactionalMetrics(
-      "Hybrid: transactional retention missing; transactional churn not computed.",
+    const txMetrics = finalizeTransactionalMetrics(
+      transactionalDerived,
+      arpcValue,
+      parsed.grossMargin,
     );
-    modelMetrics = sub.churnRate != null || sub.retentionRate != null ? sub : tx;
-    if (
-      (sub.churnRate == null && sub.retentionRate == null) &&
-      (tx.churnRate == null && tx.retentionRate == null)
-    ) {
-      modelMetrics = nullMetrics;
-    }
+    modelMetrics =
+      subMetrics.churnRate != null || subMetrics.retentionRate != null ? subMetrics : txMetrics;
   }
 
   const ratio = ratioLtgpToCac(modelMetrics.ltgpPerCustomer, cacValue);
@@ -162,7 +161,7 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
     ltv: modelMetrics.ltv,
     ltgpPerCustomer: modelMetrics.ltgpPerCustomer,
     ltgpToCacRatio: ratio,
-    growthAssessment: ratio,
+    cacPaybackPeriods,
     hypotheticalMaxRevenuePerYear: annualizedRevenue(
       parsed.revenuePerPeriod,
       parsed.period,
@@ -185,4 +184,102 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
   }
 
   return { inputs: parsed, results, warnings };
+};
+
+const finalizeSubscriptionMetrics = (
+  derived: SubscriptionDerived,
+  arpcValue: number | null,
+  grossMargin: number,
+): ModelMetrics => {
+  if (!derived.hasData) {
+    return nullMetrics;
+  }
+
+  const ltv = ltvSubscription(arpcValue, grossMargin, derived.churnRate);
+  return {
+    churnRate: derived.churnRate,
+    retentionRate: derived.retentionRate,
+    ltv,
+    ltgpPerCustomer: ltgpPerCustomer(ltv),
+  };
+};
+
+const finalizeTransactionalMetrics = (
+  derived: TransactionalDerived,
+  arpcValue: number | null,
+  grossMargin: number,
+): ModelMetrics => {
+  if (!derived.hasData) {
+    return nullMetrics;
+  }
+
+  const ltv = ltvTransactional(arpcValue, grossMargin, derived.retentionRate ?? undefined);
+  return {
+    churnRate: derived.churnRate,
+    retentionRate: derived.retentionRate,
+    ltv,
+    ltgpPerCustomer: ltgpPerCustomer(ltv),
+  };
+};
+
+const getSubscriptionDerived = (
+  parsed: KPIInput,
+  warnings: string[],
+  missingMessage: string,
+): SubscriptionDerived => {
+  const start = parsed.activeCustomersStart;
+  const retained = parsed.retainedCustomersFromStartAtEnd;
+  const churnedInput = parsed.churnedCustomersPerPeriod;
+
+  let derivedChurned: number | null = null;
+  if (retained != null) {
+    derivedChurned = churnedFromStart(start, retained);
+  } else if (churnedInput != null) {
+    derivedChurned = churnedInput;
+  } else {
+    warnings.push(missingMessage);
+    return nullSubscriptionDerived;
+  }
+
+  const churn = churnRate(derivedChurned ?? undefined, start);
+  if (churn != null && churn < 0.005) {
+    warnings.push("Churn is very low; LTV may be inflated.");
+  }
+  const retention = churn == null ? null : 1 - churn;
+
+  let derivedEndCustomers: number | null = null;
+  if (derivedChurned != null) {
+    derivedEndCustomers = start + parsed.newCustomersPerPeriod - derivedChurned;
+  }
+
+  return {
+    churnRate: churn,
+    retentionRate: retention,
+    derivedEndCustomers,
+    hasData: true,
+  };
+};
+
+const getTransactionalDerived = (
+  parsed: KPIInput,
+  warnings: string[],
+  missingMessage: string,
+): TransactionalDerived => {
+  const retention = parsed.retentionRatePerPeriod;
+  if (retention == null) {
+    warnings.push(missingMessage);
+    return nullTransactionalDerived;
+  }
+
+  if (retention > 0.98) {
+    warnings.push("Retention is very high; LTV may be inflated.");
+  }
+
+  const churn = transactionalChurnRate(retention);
+
+  return {
+    churnRate: churn,
+    retentionRate: retention,
+    hasData: true,
+  };
 };

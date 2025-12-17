@@ -12,7 +12,6 @@ const baseInput: KPIInput = {
   marketingSpendPerPeriod: 20_000,
   newCustomersPerPeriod: 20,
   activeCustomersStart: 100,
-  activeCustomersEnd: 110,
 };
 
 test("subscription churn derives from retained customers", () => {
@@ -40,6 +39,16 @@ test("subscription churn can use churned customers input", () => {
       w.includes("Provide either churned customers or retained-from-start"),
     ),
   );
+});
+
+test("subscription ARPC derives end customers when not provided", () => {
+  const payload: KPIInput = {
+    ...baseInput,
+    activeCustomersEnd: undefined,
+    retainedCustomersFromStartAtEnd: 90,
+  };
+  const { results } = evaluateKpis(payload);
+  assert.equal(results.arpc && results.arpc.toFixed(3), "952.381");
 });
 
 test("transactional churn is one minus retention", () => {

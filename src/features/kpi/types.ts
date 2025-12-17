@@ -24,7 +24,7 @@ export type KPIResult = {
   ltv: number | null;
   ltgpPerCustomer: number | null;
   ltgpToCacRatio: number | null;
-  growthAssessment: number | null;
+  cacPaybackPeriods: number | null;
   hypotheticalMaxRevenuePerYear: number | null;
   hypotheticalMaxProfitPerYear: number | null;
   car: number | null;
