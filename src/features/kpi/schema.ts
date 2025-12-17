@@ -37,7 +37,8 @@ export const kpiInputSchema = baseSchema.superRefine((value, ctx) => {
     if (hasRetained && (value.retainedCustomersFromStartAtEnd ?? 0) > value.activeCustomersStart) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Retained customers cannot exceed active customers at start.",
+        message:
+          "Customers still active from the starting cohort cannot exceed the number of starting active customers.",
         path: ["retainedCustomersFromStartAtEnd"],
       });
     }
