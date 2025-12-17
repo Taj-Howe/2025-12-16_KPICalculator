@@ -10,3 +10,4 @@
 6) Add features to help people calculate these numbers. Hover animations? 
 7) Add math capabilities for the inputs 
 8) Add a donate button with payment. 
+ 
