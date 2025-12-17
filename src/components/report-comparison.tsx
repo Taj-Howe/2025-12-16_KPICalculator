@@ -37,6 +37,7 @@ export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
     "cac",
     "arpc",
     "churnRate",
+    "retentionRate",
     "ltv",
     "ltgpPerCustomer",
     "ltgpToCacRatio",

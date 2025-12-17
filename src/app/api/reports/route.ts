@@ -16,6 +16,7 @@ const resultsSchema: z.ZodType<KPIResult> = z.object({
   cac: numberOrNull,
   arpc: numberOrNull,
   churnRate: numberOrNull,
+  retentionRate: numberOrNull,
   ltv: numberOrNull,
   ltgpPerCustomer: numberOrNull,
   ltgpToCacRatio: numberOrNull,

@@ -1,4 +1,4 @@
-import type { KPIInput, KPIResult } from "./types";
+import type { KPIInput } from "./types";
 
 export const periodsPerYear = (period: KPIInput["period"]): number => {
   switch (period) {
@@ -55,6 +55,29 @@ export const churnRate = (
     return null;
   }
   return churnedCustomersPerPeriod / activeCustomersStart;
+};
+
+export const churnedFromStart = (
+  activeCustomersStart: number,
+  retainedCustomersFromStartAtEnd: number | undefined,
+): number | null => {
+  if (
+    activeCustomersStart <= 0 ||
+    retainedCustomersFromStartAtEnd == null ||
+    retainedCustomersFromStartAtEnd > activeCustomersStart
+  ) {
+    return null;
+  }
+  return activeCustomersStart - retainedCustomersFromStartAtEnd;
+};
+
+export const transactionalChurnRate = (
+  retentionRatePerPeriod: number | undefined,
+): number | null => {
+  if (retentionRatePerPeriod == null) {
+    return null;
+  }
+  return 1 - retentionRatePerPeriod;
 };
 
 export const ltvSubscription = (
@@ -122,51 +145,4 @@ export const annualizedProfit = (
   const grossProfit = revenuePerPeriod * grossMargin;
   const netPerPeriod = grossProfit - marketingSpendPerPeriod;
   return netPerPeriod * periodsPerYear(period);
-};
-
-export const calculateMetrics = (input: KPIInput): KPIResult => {
-  const avgCustomers = averageActiveCustomers(
-    input.activeCustomersStart,
-    input.activeCustomersEnd,
-  );
-  const arpcValue = arpc(input.revenuePerPeriod, avgCustomers);
-  const cacValue = cac(
-    input.marketingSpendPerPeriod,
-    input.newCustomersPerPeriod,
-  );
-  const churnRateValue = churnRate(
-    input.churnedCustomersPerPeriod,
-    input.activeCustomersStart,
-  );
-  const ltvSub = ltvSubscription(arpcValue, input.grossMargin, churnRateValue);
-  const ltvTrans = ltvTransactional(
-    arpcValue,
-    input.grossMargin,
-    input.retentionRatePerPeriod,
-  );
-  const ltgp = ltgpPerCustomer(
-    input.businessModel === "transactional" ? ltvTrans : ltvSub,
-  );
-  const ratio = ratioLtgpToCac(ltgp, cacValue);
-
-  return {
-    cac: cacValue,
-    ltgpPerCustomer: ltgp,
-    ltgpToCacRatio: ratio,
-    growthAssessment: ratio,
-    churnRate: churnRateValue,
-    ltv: input.businessModel === "transactional" ? ltvTrans : ltvSub,
-    arpc: arpcValue,
-    car: input.newCustomersPerPeriod,
-    hypotheticalMaxRevenuePerYear: annualizedRevenue(
-      input.revenuePerPeriod,
-      input.period,
-    ),
-    hypotheticalMaxProfitPerYear: annualizedProfit(
-      input.revenuePerPeriod,
-      input.grossMargin,
-      input.marketingSpendPerPeriod,
-      input.period,
-    ),
-  };
 };

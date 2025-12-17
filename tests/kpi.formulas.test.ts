@@ -6,10 +6,12 @@ import {
   arpc,
   cac,
   churnRate,
+  churnedFromStart,
   ltvSubscription,
   ltvTransactional,
   ltgpPerCustomer,
   ratioLtgpToCac,
+  transactionalChurnRate,
 } from "../src/features/kpi/formulas";
 
 const approxEqual = (actual: number | null, expected: number, delta = 1e-6) => {
@@ -25,7 +27,9 @@ test("subscription metrics compute expected values", () => {
   const arpcValue = arpc(100_000, avgCustomers);
   approxEqual(arpcValue, 952.380952);
 
-  const churnRateValue = churnRate(10, 100);
+  const churned = churnedFromStart(100, 90);
+  assert.equal(churned, 10);
+  const churnRateValue = churnRate(churned ?? undefined, 100);
   approxEqual(churnRateValue, 0.1);
 
   const ltv = ltvSubscription(arpcValue, 0.7, churnRateValue);
@@ -47,6 +51,9 @@ test("transactional metrics compute expected values", () => {
 
   const ltv = ltvTransactional(arpcValue, 0.5, 0.6);
   approxEqual(ltv, 312.5);
+
+  const churnValue = transactionalChurnRate(0.6);
+  approxEqual(churnValue, 0.4);
 });
 
 test("cac returns null when new customers are zero", () => {

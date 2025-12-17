@@ -10,8 +10,9 @@ export type KPIInput = {
   marketingSpendPerPeriod: number;
   newCustomersPerPeriod: number;
   activeCustomersStart: number;
-  activeCustomersEnd: number;
+  activeCustomersEnd?: number;
   churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
   retentionRatePerPeriod?: number;
 };
 
@@ -19,6 +20,7 @@ export type KPIResult = {
   cac: number | null;
   arpc: number | null;
   churnRate: number | null;
+  retentionRate: number | null;
   ltv: number | null;
   ltgpPerCustomer: number | null;
   ltgpToCacRatio: number | null;

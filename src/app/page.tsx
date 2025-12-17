@@ -14,7 +14,7 @@ const defaultState: FormState = {
   newCustomersPerPeriod: 20,
   activeCustomersStart: 100,
   activeCustomersEnd: 110,
-  churnedCustomersPerPeriod: 10,
+  retainedCustomersFromStartAtEnd: 90,
   retentionRatePerPeriod: 0.6,
 };
 
@@ -24,6 +24,9 @@ export default function Home() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [isSubmitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [churnInputMode, setChurnInputMode] = useState<"retained" | "churned">(
+    "retained",
+  );
   const periodLabel = useMemo(() => `${form.period} period`, [form.period]);
 
   const handleChange = (
@@ -41,18 +44,31 @@ export default function Home() {
     }));
   };
 
-  const visibleChurnField =
+  const showRetainedField =
     form.businessModel === "subscription" || form.businessModel === "hybrid";
-  const visibleRetentionField =
+  const showRetentionRateField =
     form.businessModel === "transactional" || form.businessModel === "hybrid";
 
   useEffect(() => {
     setForm((prev) => {
       const updates: Partial<FormState> = {};
-      if (!visibleChurnField && prev.churnedCustomersPerPeriod != null) {
-        updates.churnedCustomersPerPeriod = undefined;
+      if (!showRetainedField) {
+        if (prev.retainedCustomersFromStartAtEnd != null) {
+          updates.retainedCustomersFromStartAtEnd = undefined;
+        }
+        if (prev.churnedCustomersPerPeriod != null) {
+          updates.churnedCustomersPerPeriod = undefined;
+        }
+      } else if (churnInputMode === "retained") {
+        if (prev.churnedCustomersPerPeriod != null) {
+          updates.churnedCustomersPerPeriod = undefined;
+        }
+      } else {
+        if (prev.retainedCustomersFromStartAtEnd != null) {
+          updates.retainedCustomersFromStartAtEnd = undefined;
+        }
       }
-      if (!visibleRetentionField && prev.retentionRatePerPeriod != null) {
+      if (!showRetentionRateField && prev.retentionRatePerPeriod != null) {
         updates.retentionRatePerPeriod = undefined;
       }
       if (Object.keys(updates).length === 0) {
@@ -60,7 +76,13 @@ export default function Home() {
       }
       return { ...prev, ...updates };
     });
-  }, [visibleChurnField, visibleRetentionField]);
+  }, [showRetainedField, showRetentionRateField, churnInputMode]);
+
+  useEffect(() => {
+    if (!showRetainedField && churnInputMode !== "retained") {
+      setChurnInputMode("retained");
+    }
+  }, [showRetainedField, churnInputMode]);
 
   const grossMarginError =
     form.grossMargin != null && form.grossMargin > 1
@@ -149,7 +171,12 @@ export default function Home() {
             name: "newCustomersPerPeriod",
           },
           { label: "Active Customers Start", name: "activeCustomersStart" },
-          { label: "Active Customers End", name: "activeCustomersEnd" },
+          {
+            label: "Active Customers End (optional)",
+            name: "activeCustomersEnd",
+            helper:
+              "Optional, improves ARPC accuracy and reconciliation checks.",
+          },
         ].map((field) => (
           <label key={field.name} className="flex flex-col gap-1">
             {field.label}
@@ -169,9 +196,51 @@ export default function Home() {
           </label>
         ))}
 
-        {visibleChurnField && (
+        {showRetainedField && (
+          <div className="space-y-3 rounded border border-gray-200 p-3">
+            <p className="font-medium">How do you want to input churn?</p>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="churnMode"
+                value="retained"
+                checked={churnInputMode === "retained"}
+                onChange={() => setChurnInputMode("retained")}
+              />
+              <span>I know how many start customers remained</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="churnMode"
+                value="churned"
+                checked={churnInputMode === "churned"}
+                onChange={() => setChurnInputMode("churned")}
+              />
+              <span>I know churned customers</span>
+            </label>
+          </div>
+        )}
+
+        {showRetainedField && churnInputMode === "retained" && (
           <label className="flex flex-col gap-1">
-            Churned Customers Per Period
+            Customers from start still active at end
+            <input
+              type="number"
+              name="retainedCustomersFromStartAtEnd"
+              value={form.retainedCustomersFromStartAtEnd ?? ""}
+              onChange={handleChange}
+              className="rounded border border-gray-300 p-2"
+            />
+            <span className="text-sm text-gray-600">
+              Cohort retention: subset of starting customers.
+            </span>
+          </label>
+        )}
+
+        {showRetainedField && churnInputMode === "churned" && (
+          <label className="flex flex-col gap-1">
+            Churned customers per period
             <input
               type="number"
               name="churnedCustomersPerPeriod"
@@ -182,9 +251,9 @@ export default function Home() {
           </label>
         )}
 
-        {visibleRetentionField && (
+        {showRetentionRateField && (
           <label className="flex flex-col gap-1">
-            Retention Rate Per Period (0-1)
+            Retention rate (repeat purchase rate) per period (0–1)
             <input
               type="number"
               step="0.01"
@@ -193,6 +262,9 @@ export default function Home() {
               onChange={handleChange}
               className="rounded border border-gray-300 p-2"
             />
+            <span className="text-sm text-gray-600">
+              Example: 0.6 means 60% of the period-start cohort repeats.
+            </span>
           </label>
         )}
 
@@ -211,6 +283,7 @@ export default function Home() {
               setResults(null);
               setWarnings([]);
               setError(null);
+              setChurnInputMode("retained");
             }}
             className="rounded border border-gray-300 px-4 py-2 text-gray-700"
           >
