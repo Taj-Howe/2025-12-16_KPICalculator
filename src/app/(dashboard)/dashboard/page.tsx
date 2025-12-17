@@ -56,6 +56,7 @@ const DashboardPage = async () => {
       title: kpiReports.title,
       cohortLabel: kpiReports.cohortLabel,
       channel: kpiReports.channel,
+      periodLabel: kpiReports.periodLabel,
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
@@ -79,6 +80,7 @@ const DashboardPage = async () => {
     title: report.title,
     cohortLabel: report.cohortLabel,
     channel: report.channel,
+    periodLabel: report.periodLabel,
     createdAt: report.createdAt,
     period: report.period,
     businessModel: report.businessModel,
@@ -91,6 +93,10 @@ const DashboardPage = async () => {
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Saved Reports</h1>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Each saved report must include a <strong className="font-semibold">period label</strong>.
+        Unlabeled reports stay visible below but do not appear in trends.
+      </p>
       {reports.length === 0 ? (
         <p className="text-gray-700 dark:text-gray-300">
           No saved reports yet.
@@ -104,8 +110,9 @@ const DashboardPage = async () => {
               <li key={report.id} className="rounded border border-gray-200 p-4">
                 <details>
                   <summary className="cursor-pointer font-medium">
-                    {report.title ?? "Untitled"} — {report.period} /{" "}
-                    {report.businessModel} (
+                    {report.title ?? "Untitled"} —{" "}
+                    {report.periodLabel ?? "Unlabeled"} ({report.period} /{" "}
+                    {report.businessModel}) (
                     {report.createdAt
                       ? new Date(report.createdAt).toLocaleString()
                       : "unknown"}
@@ -130,6 +137,11 @@ const DashboardPage = async () => {
                     )}
                     <div>
                       <h3 className="font-semibold">Inputs</h3>
+                      {report.periodLabel == null && (
+                        <p className="text-xs text-yellow-700">
+                          This report has no period label and will be excluded from trends.
+                        </p>
+                      )}
                       <pre className="overflow-auto rounded bg-gray-50 p-2">
                         {JSON.stringify(report.inputJson, null, 2)}
                       </pre>

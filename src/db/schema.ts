@@ -5,6 +5,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -17,23 +18,32 @@ export const users = pgTable("users", {
     .defaultNow(),
 });
 
-export const kpiReports = pgTable("kpi_reports", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  title: text("title"),
-  cohortLabel: text("cohort_label"),
-  channel: text("channel"),
-  period: text("period").notNull(),
-  businessModel: text("business_model").notNull(),
-  inputJson: jsonb("input_json").notNull(),
-  resultJson: jsonb("result_json").notNull(),
-  warningsJson: jsonb("warnings_json").notNull(),
-});
+export const kpiReports = pgTable(
+  "kpi_reports",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    title: text("title"),
+    cohortLabel: text("cohort_label"),
+    channel: text("channel"),
+    period: text("period").notNull(),
+    periodLabel: text("period_label"),
+    businessModel: text("business_model").notNull(),
+    inputJson: jsonb("input_json").notNull(),
+    resultJson: jsonb("result_json").notNull(),
+    warningsJson: jsonb("warnings_json").notNull(),
+  },
+  (table) => ({
+    userPeriodLabelUnique: uniqueIndex(
+      "kpi_reports_user_period_label_unique",
+    ).on(table.userId, table.period, table.periodLabel),
+  }),
+);
 
 export const accounts = pgTable("accounts", {
   id: serial("id").primaryKey(),

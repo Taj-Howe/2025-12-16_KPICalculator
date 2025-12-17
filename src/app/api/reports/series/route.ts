@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
+import { z } from "zod";
 
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { kpiReports, users } from "@/db/schema";
-import type { KPIInput, KPIResult } from "@/features/kpi/types";
+import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
 
 const ensureUser = async (session: Session) => {
   const email = session.user?.email;
@@ -36,7 +37,45 @@ const ensureUser = async (session: Session) => {
   return inserted[0]?.id ?? null;
 };
 
-export const GET = async () => {
+const periodParamSchema = z.enum(["monthly", "quarterly", "yearly"]);
+
+const labelToDateIso = (period: KpiPeriod, label: string): string | null => {
+  try {
+    if (period === "monthly") {
+      const [year, month] = label.split("-");
+      if (!year || !month) return null;
+      const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+      return date.toISOString();
+    }
+
+    if (period === "quarterly") {
+      const [year, quarter] = label.split("-Q");
+      if (!year || !quarter) return null;
+      const quarterIndex = Number(quarter) - 1;
+      if (quarterIndex < 0 || quarterIndex > 3) {
+        return null;
+      }
+      const month = quarterIndex * 3;
+      const date = new Date(Date.UTC(Number(year), month, 1));
+      return date.toISOString();
+    }
+
+    if (period === "yearly") {
+      const year = Number(label);
+      if (Number.isNaN(year)) {
+        return null;
+      }
+      const date = new Date(Date.UTC(year, 0, 1));
+      return date.toISOString();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+export const GET = async (request: Request) => {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -47,17 +86,35 @@ export const GET = async () => {
     return NextResponse.json({ error: "Unable to resolve user." }, { status: 401 });
   }
 
+  const url = new URL(request.url);
+  const periodParam = (url.searchParams.get("period") ?? "monthly") as KpiPeriod;
+  const parsedPeriod = periodParamSchema.safeParse(periodParam);
+  if (!parsedPeriod.success) {
+    return NextResponse.json(
+      { error: "Invalid period parameter. Use monthly, quarterly, or yearly." },
+      { status: 400 },
+    );
+  }
+
   const rows = await db
     .select({
-      createdAt: kpiReports.createdAt,
+      periodLabel: kpiReports.periodLabel,
       inputJson: kpiReports.inputJson,
       resultJson: kpiReports.resultJson,
     })
     .from(kpiReports)
-    .where(eq(kpiReports.userId, userId))
-    .orderBy(asc(kpiReports.createdAt));
+    .where(
+      and(
+        eq(kpiReports.userId, userId),
+        eq(kpiReports.period, parsedPeriod.data),
+        isNotNull(kpiReports.periodLabel),
+      ),
+    )
+    .orderBy(asc(kpiReports.periodLabel));
 
   const series = {
+    period: parsedPeriod.data as KpiPeriod,
+    labels: [] as string[],
     dates: [] as (string | null)[],
     customersStart: [] as (number | null)[],
     newCustomers: [] as (number | null)[],
@@ -76,7 +133,9 @@ export const GET = async () => {
     const input = row.inputJson as KPIInput;
     const result = row.resultJson as KPIResult;
 
-    series.dates.push(row.createdAt ? row.createdAt.toISOString() : null);
+    const label = row.periodLabel ?? "";
+    series.labels.push(label);
+    series.dates.push(labelToDateIso(parsedPeriod.data, label));
     series.customersStart.push(input.activeCustomersStart ?? null);
     series.newCustomers.push(input.newCustomersPerPeriod ?? null);
     series.churnRate.push(result.churnRate ?? null);

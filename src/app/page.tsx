@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
-import type { KPIInput, KPIResult } from "@/features/kpi/types";
+import { useMemo, useEffect, useState, useRef } from "react";
+import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
 
 type FormState = KPIInput;
 type ResultKey =
@@ -30,6 +30,115 @@ const defaultState: FormState = {
   activeCustomersStart: 100,
   retainedCustomersFromStartAtEnd: 90,
   retentionRatePerPeriod: 0.6,
+};
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+const defaultPeriodLabelFor = (period: KpiPeriod, date = new Date()) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  if (period === "monthly") {
+    return `${year}-${pad(month + 1)}`;
+  }
+  if (period === "quarterly") {
+    const quarter = Math.floor(month / 3) + 1;
+    return `${year}-Q${quarter}`;
+  }
+  return `${year}`;
+};
+
+const startOfPeriod = (date: Date, period: KpiPeriod) => {
+  const start = new Date(date);
+  if (period === "monthly") {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+  if (period === "quarterly") {
+    const quarter = Math.floor(start.getMonth() / 3);
+    start.setMonth(quarter * 3, 1);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+  start.setMonth(0, 1);
+  start.setHours(0, 0, 0, 0);
+  return start;
+};
+
+const addPeriods = (date: Date, period: KpiPeriod, offset: number) => {
+  const next = new Date(date);
+  if (period === "monthly") {
+    next.setMonth(next.getMonth() + offset);
+    return startOfPeriod(next, period);
+  }
+  if (period === "quarterly") {
+    next.setMonth(next.getMonth() + offset * 3);
+    return startOfPeriod(next, period);
+  }
+  next.setFullYear(next.getFullYear() + offset);
+  return startOfPeriod(next, period);
+};
+
+const endOfPeriod = (start: Date, period: KpiPeriod) => {
+  const nextStart = addPeriods(start, period, 1);
+  const end = new Date(nextStart.getTime() - 1);
+  end.setHours(0, 0, 0, 0);
+  return end;
+};
+
+const formatRangeDate = (date: Date) =>
+  date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+const quarterLabel = (date: Date) => {
+  const quarter = Math.floor(date.getMonth() / 3) + 1;
+  return `${date.getFullYear()}-Q${quarter}`;
+};
+
+const labelForPeriodStart = (start: Date, period: KpiPeriod) => {
+  if (period === "monthly") {
+    return `${start.getFullYear()}-${pad(start.getMonth() + 1)}`;
+  }
+  if (period === "quarterly") {
+    return quarterLabel(start);
+  }
+  return `${start.getFullYear()}`;
+};
+
+const displayLabelForPeriod = (start: Date, end: Date, period: KpiPeriod) => {
+  if (period === "monthly") {
+    return `${start.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    })} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
+  }
+  if (period === "quarterly") {
+    const quarter = Math.floor(start.getMonth() / 3) + 1;
+    return `Q${quarter} ${start.getFullYear()} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
+  }
+  return `${start.getFullYear()} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
+};
+
+type PeriodOption = {
+  value: string;
+  display: string;
+  range: string;
+};
+
+const generatePeriodOptions = (period: KpiPeriod, count = 12): PeriodOption[] => {
+  const options: PeriodOption[] = [];
+  const start = startOfPeriod(new Date(), period);
+  for (let i = 0; i < count; i += 1) {
+    const currentStart = addPeriods(start, period, -i);
+    const end = endOfPeriod(currentStart, period);
+    const value = labelForPeriodStart(currentStart, period);
+    const display = displayLabelForPeriod(currentStart, end, period);
+    options.push({
+      value,
+      display,
+      range: `${formatRangeDate(currentStart)} – ${formatRangeDate(end)}`,
+    });
+  }
+  return options;
 };
 
 export default function Home() {
@@ -534,11 +643,35 @@ const ReportSavePanel = ({
   const [title, setTitle] = useState("");
   const [cohortLabel, setCohortLabel] = useState("");
   const [channel, setChannel] = useState("");
+  const periodOptions = useMemo(
+    () => generatePeriodOptions(evaluation.inputs.period),
+    [evaluation.inputs.period],
+  );
+  const [periodLabel, setPeriodLabel] = useState(
+    () => periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period),
+  );
   const [status, setStatus] = useState<"idle" | "saving">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const previousPeriodRef = useRef<KpiPeriod>(evaluation.inputs.period);
+
+  useEffect(() => {
+    if (
+      previousPeriodRef.current !== evaluation.inputs.period ||
+      !periodOptions.some((option) => option.value === periodLabel)
+    ) {
+      previousPeriodRef.current = evaluation.inputs.period;
+      setPeriodLabel(periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period));
+    }
+  }, [evaluation.inputs.period, periodLabel, periodOptions]);
 
   const handleSave = async () => {
+    const trimmedLabel = periodLabel.trim();
+    if (!trimmedLabel) {
+      setError("Period label is required.");
+      setMessage(null);
+      return;
+    }
     setStatus("saving");
     setMessage(null);
     setError(null);
@@ -550,6 +683,7 @@ const ReportSavePanel = ({
           title: title.trim() || undefined,
           cohortLabel: cohortLabel.trim() || undefined,
           channel: channel.trim() || undefined,
+          periodLabel: trimmedLabel,
           inputs: evaluation.inputs,
           results: evaluation.results,
           warnings,
@@ -557,12 +691,18 @@ const ReportSavePanel = ({
       });
       if (!response.ok) {
         const data = await response.json();
+        if (response.status === 409) {
+          throw new Error("A report already exists for that period label.");
+        }
         throw new Error(data.error ?? "Failed to save report.");
       }
       setMessage("Report saved.");
       setTitle("");
       setCohortLabel("");
       setChannel("");
+      setPeriodLabel(
+        periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
     } finally {
@@ -604,8 +744,29 @@ const ReportSavePanel = ({
             className="rounded border border-gray-300 p-2"
           />
         </label>
+        <label className="flex flex-col gap-1 md:col-span-3">
+          Period label (required)
+          <select
+            value={periodLabel}
+            onChange={(e) => setPeriodLabel(e.target.value)}
+            className="rounded border border-gray-300 p-2"
+          >
+            {periodOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.display}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-gray-700 dark:text-gray-200">
+            Selected range:{" "}
+            {
+              periodOptions.find((option) => option.value === periodLabel)?.range ??
+              "Select a period"
+            }
+          </span>
+        </label>
       </div>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
         <button
           type="button"
           onClick={handleSave}

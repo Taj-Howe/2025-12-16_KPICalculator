@@ -6,6 +6,7 @@ import type { KPIInput, KPIResult } from "@/features/kpi/types";
 export type ReportSummary = {
   id: number;
   title: string | null;
+  periodLabel?: string | null;
   createdAt: Date | string | null;
   period: string;
   businessModel: string;
@@ -124,7 +125,9 @@ const formatValue = (value: number | null | undefined, format: string) => {
               onChange={() => toggleReport(report.id)}
             />
             <span>
-              {report.title ?? "Untitled"} ({report.period} / {report.businessModel})
+              {report.title ?? "Untitled"} —{" "}
+              {report.periodLabel ?? "Unlabeled"} ({report.period} /{" "}
+              {report.businessModel})
             </span>
           </label>
         ))}

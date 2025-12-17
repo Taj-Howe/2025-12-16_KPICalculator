@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { KpiPeriod } from "@/features/kpi/types";
 import Sparkline from "./Sparkline";
 
 type SeriesResponse = {
   series: {
+    period: KpiPeriod;
+    labels: string[];
     dates: (string | null)[];
     customersStart: (number | null)[];
     newCustomers: (number | null)[];
@@ -34,31 +37,32 @@ const formatPercent = (value: number | null) =>
 const formatRatio = (value: number | null) =>
   value == null ? "—" : `${value.toFixed(2)}x`;
 
-const formatDate = (value: string | null) =>
-  value == null ? "—" : new Date(value).toLocaleString();
-
 export const ReportTrends = () => {
   const [series, setSeries] = useState<SeriesResponse["series"] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<KpiPeriod>("monthly");
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/reports/series");
+        const res = await fetch(`/api/reports/series?period=${period}`);
         if (!res.ok) {
           throw new Error("Unable to load trends.");
         }
         const data = (await res.json()) as SeriesResponse;
         setSeries(data.series);
+        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error.");
+        setSeries(null);
       } finally {
         setLoading(false);
       }
     };
+    setLoading(true);
     void load();
-  }, []);
+  }, [period]);
 
   if (loading) {
     return (
@@ -78,8 +82,8 @@ export const ReportTrends = () => {
     );
   }
 
-  const rows = series.dates.map((date, idx) => ({
-    date,
+  const rows = series.labels.map((label, idx) => ({
+    label,
     cac: series.cac[idx] ?? null,
     ltgpPerCustomer: series.ltgpPerCustomer[idx] ?? null,
     ltgpToCacRatio: series.ltgpToCacRatio[idx] ?? null,
@@ -92,6 +96,23 @@ export const ReportTrends = () => {
   return (
     <section className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100">
       <h2 className="text-xl font-semibold">Trends</h2>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <label className="flex items-center gap-2">
+          Period
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as KpiPeriod)}
+            className="rounded border border-gray-300 p-1 text-sm"
+          >
+            <option value="monthly">Monthly labels</option>
+            <option value="quarterly">Quarterly labels</option>
+            <option value="yearly">Yearly labels</option>
+          </select>
+        </label>
+        <span className="text-xs text-gray-600 dark:text-gray-300">
+          Only reports with period labels appear here.
+        </span>
+      </div>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-700 dark:text-gray-300">No report history yet.</p>
       ) : (
@@ -114,7 +135,7 @@ export const ReportTrends = () => {
             <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border border-gray-200 p-2 text-left">Date</th>
+                <th className="border border-gray-200 p-2 text-left">Period label</th>
                 <th className="border border-gray-200 p-2 text-left">CAC</th>
                 <th className="border border-gray-200 p-2 text-left">
                   LTGP/customer
@@ -136,9 +157,9 @@ export const ReportTrends = () => {
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={`${row.date}-${index}`}>
+                <tr key={`${row.label}-${index}`}>
                   <td className="border border-gray-200 p-2">
-                    {formatDate(row.date)}
+                    {row.label || "—"}
                   </td>
                   <td className="border border-gray-200 p-2">
                     {formatMoney(row.cac)}
