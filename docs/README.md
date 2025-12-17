@@ -58,18 +58,16 @@ The app supports different business models because the same KPI name can mean di
 ### KPIs (v1)
 - **CAC** (Customer Acquisition Cost)
 - **LTGP** (Lifetime Gross Profit)
-- **LTGP:CAC**
-- **Growth Assessment** (same value as LTGP:CAC; different label)
+- **LTGP:CAC** (primary growth ratio)
 - **LTV** (Lifetime Value; computed in a model-aware way)
 - **Churn** (subscription) or retention proxy (transactional)
 - **ARPC** (Average Revenue Per Customer, per selected period)
 - **CAR** (Customer Acquisition Rate)
-- **Customers at Max Revenue**
 - **Hypothetical Max Revenue / Year** (annualized from selected period)
 - **Hypothetical Max Profit / Year** (annualized from selected period)
 
 ### Definitions (important so the math isn’t vibes)
-- **Growth Assessment = LTGP ÷ CAC**
+- **LTGP:CAC (growth lens)**
   - Interpretation: how many dollars of lifetime gross profit you generate per $1 spent acquiring a customer.
   - Higher ratio → more reinvestable gross profit → faster growth potential.
 
@@ -85,8 +83,17 @@ The app supports different business models because the same KPI name can mean di
 3. Enter inputs (all “per period”)
 4. Click **Calculate**
 5. View dashboard results + warnings
-6. Optional: **Save report** (snapshot) with title + notes
+6. Optional: **Save report** (snapshot) with title + notes **and a period label** (see below)
 7. Browse saved reports and compare over time
+
+#### Period labels
+- Every saved report must include a `periodLabel`, which captures the specific month/quarter/year the data represents.
+- The Save Report panel gives you a dropdown of valid period ranges (start date + period length) so the label always matches the selected cadence.
+- Formats:
+  - monthly → `YYYY-MM` (e.g., `2026-01`)
+  - quarterly → `YYYY-Q#` (e.g., `2026-Q1`)
+  - yearly → `YYYY` (e.g., `2026`)
+- `createdAt` tracks when the report was saved; `periodLabel` tracks the time bucket the metrics describe. Trends and cohorts rely on `periodLabel`, so unlabeled reports are excluded from charts/tables.
 
 ### System boundaries (what this app is / is not)
 #### This app is

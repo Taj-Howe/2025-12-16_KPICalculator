@@ -7,6 +7,7 @@ import { kpiReports, users } from "@/db/schema";
 import type { KPIInput, KPIResult } from "@/features/kpi/types";
 import type { ReportSummary } from "@/components/report-comparison";
 import { ReportComparison } from "@/components/report-comparison";
+import { ReportTrends } from "@/components/report-trends";
 
 const resolveUserId = async (email: string | null | undefined) => {
   if (!email) {
@@ -29,7 +30,9 @@ const DashboardPage = async () => {
     return (
       <main className="mx-auto max-w-3xl p-6">
         <h1 className="text-2xl font-semibold">Saved Reports</h1>
-        <p className="text-gray-600">Please sign in to view saved reports.</p>
+        <p className="text-gray-700 dark:text-gray-300">
+          Please sign in to view saved reports.
+        </p>
       </main>
     );
   }
@@ -40,7 +43,9 @@ const DashboardPage = async () => {
     return (
       <main className="mx-auto max-w-3xl p-6">
         <h1 className="text-2xl font-semibold">Saved Reports</h1>
-        <p className="text-gray-600">No saved reports yet.</p>
+        <p className="text-gray-700 dark:text-gray-300">
+          No saved reports yet.
+        </p>
       </main>
     );
   }
@@ -49,6 +54,9 @@ const DashboardPage = async () => {
     .select({
       id: kpiReports.id,
       title: kpiReports.title,
+      cohortLabel: kpiReports.cohortLabel,
+      channel: kpiReports.channel,
+      periodLabel: kpiReports.periodLabel,
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
@@ -70,6 +78,9 @@ const DashboardPage = async () => {
   const summaries: ReportSummary[] = reports.map((report) => ({
     id: report.id,
     title: report.title,
+    cohortLabel: report.cohortLabel,
+    channel: report.channel,
+    periodLabel: report.periodLabel,
     createdAt: report.createdAt,
     period: report.period,
     businessModel: report.businessModel,
@@ -78,29 +89,59 @@ const DashboardPage = async () => {
     warningsJson: report.warningsJson,
   }));
 
+
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Saved Reports</h1>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Each saved report must include a <strong className="font-semibold">period label</strong>.
+        Unlabeled reports stay visible below but do not appear in trends.
+      </p>
       {reports.length === 0 ? (
-        <p className="text-gray-600">No saved reports yet.</p>
+        <p className="text-gray-700 dark:text-gray-300">
+          No saved reports yet.
+        </p>
       ) : (
         <>
+          <ReportTrends />
           <ReportComparison reports={summaries} />
           <ul className="space-y-4">
             {reports.map((report) => (
               <li key={report.id} className="rounded border border-gray-200 p-4">
                 <details>
                   <summary className="cursor-pointer font-medium">
-                    {report.title ?? "Untitled"} — {report.period} /{" "}
-                    {report.businessModel} (
+                    {report.title ?? "Untitled"} —{" "}
+                    {report.periodLabel ?? "Unlabeled"} ({report.period} /{" "}
+                    {report.businessModel}) (
                     {report.createdAt
                       ? new Date(report.createdAt).toLocaleString()
                       : "unknown"}
                     )
                   </summary>
                   <div className="mt-3 space-y-2 text-sm">
+                    {(report.cohortLabel || report.channel) && (
+                      <div className="text-gray-700 dark:text-gray-200">
+                        {report.cohortLabel && (
+                          <p>
+                            <span className="font-semibold">Cohort:</span>{" "}
+                            {report.cohortLabel}
+                          </p>
+                        )}
+                        {report.channel && (
+                          <p>
+                            <span className="font-semibold">Channel:</span>{" "}
+                            {report.channel}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-semibold">Inputs</h3>
+                      {report.periodLabel == null && (
+                        <p className="text-xs text-yellow-700">
+                          This report has no period label and will be excluded from trends.
+                        </p>
+                      )}
                       <pre className="overflow-auto rounded bg-gray-50 p-2">
                         {JSON.stringify(report.inputJson, null, 2)}
                       </pre>

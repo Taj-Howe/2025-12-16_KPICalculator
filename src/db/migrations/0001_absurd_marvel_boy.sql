@@ -1,0 +1,2 @@
+ALTER TABLE "kpi_reports" ADD COLUMN "period_label" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "kpi_reports_user_period_label_unique" ON "kpi_reports" USING btree ("user_id","period","period_label");
