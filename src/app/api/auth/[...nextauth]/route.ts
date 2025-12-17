@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export const GET = async () => {
-  return NextResponse.json({ status: "auth handler not implemented" });
-};
+const handler = NextAuth(authOptions);
 
-export const POST = GET;
+export { handler as GET, handler as POST };

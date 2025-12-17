@@ -1,15 +1,13 @@
-const required = ["DATABASE_URL"] as const;
-
-const entries = required.reduce<Record<string, string>>((acc, key) => {
-  const value = process.env[key];
-  if (!value) {
-    acc[key] = "";
-  } else {
-    acc[key] = value;
-  }
-  return acc;
-}, {});
-
-export const env = entries as {
+type Env = {
   DATABASE_URL: string;
-} & Record<string, string>;
+  NEXTAUTH_SECRET: string;
+  GITHUB_ID: string;
+  GITHUB_SECRET: string;
+};
+
+export const env: Env = {
+  DATABASE_URL: process.env.DATABASE_URL ?? "",
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? "",
+  GITHUB_ID: process.env.GITHUB_ID ?? "",
+  GITHUB_SECRET: process.env.GITHUB_SECRET ?? "",
+};
