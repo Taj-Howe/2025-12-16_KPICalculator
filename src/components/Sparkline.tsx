@@ -1,19 +1,21 @@
 "use client";
 
 type SparklineProps = {
-  data: (number | null)[];
+  values: (number | null)[];
+  labels?: string[];
   width?: number;
   height?: number;
   stroke?: string;
 };
 
 const Sparkline = ({
-  data,
+  values,
+  labels,
   width = 120,
   height = 40,
   stroke = "#2563eb",
 }: SparklineProps) => {
-  const points = buildPoints(data, width, height);
+  const points = buildPoints(values, width, height);
 
   if (!points) {
     return (
@@ -42,6 +44,7 @@ const Sparkline = ({
         strokeLinecap="round"
         points={points}
       />
+      {renderTitles(values, labels)}
     </svg>
   );
 };
@@ -74,6 +77,37 @@ const buildPoints = (
     .join(" ");
 
   return points;
+};
+
+const renderTitles = (
+  values: (number | null)[],
+  labels: string[] | undefined,
+) => {
+  if (!labels || labels.length === 0) {
+    return null;
+  }
+
+  const lastValueIndex = [...values]
+    .map((value, index) => ({ value, index }))
+    .filter((point) => point.value != null)
+    .map((point) => point.index)
+    .pop();
+
+  if (lastValueIndex == null) {
+    return null;
+  }
+
+  const label = labels[lastValueIndex] ?? labels[labels.length - 1];
+  const value = values[lastValueIndex];
+  if (value == null) {
+    return null;
+  }
+
+  return (
+    <title>
+      {label ? `${label}: ` : ""}{value.toFixed(2)}
+    </title>
+  );
 };
 
 export default Sparkline;

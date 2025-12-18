@@ -57,6 +57,7 @@ test("transactional churn is one minus retention", () => {
     businessModel: "transactional",
     retainedCustomersFromStartAtEnd: undefined,
     retentionRatePerPeriod: 0.6,
+    activeCustomersEnd: 120,
   };
   const { results } = evaluateKpis(payload);
   assert.equal(results.retentionRate, 0.6);
@@ -69,6 +70,7 @@ test("hybrid warns when subscription data missing but transactional present", ()
     businessModel: "hybrid",
     retainedCustomersFromStartAtEnd: undefined,
     retentionRatePerPeriod: 0.7,
+    activeCustomersEnd: 115,
   };
   const evaluation = evaluateKpis(payload);
   assert.ok(
@@ -77,4 +79,28 @@ test("hybrid warns when subscription data missing but transactional present", ()
     ),
   );
   assert.equal(evaluation.results.retentionRate, 0.7);
+});
+
+test("transactional inputs require active customers at end", () => {
+  const payload: KPIInput = {
+    ...baseInput,
+    businessModel: "transactional",
+    retentionRatePerPeriod: 0.5,
+  };
+  assert.throws(
+    () => evaluateKpis(payload),
+    /Active customers at end is required for transactional and hybrid models/,
+  );
+});
+
+test("hybrid inputs require active customers at end", () => {
+  const payload: KPIInput = {
+    ...baseInput,
+    businessModel: "hybrid",
+    retentionRatePerPeriod: 0.5,
+  };
+  assert.throws(
+    () => evaluateKpis(payload),
+    /Active customers at end is required for transactional and hybrid models/,
+  );
 });

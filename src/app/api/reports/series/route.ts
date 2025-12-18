@@ -39,40 +39,97 @@ const ensureUser = async (session: Session) => {
 
 const periodParamSchema = z.enum(["monthly", "quarterly", "yearly"]);
 
-const labelToDateIso = (period: KpiPeriod, label: string): string | null => {
-  try {
-    if (period === "monthly") {
-      const [year, month] = label.split("-");
-      if (!year || !month) return null;
-      const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
-      return date.toISOString();
-    }
-
-    if (period === "quarterly") {
-      const [year, quarter] = label.split("-Q");
-      if (!year || !quarter) return null;
-      const quarterIndex = Number(quarter) - 1;
-      if (quarterIndex < 0 || quarterIndex > 3) {
-        return null;
-      }
-      const month = quarterIndex * 3;
-      const date = new Date(Date.UTC(Number(year), month, 1));
-      return date.toISOString();
-    }
-
-    if (period === "yearly") {
-      const year = Number(label);
-      if (Number.isNaN(year)) {
-        return null;
-      }
-      const date = new Date(Date.UTC(year, 0, 1));
-      return date.toISOString();
-    }
-
-    return null;
-  } catch {
+const parseMonthly = (label: string) => {
+  const [yearStr, monthStr] = label.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (Number.isNaN(year) || Number.isNaN(month) || month < 1 || month > 12) {
     return null;
   }
+  return { year, month };
+};
+
+const parseQuarterly = (label: string) => {
+  const [yearStr, quarterStr] = label.split("-Q");
+  const year = Number(yearStr);
+  const quarter = Number(quarterStr);
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(quarter) ||
+    quarter < 1 ||
+    quarter > 4
+  ) {
+    return null;
+  }
+  return { year, quarter };
+};
+
+const parseYearly = (label: string) => {
+  const year = Number(label);
+  return Number.isNaN(year) ? null : { year };
+};
+
+const nextMonthly = (year: number, month: number) => {
+  const nextMonth = month + 1;
+  if (nextMonth > 12) {
+    return { year: year + 1, month: 1 };
+  }
+  return { year, month: nextMonth };
+};
+
+const nextQuarterly = (year: number, quarter: number) => {
+  const nextQuarter = quarter + 1;
+  if (nextQuarter > 4) {
+    return { year: year + 1, quarter: 1 };
+  }
+  return { year, quarter: nextQuarter };
+};
+
+const generateLabelRange = (period: KpiPeriod, labels: string[]) => {
+  if (labels.length === 0) {
+    return [] as string[];
+  }
+
+  if (period === "monthly") {
+    const start = parseMonthly(labels[0]);
+    const end = parseMonthly(labels[labels.length - 1]);
+    if (!start || !end) return labels;
+    const all: string[] = [];
+    let cursor = { ...start };
+    while (
+      cursor.year < end.year ||
+      (cursor.year === end.year && cursor.month <= end.month)
+    ) {
+      all.push(`${cursor.year}-${String(cursor.month).padStart(2, "0")}`);
+      cursor = nextMonthly(cursor.year, cursor.month);
+    }
+    return all;
+  }
+
+  if (period === "quarterly") {
+    const start = parseQuarterly(labels[0]);
+    const end = parseQuarterly(labels[labels.length - 1]);
+    if (!start || !end) return labels;
+    const all: string[] = [];
+    let cursor = { ...start };
+    while (
+      cursor.year < end.year ||
+      (cursor.year === end.year && cursor.quarter <= end.quarter)
+    ) {
+      all.push(`${cursor.year}-Q${cursor.quarter}`);
+      cursor = nextQuarterly(cursor.year, cursor.quarter);
+    }
+    return all;
+  }
+
+  const start = parseYearly(labels[0]);
+  const end = parseYearly(labels[labels.length - 1]);
+  if (!start || !end) return labels;
+  const all: string[] = [];
+  for (let y = start.year; y <= end.year; y += 1) {
+    all.push(String(y));
+  }
+  return all;
 };
 
 export const GET = async (request: Request) => {
@@ -112,10 +169,21 @@ export const GET = async (request: Request) => {
     )
     .orderBy(asc(kpiReports.periodLabel));
 
+  const labels = rows
+    .map((row) => row.periodLabel)
+    .filter((label): label is string => Boolean(label));
+
+  const alignedLabels = generateLabelRange(parsedPeriod.data, labels);
+
+  const rowMap = new Map(
+    rows
+      .filter((row) => row.periodLabel)
+      .map((row) => [row.periodLabel as string, row]),
+  );
+
   const series = {
     period: parsedPeriod.data as KpiPeriod,
-    labels: [] as string[],
-    dates: [] as (string | null)[],
+    labels: alignedLabels,
     customersStart: [] as (number | null)[],
     newCustomers: [] as (number | null)[],
     churnRate: [] as (number | null)[],
@@ -129,13 +197,26 @@ export const GET = async (request: Request) => {
     maxProfitPerYear: [] as (number | null)[],
   };
 
-  rows.forEach((row) => {
+  alignedLabels.forEach((label) => {
+    const row = rowMap.get(label);
+    if (!row) {
+      series.customersStart.push(null);
+      series.newCustomers.push(null);
+      series.churnRate.push(null);
+      series.retentionRate.push(null);
+      series.cac.push(null);
+      series.arpc.push(null);
+      series.ltgpPerCustomer.push(null);
+      series.ltgpToCacRatio.push(null);
+      series.cacPaybackPeriods.push(null);
+      series.maxRevenuePerYear.push(null);
+      series.maxProfitPerYear.push(null);
+      return;
+    }
+
     const input = row.inputJson as KPIInput;
     const result = row.resultJson as KPIResult;
 
-    const label = row.periodLabel ?? "";
-    series.labels.push(label);
-    series.dates.push(labelToDateIso(parsedPeriod.data, label));
     series.customersStart.push(input.activeCustomersStart ?? null);
     series.newCustomers.push(input.newCustomersPerPeriod ?? null);
     series.churnRate.push(result.churnRate ?? null);

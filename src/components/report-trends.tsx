@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import type { KpiPeriod } from "@/features/kpi/types";
 import Sparkline from "./Sparkline";
+import LineChart from "./LineChart";
 
 type SeriesResponse = {
   series: {
     period: KpiPeriod;
     labels: string[];
-    dates: (string | null)[];
     customersStart: (number | null)[];
     newCustomers: (number | null)[];
     churnRate: (number | null)[];
@@ -28,6 +28,9 @@ const usd = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+const dollar = (value: number | null) =>
+  value == null ? "—" : usd.format(value);
+
 const formatMoney = (value: number | null) =>
   value == null ? "—" : usd.format(value);
 
@@ -37,11 +40,43 @@ const formatPercent = (value: number | null) =>
 const formatRatio = (value: number | null) =>
   value == null ? "—" : `${value.toFixed(2)}x`;
 
+const metricOptions = [
+  {
+    key: "ltgpToCacRatio",
+    label: "LTGP:CAC (x)",
+    formatter: (n: number) => `${n.toFixed(2)}x`,
+  },
+  {
+    key: "cac",
+    label: "CAC ($)",
+    formatter: (n: number) => dollar(n),
+  },
+  {
+    key: "cacPaybackPeriods",
+    label: "CAC Payback (periods)",
+    formatter: (n: number) => `${n.toFixed(1)} periods`,
+  },
+  {
+    key: "arpc",
+    label: "ARPC ($)",
+    formatter: (n: number) => dollar(n),
+  },
+  {
+    key: "maxProfitPerYear",
+    label: "Max Profit / Year ($)",
+    formatter: (n: number) => dollar(n),
+  },
+] as const;
+
 export const ReportTrends = () => {
   const [series, setSeries] = useState<SeriesResponse["series"] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<KpiPeriod>("monthly");
+  const [metricKey, setMetricKey] =
+    useState<(typeof metricOptions)[number]["key"]>("ltgpToCacRatio");
+  const [compareKey, setCompareKey] =
+    useState<(typeof metricOptions)[number]["key"] | "none">("none");
 
   useEffect(() => {
     const load = async () => {
@@ -82,6 +117,51 @@ export const ReportTrends = () => {
     );
   }
 
+  const selectedMetric = metricOptions.find((m) => m.key === metricKey) ?? metricOptions[0];
+  const selectedValues = series[selectedMetric.key as keyof typeof series] as (number | null)[];
+
+  const compareMetric =
+    compareKey === "none"
+      ? null
+      : metricOptions.find((m) => m.key === compareKey) ?? null;
+  const compareValues = compareMetric
+    ? (series[compareMetric.key as keyof typeof series] as (number | null)[])
+    : null;
+
+  const latestIndex =
+    selectedValues.length > 0
+      ? [...selectedValues]
+          .map((value, index) => ({ value, index }))
+          .filter((p) => p.value != null)
+          .map((p) => p.index)
+          .pop()
+      : undefined;
+  const prevIndex =
+    latestIndex != null
+      ? [...selectedValues]
+          .slice(0, latestIndex)
+          .map((value, index) => ({ value, index }))
+          .filter((p) => p.value != null)
+          .map((p) => p.index)
+          .pop()
+      : undefined;
+
+  const latestValue =
+    latestIndex != null ? selectedValues[latestIndex] ?? null : null;
+  const prevValue =
+    prevIndex != null ? selectedValues[prevIndex] ?? null : null;
+
+  const latestLabel =
+    latestIndex != null ? series.labels[latestIndex] ?? "" : "";
+
+  const formattedLatest =
+    latestValue == null ? "—" : selectedMetric.formatter(latestValue);
+
+  const change =
+    latestValue != null && prevValue != null ? latestValue - prevValue : null;
+  const changeDisplay =
+    change == null ? "—" : selectedMetric.formatter(change);
+
   const rows = series.labels.map((label, idx) => ({
     label,
     cac: series.cac[idx] ?? null,
@@ -113,19 +193,83 @@ export const ReportTrends = () => {
           Only reports with period labels appear here.
         </span>
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2">
+          Metric
+          <select
+            value={metricKey}
+            onChange={(e) =>
+              setMetricKey(e.target.value as (typeof metricOptions)[number]["key"])
+            }
+            className="rounded border border-gray-300 p-1 text-sm"
+          >
+            {metricOptions.map((metric) => (
+              <option key={metric.key} value={metric.key}>
+                {metric.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex flex-wrap gap-3 text-xs text-gray-700 dark:text-gray-300">
+          <span>
+            Latest ({latestLabel || "—"}): <strong>{formattedLatest}</strong>
+          </span>
+          <span>
+            Change vs previous: <strong>{changeDisplay}</strong>
+          </span>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <label className="flex items-center gap-2">
+          Compare to
+          <select
+            value={compareKey}
+            onChange={(e) =>
+              setCompareKey(
+                e.target.value as (typeof metricOptions)[number]["key"] | "none",
+              )
+            }
+            className="rounded border border-gray-300 p-1 text-sm"
+          >
+            <option value="none">None</option>
+            {metricOptions.map((metric) => (
+              <option key={metric.key} value={metric.key}>
+                {metric.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-700 dark:text-gray-300">No report history yet.</p>
       ) : (
         <>
+          <div className="mt-4 overflow-auto rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+            <LineChart
+              labels={series.labels}
+              series={[
+                { name: selectedMetric.label, values: selectedValues },
+                ...(compareMetric && compareValues
+                  ? [{ name: compareMetric.label, values: compareValues }]
+                  : []),
+              ]}
+              formatValue={(n) => selectedMetric.formatter(n)}
+              yLabel={selectedMetric.label}
+              width={640}
+              height={240}
+            />
+          </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <SparklineCard
               label="LTGP:CAC"
               series={series.ltgpToCacRatio}
+              labels={series.labels}
               format={(value) => (value == null ? "—" : `${value.toFixed(2)}x`)}
             />
             <SparklineCard
               label="CAC payback (periods)"
               series={series.cacPaybackPeriods}
+              labels={series.labels}
               format={(value) =>
                 value == null ? "—" : `${value.toFixed(2)} periods`
               }
@@ -198,10 +342,12 @@ export const ReportTrends = () => {
 const SparklineCard = ({
   label,
   series,
+  labels,
   format,
 }: {
   label: string;
   series: (number | null)[];
+  labels: string[];
   format: (value: number | null) => string;
 }) => {
   const latest =
@@ -218,7 +364,7 @@ const SparklineCard = ({
         </span>
       </div>
       <div className="mt-2">
-        <Sparkline data={series} />
+        <Sparkline values={series} labels={labels} />
       </div>
     </div>
   );

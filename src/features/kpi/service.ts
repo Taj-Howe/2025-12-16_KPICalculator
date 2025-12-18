@@ -95,26 +95,32 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
           )
         : nullTransactionalDerived;
 
-  let impliedEndCustomers =
-    parsed.activeCustomersEnd ?? subscriptionDerived.derivedEndCustomers;
-
-  if (impliedEndCustomers != null && impliedEndCustomers < 0) {
-    warnings.push(
-      "Derived end customers is negative; check start, new, and churn inputs.",
-    );
-    impliedEndCustomers = null;
-  }
-
-  let avgCustomers = parsed.activeCustomersStart;
-  if (impliedEndCustomers != null) {
-    avgCustomers = averageActiveCustomers(parsed.activeCustomersStart, impliedEndCustomers);
+  let avgCustomers: number | null = null;
+  if (parsed.businessModel === "subscription") {
+    let derivedEndCustomers = subscriptionDerived.derivedEndCustomers;
+    if (derivedEndCustomers != null && derivedEndCustomers < 0) {
+      warnings.push(
+        "Derived end customers is negative; check start, new, and churn inputs.",
+      );
+      derivedEndCustomers = null;
+    }
+    avgCustomers =
+      derivedEndCustomers != null
+        ? averageActiveCustomers(parsed.activeCustomersStart, derivedEndCustomers)
+        : parsed.activeCustomersStart;
   } else {
-    warnings.push(
-      "Active customers at end is not provided; ARPC uses start customers as an approximation.",
-    );
+    const providedEnd = parsed.activeCustomersEnd ?? null;
+    if (providedEnd == null) {
+      warnings.push(
+        "Active customers at end is required to compute ARPC for this business model.",
+      );
+    } else {
+      avgCustomers = averageActiveCustomers(parsed.activeCustomersStart, providedEnd);
+    }
   }
 
-  const arpcValue = arpc(parsed.revenuePerPeriod, avgCustomers);
+  const arpcValue =
+    avgCustomers != null ? arpc(parsed.revenuePerPeriod, avgCustomers) : null;
   const cacValue = cac(parsed.marketingSpendPerPeriod, parsed.newCustomersPerPeriod);
   const grossProfitPerCustomer =
     arpcValue != null ? arpcValue * parsed.grossMargin : null;

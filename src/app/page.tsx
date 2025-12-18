@@ -182,6 +182,8 @@ export default function Home() {
     form.businessModel === "subscription" || form.businessModel === "hybrid";
   const showRetentionRateField =
     form.businessModel === "transactional" || form.businessModel === "hybrid";
+  const showActiveCustomersEnd =
+    form.businessModel === "transactional" || form.businessModel === "hybrid";
 
   useEffect(() => {
     setForm((prev) => {
@@ -205,12 +207,15 @@ export default function Home() {
       if (!showRetentionRateField && prev.retentionRatePerPeriod != null) {
         updates.retentionRatePerPeriod = undefined;
       }
+      if (!showActiveCustomersEnd && prev.activeCustomersEnd != null) {
+        updates.activeCustomersEnd = undefined;
+      }
       if (Object.keys(updates).length === 0) {
         return prev;
       }
       return { ...prev, ...updates };
     });
-  }, [showRetainedField, showRetentionRateField, churnInputMode]);
+  }, [showRetainedField, showRetentionRateField, showActiveCustomersEnd, churnInputMode]);
 
   useEffect(() => {
     if (!showRetainedField && churnInputMode !== "retained") {
@@ -325,6 +330,22 @@ export default function Home() {
             )}
           </label>
         ))}
+
+        {showActiveCustomersEnd && (
+          <label className="flex flex-col gap-1">
+            Active customers at end (per period)
+            <input
+              type="number"
+              name="activeCustomersEnd"
+              value={form.activeCustomersEnd ?? ""}
+              onChange={handleChange}
+              className="rounded border border-gray-300 p-2"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-200">
+              Transactional/Hybrid: number of unique customers active by period end (used for ARPC averaging).
+            </span>
+          </label>
+        )}
         <p className="text-sm text-gray-700 dark:text-gray-200">
           End customers are derived from start customers + new customers − churn
           (or derived churn).

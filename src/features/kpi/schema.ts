@@ -59,6 +59,17 @@ export const kpiInputSchema = baseSchema.superRefine((value, ctx) => {
       path: ["retentionRatePerPeriod"],
     });
   }
+
+  if (
+    (value.businessModel === "transactional" || value.businessModel === "hybrid") &&
+    value.activeCustomersEnd == null
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Active customers at end is required for transactional and hybrid models.",
+      path: ["activeCustomersEnd"],
+    });
+  }
 });
 
 export type KPIInputSchema = z.infer<typeof kpiInputSchema>;
