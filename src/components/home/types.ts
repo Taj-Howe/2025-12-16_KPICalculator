@@ -53,6 +53,10 @@ export type ReportsPanelProps = {
   onRefresh: () => Promise<void>;
   series?: ReportSeries | null;
   signInCta?: React.ReactNode;
+  onSeedSampleYear: () => void;
+  isSeeding: boolean;
+  seedStatus: string | null;
+  onDeleteReport: (id: number) => void;
 };
 
 export const sampleKpiInput: KPIInputState = {

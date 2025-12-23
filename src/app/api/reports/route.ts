@@ -181,6 +181,37 @@ export const GET = async () => {
   return NextResponse.json({ reports: serialized }, { status: 200 });
 };
 
+export const DELETE = async (request: Request) => {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const userId = await ensureUser(session);
+  if (!userId) {
+    return NextResponse.json({ error: "Unable to resolve user." }, { status: 401 });
+  }
+
+  const json = await request.json().catch(() => null);
+  const year = typeof json?.year === "number" ? json.year : null;
+  if (!year) {
+    return NextResponse.json({ error: "Year is required." }, { status: 400 });
+  }
+
+  const labelPrefix = `${year}-`;
+  const deleted = await db
+    .delete(kpiReports)
+    .where(
+      sql`${kpiReports.userId} = ${userId}
+        AND ${kpiReports.period} = 'monthly'
+        AND ${kpiReports.channel} = 'sample'
+        AND ${kpiReports.periodLabel} LIKE ${labelPrefix + "%"}`,
+    )
+    .returning({ id: kpiReports.id });
+
+  return NextResponse.json({ deleted: deleted.length }, { status: 200 });
+};
+
 const isUniqueViolation = (error: unknown) => {
   return (
     typeof error === "object" &&

@@ -2,7 +2,10 @@
 
 import type { SampleDataControlsProps } from "./types";
 
-const SampleDataControls = ({ onLoadSample, onClear }: SampleDataControlsProps) => {
+const SampleDataControls = ({
+  onLoadSample,
+  onClear,
+}: SampleDataControlsProps) => {
   return (
     <div className="flex flex-wrap gap-2">
       <button

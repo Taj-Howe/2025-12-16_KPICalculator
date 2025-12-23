@@ -12,6 +12,7 @@ import type { ReportSummary } from "@/components/report-comparison";
 import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
 import { sampleKpiInput } from "@/components/home/types";
 import type { ReportSeries } from "@/components/home/types";
+import { generateSampleYearReports } from "@/lib/sampleReports";
 
 type FormState = KPIInput;
 type Evaluation = {
@@ -162,6 +163,8 @@ export default function Home() {
   const [series, setSeries] = useState<ReportSeries | null>(null);
   const [reportsError, setReportsError] = useState<string | null>(null);
   const [seriesError, setSeriesError] = useState<string | null>(null);
+  const [seedStatus, setSeedStatus] = useState<string | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const selectedReport =
     selectedReportId == null
@@ -309,6 +312,80 @@ export default function Home() {
     setError(null);
   };
 
+  const handleLoadSampleYear = async () => {
+    if (!sessionEmail) {
+      setSeedStatus("Sign in required.");
+      return;
+    }
+    if (isSeeding) {
+      return;
+    }
+    setIsSeeding(true);
+    setSeedStatus("Preparing 12 monthly reports...");
+    const year = new Date().getFullYear();
+    const payloads = generateSampleYearReports(year);
+
+    let created = 0;
+    for (let i = 0; i < payloads.length; i += 1) {
+      const payload = payloads[i];
+      setSeedStatus(`Creating ${i + 1}/12...`);
+      try {
+        const response = await fetch("/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) {
+          created += 1;
+        } else if (response.status === 409) {
+          continue;
+        } else {
+          const data = await response.json();
+          setSeedStatus(
+            data.error ?? "Some reports could not be created.",
+          );
+        }
+      } catch {
+        setSeedStatus("Unable to create sample reports.");
+      }
+    }
+
+    setSeedStatus(
+      created > 0
+        ? `Created ${created}/12 reports.`
+        : "No new reports created (already existed).",
+    );
+    await refreshReports();
+    setIsSeeding(false);
+  };
+
+  const handleDeleteReport = async (id: number) => {
+    const confirmed = window.confirm(
+      "Delete this report? This cannot be undone.",
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/reports/${id}`, {
+        method: "DELETE",
+      });
+      if (response.status === 401) {
+        window.location.href = "/signin?callbackUrl=/";
+        return;
+      }
+      if (!response.ok) {
+        const data = await response.json();
+        setReportsError(data.error ?? "Unable to delete report.");
+        return;
+      }
+      setSelectedReportId(null);
+      await refreshReports();
+    } catch {
+      setReportsError("Unable to delete report.");
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut({ redirect: false });
     await loadSession();
@@ -339,6 +416,10 @@ export default function Home() {
             <SampleDataControls
               onLoadSample={handleLoadSample}
               onClear={handleClear}
+              onLoadSampleYear={handleLoadSampleYear}
+              isSeeding={isSeeding}
+              seedStatus={seedStatus}
+              isSignedIn={Boolean(sessionEmail)}
             />
           </KpiInputPanel>
 
@@ -358,6 +439,10 @@ export default function Home() {
             onRefresh={refreshReports}
             series={series}
             signInCta={<GitHubSignInButton callbackUrl="/" />}
+            onSeedSampleYear={handleLoadSampleYear}
+            isSeeding={isSeeding}
+            seedStatus={seedStatus}
+            onDeleteReport={handleDeleteReport}
           />
 
           {reportsError && (

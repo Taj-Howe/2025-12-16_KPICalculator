@@ -23,14 +23,26 @@ const KpiInputPanel = ({
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
+    const percentFields = ["grossMargin", "retentionRatePerPeriod"];
+    const parseValue = () => {
+      if (name === "period" || name === "businessModel") {
+        return nextValue;
+      }
+      if (nextValue === "") {
+        return undefined;
+      }
+      const numeric = Number(nextValue);
+      if (Number.isNaN(numeric)) {
+        return undefined;
+      }
+      if (percentFields.includes(name)) {
+        return numeric / 100;
+      }
+      return numeric;
+    };
     const nextState = {
       ...value,
-      [name]:
-        name === "period" || name === "businessModel"
-          ? nextValue
-          : nextValue === ""
-            ? undefined
-            : Number(nextValue),
+      [name]: parseValue(),
     } as typeof value;
     onChange(nextState);
   };
@@ -87,7 +99,7 @@ const KpiInputPanel = ({
 
   const grossMarginError =
     value.grossMargin != null && value.grossMargin > 1
-      ? "Gross margin cannot exceed 1.0 (100%)."
+      ? "Gross margin cannot exceed 100%."
       : null;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -109,6 +121,13 @@ const KpiInputPanel = ({
       }),
     [],
   );
+
+  const displayPercent = (val?: number) =>
+    val == null ? "" : Number((val * 100).toFixed(2));
+  const displayMoney = (val?: number) =>
+    val == null ? "—" : usd.format(val);
+  const displayInt = (val?: number) =>
+    val == null ? "—" : intFormatter.format(val);
 
   return (
     <section className="rounded border border-white/30 bg-black p-4 text-white">
@@ -152,33 +171,56 @@ const KpiInputPanel = ({
         </label>
 
         {[
-          { label: `Revenue (per ${periodLabel})`, name: "revenuePerPeriod" },
           {
-            label: "Gross Margin (0-1)",
+            label: `Revenue (per ${periodLabel})`,
+            name: "revenuePerPeriod",
+            formatted: displayMoney(value.revenuePerPeriod),
+          },
+          {
+            label: "Gross Margin (%)",
             name: "grossMargin",
-            helper: "Before marketing/CAC. Example: 0.7 = 70%.",
+            helper: "Before marketing/CAC. Example: 70 = 70%.",
+            formatted:
+              value.grossMargin == null
+                ? "—"
+                : `${displayPercent(value.grossMargin)}%`,
           },
           {
             label: `Marketing Spend (per ${periodLabel})`,
             name: "marketingSpendPerPeriod",
+            formatted: displayMoney(value.marketingSpendPerPeriod),
           },
           {
             label: `New Customers (per ${periodLabel})`,
             name: "newCustomersPerPeriod",
+            formatted: displayInt(value.newCustomersPerPeriod),
           },
-          { label: "Active Customers Start", name: "activeCustomersStart" },
+          {
+            label: "Active Customers Start",
+            name: "activeCustomersStart",
+            formatted: displayInt(value.activeCustomersStart),
+          },
         ].map((field) => (
           <label key={field.name} className="flex flex-col gap-1">
             {field.label}
             <input
               type="number"
               name={field.name}
-              value={value[field.name as keyof typeof value] ?? ""}
+              value={
+                field.name === "grossMargin"
+                  ? displayPercent(value.grossMargin)
+                  : value[field.name as keyof typeof value] ?? ""
+              }
               onChange={handleChange}
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
             {"helper" in field && field.helper && (
               <span className="text-sm text-white/70">{field.helper}</span>
+            )}
+            {"formatted" in field && field.formatted && (
+              <span className="text-xs text-white/60">
+                Formatted: {field.formatted}
+              </span>
             )}
             {field.name === "grossMargin" && grossMarginError && (
               <span className="text-sm text-white/80">{grossMarginError}</span>
@@ -194,11 +236,14 @@ const KpiInputPanel = ({
               name="activeCustomersEnd"
               value={value.activeCustomersEnd ?? ""}
               onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
-          />
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
             <span className="text-sm text-white/70">
               Transactional/Hybrid: number of unique customers active by period
               end (used for ARPC averaging).
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayInt(value.activeCustomersEnd)}
             </span>
           </label>
         )}
@@ -241,10 +286,13 @@ const KpiInputPanel = ({
               name="retainedCustomersFromStartAtEnd"
               value={value.retainedCustomersFromStartAtEnd ?? ""}
               onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
-          />
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
             <span className="text-sm text-white/70">
               Cohort retention: subset of starting customers.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
             </span>
           </label>
         )}
@@ -257,24 +305,30 @@ const KpiInputPanel = ({
               name="churnedCustomersPerPeriod"
               value={value.churnedCustomersPerPeriod ?? ""}
               onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
-          />
-        </label>
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-xs text-white/60">
+              Formatted: {displayInt(value.churnedCustomersPerPeriod)}
+            </span>
+          </label>
         )}
 
         {showRetentionRateField && (
           <label className="flex flex-col gap-1">
-            Retention rate (repeat purchase rate) per period (0–1)
+            Retention rate (repeat purchase rate) per period (%)
             <input
               type="number"
               step="0.01"
               name="retentionRatePerPeriod"
-              value={value.retentionRatePerPeriod ?? ""}
+              value={displayPercent(value.retentionRatePerPeriod)}
               onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
-          />
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
             <span className="text-sm text-white/70">
-              Example: 0.6 means 60% of the period-start cohort repeats.
+              Example: 60 means 60% of the period-start cohort repeats.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayPercent(value.retentionRatePerPeriod)}%
             </span>
           </label>
         )}
