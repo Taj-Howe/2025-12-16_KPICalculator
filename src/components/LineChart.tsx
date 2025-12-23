@@ -111,6 +111,7 @@ const LineChart = ({
       {/* Lines and points */}
       {series.map((s, seriesIdx) => {
         const color = s.color ?? palette[seriesIdx % palette.length];
+        const seriesKey = `${s.name}-${seriesIdx}`;
         const segs: Array<[number, number, number, number]> = [];
         let prev: { x: number; y: number } | null = null;
         s.values.forEach((value, index) => {
@@ -126,10 +127,10 @@ const LineChart = ({
         });
 
         return (
-          <g key={s.name}>
+          <g key={seriesKey}>
             {segs.map((seg, idx) => (
               <line
-                key={`${s.name}-seg-${idx}`}
+                key={`${seriesKey}-seg-${idx}`}
                 x1={seg[0]}
                 y1={seg[1]}
                 x2={seg[2]}
@@ -147,7 +148,7 @@ const LineChart = ({
               const title = `${label}${label ? ": " : ""}${s.name}: ${formatValue(value)}`;
               return (
                 <circle
-                  key={`${s.name}-pt-${index}`}
+                  key={`${seriesKey}-pt-${index}`}
                   cx={x}
                   cy={y}
                   r={4}
@@ -167,8 +168,9 @@ const LineChart = ({
       <g transform={`translate(${margins.left}, ${margins.top - 4})`}>
         {series.map((s, idx) => {
           const color = s.color ?? palette[idx % palette.length];
+          const seriesKey = `${s.name}-${idx}`;
           return (
-            <g key={`legend-${s.name}`} transform={`translate(${idx * 120}, 0)`}>
+            <g key={`legend-${seriesKey}`} transform={`translate(${idx * 120}, 0)`}>
               <rect x={0} y={-8} width={12} height={12} fill={color} />
               <text x={16} y={2} fontSize="10" fill="#374151">
                 {s.name}

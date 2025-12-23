@@ -7,7 +7,7 @@ const GitHubSignInButton = ({ callbackUrl }: { callbackUrl: string }) => {
     <button
       type="button"
       onClick={() => signIn("github", { callbackUrl })}
-      className="rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+      className="rounded border border-white/60 px-4 py-2 text-white"
     >
       Sign in with GitHub
     </button>
