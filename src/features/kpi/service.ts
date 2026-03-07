@@ -25,6 +25,8 @@ import type {
 
 const LEGACY_CALC_VERSION: CalculationVersion = "kpi-v1-legacy-model";
 const OFFER_CALC_VERSION: CalculationVersion = "kpi-v2-subscription-offer";
+const FLEX_OFFER_CALC_VERSION: CalculationVersion =
+  "kpi-v2-subscription-offer-flexible-inputs";
 
 type LegacyModelMetrics = {
   churnRate: number | null;
@@ -185,11 +187,22 @@ const evaluateLegacyKpis = (
     ltgpPerCustomer: modelMetrics.ltgpPerCustomer,
     ltgpToCacRatio: ratio,
     cacPaybackPeriods,
+    hypotheticalMaxCustomers: null,
     hypotheticalMaxRevenuePerYear: annualizedRevenue(
       parsed.revenuePerPeriod,
       parsed.period,
     ),
     hypotheticalMaxProfitPerYear: annualizedProfit(
+      parsed.revenuePerPeriod,
+      parsed.grossMargin,
+      parsed.marketingSpendPerPeriod,
+      parsed.period,
+    ),
+    projectedRevenueNextYear: annualizedRevenue(
+      parsed.revenuePerPeriod,
+      parsed.period,
+    ),
+    projectedProfitNextYear: annualizedProfit(
       parsed.revenuePerPeriod,
       parsed.grossMargin,
       parsed.marketingSpendPerPeriod,
@@ -219,7 +232,9 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
       results: offerEvaluation.results,
       offerResults: offerEvaluation.results,
       warnings: offerEvaluation.warnings,
-      calculationVersion: OFFER_CALC_VERSION,
+      calculationVersion: offerEvaluation.usedFlexibleCostInputs
+        ? FLEX_OFFER_CALC_VERSION
+        : OFFER_CALC_VERSION,
       assumptionsApplied: offerEvaluation.assumptionsApplied,
     };
   }

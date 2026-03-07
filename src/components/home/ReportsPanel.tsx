@@ -39,7 +39,16 @@ const ReportsPanel = ({
       { key: "arpc", label: "ARPC", format: "money" },
       { key: "churnRate", label: "Churn", format: "percent" },
       { key: "retentionRate", label: "Retention", format: "percent" },
-      { key: "maxProfitPerYear", label: "Max Profit / Year", format: "money" },
+      {
+        key: "hypotheticalMaxProfitPerYear",
+        label: "Hypothetical Max Profit / Year",
+        format: "money",
+      },
+      {
+        key: "projectedProfitNextYear",
+        label: "Projected Profit / Next Year",
+        format: "money",
+      },
     ],
     [],
   );

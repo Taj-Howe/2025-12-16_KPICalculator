@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
+import { parsePercentInput, percentInputValue, percentText } from "./percent";
 
 const offerTypeOptions = [
   { value: "software_subscription", label: "Software Subscription", enabled: true },
@@ -43,18 +44,11 @@ const defaultSoftwareConfig = {
   goToMarketMotion: "sales_led" as const,
 };
 
-type FormFieldName =
-  | "revenuePerPeriod"
-  | "grossMargin"
-  | "marketingSpendPerPeriod"
-  | "newCustomersPerPeriod"
-  | "activeCustomersStart";
-
-type FormField = {
+type NumericFieldName = "newCustomersPerPeriod";
+type NumericField = {
   label: string;
-  name: FormFieldName;
+  name: NumericFieldName;
   formatted: string;
-  helper?: string;
   step?: string;
 };
 
@@ -67,10 +61,14 @@ const KpiInputPanel = ({
   warnings,
   children,
 }: KpiInputPanelProps) => {
+  const calculatorMode = value.calculatorMode ?? "business_metrics";
   const churnInputMode =
-    value.churnedCustomersPerPeriod != null && value.retainedCustomersFromStartAtEnd == null
+    value.churnedCustomersPerPeriod != null &&
+    value.retainedCustomersFromStartAtEnd == null
       ? "churned"
       : "retained";
+  const grossProfitInputMode = value.grossProfitInputMode ?? "margin";
+  const showActiveCustomersStart = calculatorMode === "business_metrics";
 
   const periodLabel = `${value.analysisPeriod} period`;
 
@@ -86,19 +84,23 @@ const KpiInputPanel = ({
     [],
   );
 
-  const percentInputValue = (val?: number) =>
-    val == null ? "" : Number((val * 100).toFixed(2));
-  const percentText = (val?: number) =>
-    val == null ? "-" : `${Number((val * 100).toFixed(2))}%`;
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
-  const displayInt = (val?: number) => (val == null ? "-" : intFormatter.format(val));
+  const displayInt = (val?: number) =>
+    val == null ? "-" : intFormatter.format(val);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
     const parseValue = () => {
-      if (name === "analysisPeriod" || name === "offerType" || name === "offerName" || name === "offerId") {
+      if (
+        name === "analysisPeriod" ||
+        name === "offerType" ||
+        name === "offerName" ||
+        name === "offerId" ||
+        name === "revenueInputMode" ||
+        name === "calculatorMode"
+      ) {
         return nextValue;
       }
       if (nextValue === "") {
@@ -108,8 +110,8 @@ const KpiInputPanel = ({
       if (Number.isNaN(numeric)) {
         return undefined;
       }
-      if (name === "grossMargin") {
-        return numeric / 100;
+      if (name === "grossMargin" || name === "directChurnRatePerPeriod") {
+        return parsePercentInput(nextValue);
       }
       return numeric;
     };
@@ -133,6 +135,27 @@ const KpiInputPanel = ({
     });
   };
 
+  const setCalculatorMode = (mode: "unit_economics" | "business_metrics") => {
+    if (mode === "unit_economics") {
+      onChange({
+        ...value,
+        calculatorMode: mode,
+        revenueInputMode: "direct_arpc",
+        cacInputMode: "direct",
+        retentionInputMode: "rate",
+      });
+      return;
+    }
+
+    onChange({
+      ...value,
+      calculatorMode: mode,
+      revenueInputMode: "total_revenue",
+      cacInputMode: "derived",
+      retentionInputMode: "counts",
+    });
+  };
+
   const setChurnMode = (mode: "retained" | "churned") => {
     if (mode === "retained") {
       onChange({
@@ -148,8 +171,22 @@ const KpiInputPanel = ({
     });
   };
 
+  const setGrossProfitMode = (mode: "margin" | "costs") => {
+    onChange({
+      ...value,
+      grossProfitInputMode: mode,
+      grossMargin: mode === "margin" ? value.grossMargin : undefined,
+      deliveryCostPerCustomerPerPeriod:
+        mode === "costs" ? value.deliveryCostPerCustomerPerPeriod : undefined,
+      fixedDeliveryCostPerPeriod:
+        mode === "costs" ? value.fixedDeliveryCostPerPeriod : undefined,
+    });
+  };
+
   const grossMarginError =
-    value.grossMargin != null && value.grossMargin > 1
+    grossProfitInputMode === "margin" &&
+    value.grossMargin != null &&
+    value.grossMargin > 1
       ? "Gross margin cannot exceed 100%."
       : null;
 
@@ -161,33 +198,14 @@ const KpiInputPanel = ({
     void onCalculate();
   };
 
-  const formFields: FormField[] = [
+  const numericFields: NumericField[] = [
     {
-      label: `Current Revenue Run Rate (per ${periodLabel})`,
-      name: "revenuePerPeriod",
-      formatted: displayMoney(value.revenuePerPeriod),
-    },
-    {
-      label: "Gross Margin (%)",
-      name: "grossMargin",
-      helper: "Before marketing/CAC. Example: 70 = 70%.",
-      formatted: percentText(value.grossMargin),
-      step: "0.1",
-    },
-    {
-      label: `Sales Velocity / New Customers (per ${periodLabel})`,
+      label:
+        calculatorMode === "unit_economics"
+          ? `Sales Velocity / New Customers (per ${periodLabel})`
+          : `New Customers (per ${periodLabel})`,
       name: "newCustomersPerPeriod",
       formatted: displayInt(value.newCustomersPerPeriod),
-    },
-    {
-      label: "Starting Customer Base",
-      name: "activeCustomersStart",
-      formatted: displayInt(value.activeCustomersStart),
-    },
-    {
-      label: `Customer Acquisition Spend (per ${periodLabel})`,
-      name: "marketingSpendPerPeriod",
-      formatted: displayMoney(value.marketingSpendPerPeriod),
     },
   ];
 
@@ -197,7 +215,9 @@ const KpiInputPanel = ({
         <div>
           <h2 className="text-xl font-semibold">Offer Inputs</h2>
           <p className="text-sm text-white/70">
-            Model one software/tech offer at a time. Start with sales velocity, churn, CAC, and gross profit. Software subscriptions are live first; pilots, token pricing, and hybrids are staged next.
+            Model one software/tech offer at a time. Start with sales velocity,
+            churn, CAC, and gross profit. Use unit economics or business
+            metrics for the same subscription.
           </p>
         </div>
         {children}
@@ -265,62 +285,282 @@ const KpiInputPanel = ({
         <div className="rounded border border-white/30 p-3 text-sm text-white/80">
           <p className="font-medium">Start With Four Core Levers</p>
           <p className="mt-1">
-            Keep this simple: sales velocity, churn from the starting cohort, gross profit per customer, and acquisition cost.
+            Keep this simple: sales velocity, churn, gross profit per customer,
+            and acquisition cost.
           </p>
         </div>
 
-        {formFields.map((field) => (
+        <div className="rounded border border-white/30 p-3">
+          <p className="font-medium">Calculator mode</p>
+          <p className="mt-1 text-sm text-white/70">
+            `Unit economics` is for modeling one software offer from price,
+            churn, CAC, and delivery cost. `Business metrics` is for modeling
+            the business from revenue, spend, and customer counts.
+          </p>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="calculatorMode"
+                value="unit_economics"
+                checked={calculatorMode === "unit_economics"}
+                onChange={() => setCalculatorMode("unit_economics")}
+              />
+              <span>Unit economics</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="calculatorMode"
+                value="business_metrics"
+                checked={calculatorMode === "business_metrics"}
+                onChange={() => setCalculatorMode("business_metrics")}
+              />
+              <span>Business metrics</span>
+            </label>
+          </div>
+        </div>
+
+        {calculatorMode === "business_metrics" ? (
+          <label className="flex flex-col gap-1">
+            Current Revenue Run Rate (per {periodLabel})
+            <input
+              type="number"
+              name="revenuePerPeriod"
+              value={value.revenuePerPeriod ?? ""}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-xs text-white/60">
+              Formatted: {displayMoney(value.revenuePerPeriod)}
+            </span>
+          </label>
+        ) : (
+          <label className="flex flex-col gap-1">
+            Subscription price / ARPC (per {periodLabel})
+            <input
+              type="number"
+              name="directArpc"
+              value={value.directArpc ?? ""}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-sm text-white/70">
+              Example: enter 3000 for one $3,000/month subscription.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayMoney(value.directArpc)}
+            </span>
+          </label>
+        )}
+
+        {numericFields.map((field) => (
           <label key={field.name} className="flex flex-col gap-1">
             {field.label}
             <input
               type="number"
               name={field.name}
-              value={
-                field.name === "grossMargin"
-                  ? percentInputValue(value.grossMargin)
-                  : value[field.name] ?? ""
-              }
+              value={value[field.name] ?? ""}
               step={field.step}
               onChange={handleChange}
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
-            {field.helper && (
-              <span className="text-sm text-white/70">{field.helper}</span>
-            )}
-            {field.formatted && (
-              <span className="text-xs text-white/60">Formatted: {field.formatted}</span>
-            )}
-            {field.name === "grossMargin" && grossMarginError && (
-              <span className="text-sm text-white/80">{grossMarginError}</span>
-            )}
+            <span className="text-xs text-white/60">Formatted: {field.formatted}</span>
           </label>
         ))}
 
-        <div className="space-y-3 rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to input churn from the starting cohort?</p>
-          <label className="flex items-center gap-2">
+        {showActiveCustomersStart && (
+          <label className="flex flex-col gap-1">
+            Starting Customer Base
             <input
-              type="radio"
-              name="churnMode"
-              value="retained"
-              checked={churnInputMode === "retained"}
-              onChange={() => setChurnMode("retained")}
+              type="number"
+              name="activeCustomersStart"
+              value={value.activeCustomersStart ?? ""}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
             />
-            <span>I know how many starting customers remained</span>
+            <span className="text-sm text-white/70">
+              Required for cohort-count churn and for deriving ARPC from total
+              revenue.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayInt(value.activeCustomersStart)}
+            </span>
           </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="churnMode"
-              value="churned"
-              checked={churnInputMode === "churned"}
-              onChange={() => setChurnMode("churned")}
-            />
-            <span>I know how many starting customers churned</span>
-          </label>
+        )}
+
+        <div className="rounded border border-white/30 p-3">
+          <p className="font-medium">Gross profit input</p>
+          <p className="mt-1 text-sm text-white/70">
+            Use gross margin if you know the margin percentage. Use delivery
+            costs if you know the cost to serve each subscription.
+          </p>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="grossProfitInputMode"
+                value="margin"
+                checked={grossProfitInputMode === "margin"}
+                onChange={() => setGrossProfitMode("margin")}
+              />
+              <span>Use gross margin %</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="grossProfitInputMode"
+                value="costs"
+                checked={grossProfitInputMode === "costs"}
+                onChange={() => setGrossProfitMode("costs")}
+              />
+              <span>Use delivery costs</span>
+            </label>
+          </div>
         </div>
 
-        {churnInputMode === "retained" ? (
+        {grossProfitInputMode === "margin" ? (
+          <label className="flex flex-col gap-1">
+            Gross Margin (%)
+            <input
+              type="number"
+              name="grossMargin"
+              value={percentInputValue(value.grossMargin)}
+              step="0.1"
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-sm text-white/70">
+              Before acquisition cost. Example: 70 = 70%.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {percentText(value.grossMargin)}
+            </span>
+            {grossMarginError && (
+              <span className="text-sm text-white/80">{grossMarginError}</span>
+            )}
+          </label>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="flex flex-col gap-1">
+              Delivery cost per active customer (per {periodLabel})
+              <input
+                type="number"
+                name="deliveryCostPerCustomerPerPeriod"
+                value={value.deliveryCostPerCustomerPerPeriod ?? ""}
+                onChange={handleChange}
+                className="rounded border border-white/30 bg-black p-2 text-white"
+              />
+              <span className="text-sm text-white/70">
+                Example: monthly AI token cost, fulfillment, or support cost per
+                active subscription.
+              </span>
+              <span className="text-xs text-white/60">
+                Formatted: {displayMoney(value.deliveryCostPerCustomerPerPeriod)}
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              Fixed delivery cost (optional, per {periodLabel})
+              <input
+                type="number"
+                name="fixedDeliveryCostPerPeriod"
+                value={value.fixedDeliveryCostPerPeriod ?? ""}
+                onChange={handleChange}
+                className="rounded border border-white/30 bg-black p-2 text-white"
+              />
+              <span className="text-sm text-white/70">
+                Shared infrastructure or software cost allocated across active
+                customers.
+              </span>
+              <span className="text-xs text-white/60">
+                Formatted: {displayMoney(value.fixedDeliveryCostPerPeriod)}
+              </span>
+            </label>
+          </div>
+        )}
+
+        {calculatorMode === "business_metrics" ? (
+          <label className="flex flex-col gap-1">
+            Customer Acquisition Spend (per {periodLabel})
+            <input
+              type="number"
+              name="marketingSpendPerPeriod"
+              value={value.marketingSpendPerPeriod ?? ""}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-xs text-white/60">
+              Formatted: {displayMoney(value.marketingSpendPerPeriod)}
+            </span>
+          </label>
+        ) : (
+          <label className="flex flex-col gap-1">
+            Direct CAC
+            <input
+              type="number"
+              name="directCac"
+              value={value.directCac ?? ""}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-sm text-white/70">
+              Use this if you already know customer acquisition cost and do not
+              want to back it out from spend.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {displayMoney(value.directCac)}
+            </span>
+          </label>
+        )}
+
+        {calculatorMode === "business_metrics" && (
+          <div className="space-y-3 rounded border border-white/30 p-3">
+            <p className="font-medium">
+              How do you want to input churn from the starting cohort?
+            </p>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="churnMode"
+                value="retained"
+                checked={churnInputMode === "retained"}
+                onChange={() => setChurnMode("retained")}
+              />
+              <span>I know how many starting customers remained</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="churnMode"
+                value="churned"
+                checked={churnInputMode === "churned"}
+                onChange={() => setChurnMode("churned")}
+              />
+              <span>I know how many starting customers churned</span>
+            </label>
+          </div>
+        )}
+
+        {calculatorMode === "unit_economics" ? (
+          <label className="flex flex-col gap-1">
+            Churn rate per {periodLabel} (%)
+            <input
+              type="number"
+              name="directChurnRatePerPeriod"
+              value={percentInputValue(value.directChurnRatePerPeriod)}
+              step="0.1"
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-sm text-white/70">
+              Example: enter 10 for a 10% monthly churn rate.
+            </span>
+            <span className="text-xs text-white/60">
+              Formatted: {percentText(value.directChurnRatePerPeriod)}
+            </span>
+          </label>
+        ) : churnInputMode === "retained" ? (
           <label className="flex flex-col gap-1">
             Customers from start still active at end
             <input
@@ -331,7 +571,8 @@ const KpiInputPanel = ({
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
             <span className="text-sm text-white/70">
-              Cohort retention only for the customers you had at the start of the period.
+              Cohort retention only for the customers you had at the start of
+              the period.
             </span>
             <span className="text-xs text-white/60">
               Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
@@ -348,7 +589,8 @@ const KpiInputPanel = ({
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
             <span className="text-sm text-white/70">
-              Use this if you track churn directly instead of retained cohort counts.
+              Use this if you track churn directly instead of retained cohort
+              counts.
             </span>
             <span className="text-xs text-white/60">
               Formatted: {displayInt(value.churnedCustomersPerPeriod)}
@@ -357,7 +599,15 @@ const KpiInputPanel = ({
         )}
 
         <p className="text-sm text-white/70">
-          Subscription end customers are derived as starting customer base + sales velocity - churned starting customers.
+          Subscription end customers are derived as start customers + new
+          customers - churned customers when a starting customer base is
+          provided.
+        </p>
+        <p className="text-sm text-white/70">
+          For single-unit economics, set revenue to the subscription price, use
+          sales velocity for subscriptions sold in the period, and use direct
+          CAC, delivery costs, or direct churn rate if those are easier to
+          estimate than top-down totals.
         </p>
 
         <div className="flex gap-3">
@@ -427,8 +677,11 @@ const ResultsPanel = ({
     | "ltv"
     | "ltgpPerCustomer"
     | "ltgpToCacRatio"
+    | "hypotheticalMaxCustomers"
     | "hypotheticalMaxRevenuePerYear"
     | "hypotheticalMaxProfitPerYear"
+    | "projectedRevenueNextYear"
+    | "projectedProfitNextYear"
     | "car"
     | "cacPaybackPeriods";
 
@@ -444,10 +697,13 @@ const ResultsPanel = ({
       results.cacPaybackPeriods == null
         ? "-"
         : `${results.cacPaybackPeriods.toFixed(2)} periods`,
+    hypotheticalMaxCustomers: () => formatInt(results.hypotheticalMaxCustomers),
     hypotheticalMaxRevenuePerYear: () =>
       formatMoney(results.hypotheticalMaxRevenuePerYear),
     hypotheticalMaxProfitPerYear: () =>
       formatMoney(results.hypotheticalMaxProfitPerYear),
+    projectedRevenueNextYear: () => formatMoney(results.projectedRevenueNextYear),
+    projectedProfitNextYear: () => formatMoney(results.projectedProfitNextYear),
     car: () => `${formatInt(results.car)} per period`,
   };
 
@@ -460,8 +716,11 @@ const ResultsPanel = ({
     ltgpPerCustomer: "Lifetime gross profit per customer (LTGP)",
     ltgpToCacRatio: "LTGP:CAC (core growth ratio)",
     cacPaybackPeriods: "CAC payback",
+    hypotheticalMaxCustomers: "Hypothetical max customers",
     hypotheticalMaxRevenuePerYear: "Hypothetical max revenue / year",
     hypotheticalMaxProfitPerYear: "Hypothetical max profit / year",
+    projectedRevenueNextYear: "Projected revenue over next year",
+    projectedProfitNextYear: "Projected profit over next year",
     car: "Sales velocity / new customers per period",
   };
 
@@ -475,15 +734,19 @@ const ResultsPanel = ({
     "retentionRate",
     "ltv",
     "ltgpPerCustomer",
+    "hypotheticalMaxCustomers",
     "hypotheticalMaxRevenuePerYear",
     "hypotheticalMaxProfitPerYear",
+    "projectedRevenueNextYear",
+    "projectedProfitNextYear",
   ];
 
   return (
     <div className="mt-4 space-y-4 rounded border border-white/30 p-4 text-white">
       <h2 className="font-semibold">Results</h2>
       <p className="text-sm text-white/70">
-        Core growth math comes first: LTGP:CAC, payback, sales velocity, and churn. Revenue ceiling metrics follow.
+        Core growth math comes first: LTGP:CAC, payback, sales velocity, and
+        churn. Steady-state ceiling and next-year projection metrics follow.
       </p>
       <ul className="mt-4 space-y-2 text-sm">
         {orderedKeys.map((key) => (
@@ -510,9 +773,12 @@ const CustomerBridge = ({
   const derivedChurned =
     inputs.churnedCustomersPerPeriod != null
       ? inputs.churnedCustomersPerPeriod
-      : inputs.retainedCustomersFromStartAtEnd != null
+      : inputs.retainedCustomersFromStartAtEnd != null &&
+          inputs.activeCustomersStart != null
         ? inputs.activeCustomersStart - inputs.retainedCustomersFromStartAtEnd
-        : null;
+        : inputs.directChurnRatePerPeriod != null && start != null
+          ? start * inputs.directChurnRatePerPeriod
+          : null;
   const derivedEnd =
     start != null && newCustomers != null && derivedChurned != null
       ? start + newCustomers - derivedChurned
@@ -542,11 +808,17 @@ const CustomerBridge = ({
           <span>{formatInt(derivedEnd)}</span>
         </li>
       </ul>
-      {derivedChurned == null && (
+      {start == null ? (
         <p className="mt-2 text-xs text-white/70">
-          Provide churned or retained-from-start customers to unlock the customer bridge.
+          Customer bridge is optional in direct price + direct churn mode. Add a
+          starting customer base if you want cohort movement shown here.
         </p>
-      )}
+      ) : derivedChurned == null ? (
+        <p className="mt-2 text-xs text-white/70">
+          Provide churned or retained-from-start customers to unlock the
+          customer bridge.
+        </p>
+      ) : null}
     </div>
   );
 };

@@ -18,7 +18,14 @@ export type OfferType = LegacyOfferType | SoftwareTechOfferType;
 
 export type CalculationVersion =
   | "kpi-v1-legacy-model"
-  | "kpi-v2-subscription-offer";
+  | "kpi-v2-subscription-offer"
+  | "kpi-v2-subscription-offer-flexible-inputs";
+
+export type CacInputMode = "derived" | "direct";
+export type GrossProfitInputMode = "margin" | "costs";
+export type RetentionInputMode = "counts" | "rate";
+export type RevenueInputMode = "total_revenue" | "direct_arpc";
+export type CalculatorMode = "unit_economics" | "business_metrics";
 
 export type KPIInput = {
   period: KpiPeriod;
@@ -39,11 +46,21 @@ export type SubscriptionOfferInput = {
   offerName: string;
   offerType: "subscription" | "software_subscription";
   analysisPeriod: KpiPeriod;
-  revenuePerPeriod: number;
-  grossMargin: number;
-  marketingSpendPerPeriod: number;
+  calculatorMode?: CalculatorMode;
+  revenueInputMode?: RevenueInputMode;
+  revenuePerPeriod?: number;
+  directArpc?: number;
+  grossProfitInputMode?: GrossProfitInputMode;
+  grossMargin?: number;
+  deliveryCostPerCustomerPerPeriod?: number;
+  fixedDeliveryCostPerPeriod?: number;
+  cacInputMode?: CacInputMode;
+  marketingSpendPerPeriod?: number;
+  directCac?: number;
+  retentionInputMode?: RetentionInputMode;
   newCustomersPerPeriod: number;
-  activeCustomersStart: number;
+  activeCustomersStart?: number;
+  directChurnRatePerPeriod?: number;
   churnedCustomersPerPeriod?: number;
   retainedCustomersFromStartAtEnd?: number;
   softwareConfig?: SoftwareTechConfig;
@@ -71,8 +88,11 @@ export type KPIResult = {
   ltgpPerCustomer: number | null;
   ltgpToCacRatio: number | null;
   cacPaybackPeriods: number | null;
+  hypotheticalMaxCustomers: number | null;
   hypotheticalMaxRevenuePerYear: number | null;
   hypotheticalMaxProfitPerYear: number | null;
+  projectedRevenueNextYear: number | null;
+  projectedProfitNextYear: number | null;
   car: number | null;
 };
 
