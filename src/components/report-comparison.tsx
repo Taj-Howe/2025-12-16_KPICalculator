@@ -52,47 +52,64 @@ export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
     [],
   );
 
-const metrics = [
-  { key: "cac", label: "CAC", format: "money" },
-  { key: "arpc", label: "ARPC", format: "money" },
-  { key: "churnRate", label: "Churn rate", format: "percent" },
-  { key: "retentionRate", label: "Retention rate", format: "percent" },
-  {
-    key: "ltgpPerCustomer",
-    label: "LTGP per customer",
-    format: "money",
-  },
-  { key: "ltgpToCacRatio", label: "LTGP:CAC", format: "ratio" },
-  {
-    key: "cacPaybackPeriods",
-    label: "CAC payback (periods)",
-    format: "periods",
-  },
-  {
-    key: "hypotheticalMaxRevenuePerYear",
-    label: "Max revenue / year",
-    format: "money",
-  },
+  const metrics = [
+    { key: "cac", label: "CAC", format: "money" },
+    { key: "arpc", label: "ARPC", format: "money" },
+    { key: "churnRate", label: "Churn rate", format: "percent" },
+    { key: "retentionRate", label: "Retention rate", format: "percent" },
+    {
+      key: "ltgpPerCustomer",
+      label: "LTGP per customer",
+      format: "money",
+    },
+    { key: "ltgpToCacRatio", label: "LTGP:CAC", format: "ratio" },
+    {
+      key: "cacPaybackPeriods",
+      label: "CAC payback (periods)",
+      format: "periods",
+    },
+    {
+      key: "hypotheticalMaxCustomers",
+      label: "Hypothetical max customers",
+      format: "count",
+    },
+    {
+      key: "hypotheticalMaxRevenuePerYear",
+      label: "Hypothetical max revenue / year",
+      format: "money",
+    },
     {
       key: "hypotheticalMaxProfitPerYear",
-      label: "Max profit / year",
+      label: "Hypothetical max profit / year",
+      format: "money",
+    },
+    {
+      key: "projectedRevenueNextYear",
+      label: "Projected revenue / next year",
+      format: "money",
+    },
+    {
+      key: "projectedProfitNextYear",
+      label: "Projected profit / next year",
       format: "money",
     },
   ] as const;
 
-const formatValue = (value: number | null | undefined, format: string) => {
-  if (value == null) {
-    return "—";
-  }
-  switch (format) {
-    case "money":
-      return usd.format(value);
-    case "percent":
-      return `${(value * 100).toFixed(2)}%`;
-    case "ratio":
-      return `${value.toFixed(2)}x`;
-    case "periods":
-      return `${value.toFixed(2)} periods`;
+  const formatValue = (value: number | null | undefined, format: string) => {
+    if (value == null) {
+      return "—";
+    }
+    switch (format) {
+      case "money":
+        return usd.format(value);
+      case "percent":
+        return `${(value * 100).toFixed(2)}%`;
+      case "ratio":
+        return `${value.toFixed(2)}x`;
+      case "periods":
+        return `${value.toFixed(2)} periods`;
+      case "count":
+        return value.toFixed(2);
       default:
         return value.toFixed(2);
     }

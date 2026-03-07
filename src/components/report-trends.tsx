@@ -18,8 +18,11 @@ type SeriesResponse = {
     ltgpPerCustomer: (number | null)[];
     ltgpToCacRatio: (number | null)[];
     cacPaybackPeriods: (number | null)[];
-    maxRevenuePerYear: (number | null)[];
-    maxProfitPerYear: (number | null)[];
+    hypotheticalMaxCustomers: (number | null)[];
+    hypotheticalMaxRevenuePerYear: (number | null)[];
+    hypotheticalMaxProfitPerYear: (number | null)[];
+    projectedRevenueNextYear: (number | null)[];
+    projectedProfitNextYear: (number | null)[];
   };
 };
 
@@ -62,8 +65,13 @@ const metricOptions = [
     formatter: (n: number) => dollar(n),
   },
   {
-    key: "maxProfitPerYear",
-    label: "Max Profit / Year ($)",
+    key: "hypotheticalMaxProfitPerYear",
+    label: "Hypothetical Max Profit / Year ($)",
+    formatter: (n: number) => dollar(n),
+  },
+  {
+    key: "projectedProfitNextYear",
+    label: "Projected Profit / Next Year ($)",
     formatter: (n: number) => dollar(n),
   },
 ] as const;
@@ -170,7 +178,9 @@ export const ReportTrends = () => {
     cacPaybackPeriods: series.cacPaybackPeriods[idx] ?? null,
     churnRate: series.churnRate[idx] ?? null,
     arpc: series.arpc[idx] ?? null,
-    maxProfitPerYear: series.maxProfitPerYear[idx] ?? null,
+    hypotheticalMaxProfitPerYear:
+      series.hypotheticalMaxProfitPerYear[idx] ?? null,
+    projectedProfitNextYear: series.projectedProfitNextYear[idx] ?? null,
   }));
 
   return (
@@ -295,7 +305,10 @@ export const ReportTrends = () => {
                 </th>
                 <th className="border border-gray-200 p-2 text-left">ARPC</th>
                 <th className="border border-gray-200 p-2 text-left">
-                  Max Profit / Year
+                  Hypothetical Max Profit / Year
+                </th>
+                <th className="border border-gray-200 p-2 text-left">
+                  Projected Profit / Next Year
                 </th>
               </tr>
             </thead>
@@ -326,7 +339,10 @@ export const ReportTrends = () => {
                     {formatMoney(row.arpc)}
                   </td>
                   <td className="border border-gray-200 p-2">
-                    {formatMoney(row.maxProfitPerYear)}
+                    {formatMoney(row.hypotheticalMaxProfitPerYear)}
+                  </td>
+                  <td className="border border-gray-200 p-2">
+                    {formatMoney(row.projectedProfitNextYear)}
                   </td>
                 </tr>
               ))}

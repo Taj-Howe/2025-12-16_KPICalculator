@@ -23,8 +23,11 @@ const resultsSchema: z.ZodType<KPIResult> = z.object({
   ltgpPerCustomer: numberOrNull,
   ltgpToCacRatio: numberOrNull,
   cacPaybackPeriods: numberOrNull,
+  hypotheticalMaxCustomers: numberOrNull,
   hypotheticalMaxRevenuePerYear: numberOrNull,
   hypotheticalMaxProfitPerYear: numberOrNull,
+  projectedRevenueNextYear: numberOrNull,
+  projectedProfitNextYear: numberOrNull,
   car: numberOrNull,
 });
 
@@ -37,7 +40,11 @@ const saveReportSchema = z.object({
   results: resultsSchema,
   warnings: z.array(z.string()),
   calculationVersion: z
-    .enum(["kpi-v1-legacy-model", "kpi-v2-subscription-offer"])
+    .enum([
+      "kpi-v1-legacy-model",
+      "kpi-v2-subscription-offer",
+      "kpi-v2-subscription-offer-flexible-inputs",
+    ])
     .optional(),
   assumptionsApplied: z.array(z.string()).optional(),
 });

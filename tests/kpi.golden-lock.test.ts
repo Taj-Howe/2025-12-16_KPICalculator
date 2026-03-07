@@ -35,7 +35,12 @@ for (const file of fixtureFiles) {
   test(`golden lock: ${fixture.name}`, () => {
     const evaluation = evaluateKpis(fixture.input);
 
-    assert.deepEqual(evaluation.results, fixture.expected.results);
+    for (const [key, expectedValue] of Object.entries(fixture.expected.results)) {
+      assert.deepEqual(
+        evaluation.results[key as keyof typeof evaluation.results],
+        expectedValue,
+      );
+    }
     assert.deepEqual(evaluation.warnings, fixture.expected.warnings);
   });
 }

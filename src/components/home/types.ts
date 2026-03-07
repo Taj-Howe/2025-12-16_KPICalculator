@@ -16,8 +16,11 @@ export type ReportSeries = {
   ltgpPerCustomer: (number | null)[];
   ltgpToCacRatio: (number | null)[];
   cacPaybackPeriods: (number | null)[];
-  maxRevenuePerYear: (number | null)[];
-  maxProfitPerYear: (number | null)[];
+  hypotheticalMaxCustomers: (number | null)[];
+  hypotheticalMaxRevenuePerYear: (number | null)[];
+  hypotheticalMaxProfitPerYear: (number | null)[];
+  projectedRevenueNextYear: (number | null)[];
+  projectedProfitNextYear: (number | null)[];
 };
 
 export type AppHeaderProps = {
@@ -64,6 +67,10 @@ export const sampleKpiInput: KPIInputState = {
   offerName: "Sample Subscription Offer",
   offerType: "subscription",
   analysisPeriod: "monthly",
+  revenueInputMode: "total_revenue",
+  grossProfitInputMode: "margin",
+  cacInputMode: "derived",
+  retentionInputMode: "counts",
   revenuePerPeriod: 120000,
   grossMargin: 0.72,
   marketingSpendPerPeriod: 24000,
