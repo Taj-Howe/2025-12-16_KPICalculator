@@ -112,6 +112,7 @@
 - [x] Add a minimal hero graph that visualizes projected growth / steady-state upside.
 - [x] Add a top-level workspace selector so the page can switch between Offer Inputs and Reports.
 - [x] Make the hero graph use live offer inputs and add a selector for revenue, profit, and customer views.
+- [ ] Fix the calculator field primitives so inputs and selects render as explicit styled controls in the new dark UI.
 - [ ] Group KPI outputs into unit economics, steady-state ceiling, and next-year projection cards.
 - [ ] Redesign the reports/trends area to match the new visual system.
 - [ ] Run mobile, lint, test, and build verification before merging.
