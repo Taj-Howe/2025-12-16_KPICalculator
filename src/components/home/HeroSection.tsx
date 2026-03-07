@@ -1,22 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
 import { Badge, Button, Card, Flex, Heading, Text } from "@radix-ui/themes";
-import type { KPIResult, KpiPeriod } from "@/features/kpi/types";
+import { evaluateOffer } from "@/features/kpi/offer-evaluator";
+import { buildSubscriptionForecast } from "@/features/kpi/subscription-forecast";
+import type { KPIResult, KpiPeriod, SubscriptionOfferInput } from "@/features/kpi/types";
 import ProjectionHeroChart from "./ProjectionHeroChart";
 import { formatMoney, formatRatio } from "./formatters";
 
 type HeroSectionProps = {
+  input: SubscriptionOfferInput;
   results: KPIResult | null;
   analysisPeriod: KpiPeriod;
-  baselineRevenue: number | null;
   onJumpToCalculator: () => void;
   onLoadSample: () => void;
-};
-
-const periodsPerYear: Record<KpiPeriod, number> = {
-  monthly: 12,
-  quarterly: 4,
-  yearly: 1,
 };
 
 const formatPeriods = (value: number | null) => {
@@ -27,22 +24,26 @@ const formatPeriods = (value: number | null) => {
 };
 
 const HeroSection = ({
+  input,
   results,
   analysisPeriod,
-  baselineRevenue,
   onJumpToCalculator,
   onLoadSample,
 }: HeroSectionProps) => {
-  const currentPeriodRevenue =
-    baselineRevenue ??
-    (results?.projectedRevenueNextYear != null
-      ? results.projectedRevenueNextYear / periodsPerYear[analysisPeriod]
-      : 100000);
+  const liveResults = useMemo(() => {
+    try {
+      return evaluateOffer(input).results;
+    } catch {
+      return results;
+    }
+  }, [input, results]);
+
+  const liveForecast = useMemo(() => buildSubscriptionForecast(input), [input]);
+  const heroResults = liveResults ?? results;
 
   return (
     <section className="relative overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] px-6 py-8 shadow-[0_40px_120px_rgba(0,0,0,0.45)] sm:px-8 lg:px-10 lg:py-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/8" />
-      <div className="pointer-events-none absolute inset-y-0 right-[42%] w-px bg-white/6 max-lg:hidden" />
       <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] lg:items-center">
         <div className="space-y-6">
           <div className="space-y-4">
@@ -87,26 +88,24 @@ const HeroSection = ({
           <div className="grid gap-3 sm:grid-cols-3">
             <MetricCard
               eyebrow="Core ratio"
-              value={formatRatio(results?.ltgpToCacRatio ?? null)}
+              value={formatRatio(heroResults?.ltgpToCacRatio ?? null)}
               caption="LTGP:CAC"
             />
             <MetricCard
               eyebrow="Cash recovery"
-              value={formatPeriods(results?.cacPaybackPeriods ?? null)}
+              value={formatPeriods(heroResults?.cacPaybackPeriods ?? null)}
               caption="CAC payback"
             />
             <MetricCard
               eyebrow="Next-year profit"
-              value={formatMoney(results?.projectedProfitNextYear ?? null)}
+              value={formatMoney(heroResults?.projectedProfitNextYear ?? null)}
               caption="Projected profit"
             />
           </div>
         </div>
 
         <ProjectionHeroChart
-          baselineRevenue={currentPeriodRevenue}
-          projectedRevenue={results?.projectedRevenueNextYear ?? null}
-          ceilingRevenue={results?.hypotheticalMaxRevenuePerYear ?? null}
+          forecast={liveForecast}
           periodLabel={analysisPeriod}
         />
       </div>

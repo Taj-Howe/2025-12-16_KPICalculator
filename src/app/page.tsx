@@ -8,6 +8,7 @@ import HeroSection from "@/components/home/HeroSection";
 import KpiInputPanel from "@/components/home/KpiInputPanel";
 import ReportsPanel from "@/components/home/ReportsPanel";
 import SampleDataControls from "@/components/home/SampleDataControls";
+import WorkspaceViewSelector from "@/components/home/WorkspaceViewSelector";
 import GitHubSignInButton from "@/components/GitHubSignInButton";
 import type { ReportSummary } from "@/components/report-comparison";
 import type {
@@ -33,6 +34,8 @@ type SessionSnapshot = {
     email?: string | null;
   };
 } | null;
+
+type WorkspaceView = "offer_inputs" | "reports";
 
 const defaultState: FormState = {
   offerId: "main-offer",
@@ -196,6 +199,8 @@ export default function Home() {
   const [seedStatus, setSeedStatus] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const calculatorRef = useRef<HTMLDivElement | null>(null);
+  const [activeWorkspaceView, setActiveWorkspaceView] =
+    useState<WorkspaceView>("offer_inputs");
 
   const selectedReport =
     selectedReportId == null
@@ -458,11 +463,29 @@ export default function Home() {
   };
 
   const jumpToCalculator = () => {
+    setActiveWorkspaceView("offer_inputs");
     calculatorRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
   };
+
+  const workspaceViews = [
+    {
+      id: "offer_inputs",
+      label: "Offer Inputs",
+      description: "Configure the offer, run scenarios, and save a snapshot.",
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      description: "Review saved snapshots, trends, and report history.",
+    },
+  ] satisfies Array<{
+    id: WorkspaceView;
+    label: string;
+    description: string;
+  }>;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 text-white sm:px-6 lg:px-8">
@@ -477,69 +500,74 @@ export default function Home() {
       />
 
       <HeroSection
+        input={form}
         results={evaluation?.results ?? null}
         analysisPeriod={form.analysisPeriod}
-        baselineRevenue={form.revenuePerPeriod ?? form.directArpc ?? null}
         onJumpToCalculator={jumpToCalculator}
         onLoadSample={handleLoadSample}
       />
 
-      <div
-        ref={calculatorRef}
-        className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,0.78fr)]"
-      >
-        <section className="space-y-6">
-          <KpiInputPanel
-            value={form}
-            onChange={setForm}
-            onCalculate={handleCalculate}
-            isCalculating={isSubmitting}
-            results={evaluation?.results ?? null}
-            warnings={warnings}
-          >
-            <SampleDataControls
-              onLoadSample={handleLoadSample}
-              onClear={handleClear}
+      <div ref={calculatorRef} className="space-y-6">
+        <WorkspaceViewSelector
+          activeView={activeWorkspaceView}
+          options={workspaceViews}
+          onSelect={setActiveWorkspaceView}
+        />
+
+        {activeWorkspaceView === "offer_inputs" ? (
+          <section className="space-y-6">
+            <KpiInputPanel
+              value={form}
+              onChange={setForm}
+              onCalculate={handleCalculate}
+              isCalculating={isSubmitting}
+              results={evaluation?.results ?? null}
+              warnings={warnings}
+            >
+              <SampleDataControls
+                onLoadSample={handleLoadSample}
+                onClear={handleClear}
+              />
+            </KpiInputPanel>
+
+            {error && (
+              <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                {error}
+              </div>
+            )}
+
+            {evaluation && (
+              <ReportSavePanel evaluation={evaluation} warnings={warnings} />
+            )}
+          </section>
+        ) : (
+          <section className="space-y-6">
+            <ReportsPanel
+              isSignedIn={Boolean(sessionEmail)}
+              reports={reports}
+              selectedReport={selectedReport}
+              onSelectReport={(id) => setSelectedReportId(id)}
+              onRefresh={refreshReports}
+              series={series}
+              signInCta={<GitHubSignInButton callbackUrl="/" />}
+              onSeedSampleYear={handleLoadSampleYear}
+              isSeeding={isSeeding}
+              seedStatus={seedStatus}
+              onDeleteReport={handleDeleteReport}
             />
-          </KpiInputPanel>
 
-          {error && (
-            <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-              {error}
-            </div>
-          )}
-
-          {evaluation && (
-            <ReportSavePanel evaluation={evaluation} warnings={warnings} />
-          )}
-        </section>
-
-        <section className="space-y-6">
-          <ReportsPanel
-            isSignedIn={Boolean(sessionEmail)}
-            reports={reports}
-            selectedReport={selectedReport}
-            onSelectReport={(id) => setSelectedReportId(id)}
-            onRefresh={refreshReports}
-            series={series}
-            signInCta={<GitHubSignInButton callbackUrl="/" />}
-            onSeedSampleYear={handleLoadSampleYear}
-            isSeeding={isSeeding}
-            seedStatus={seedStatus}
-            onDeleteReport={handleDeleteReport}
-          />
-
-          {reportsError && (
-            <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
-              {reportsError}
-            </p>
-          )}
-          {seriesError && (
-            <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
-              {seriesError}
-            </p>
-          )}
-        </section>
+            {reportsError && (
+              <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
+                {reportsError}
+              </p>
+            )}
+            {seriesError && (
+              <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
+                {seriesError}
+              </p>
+            )}
+          </section>
+        )}
       </div>
 
       <details className="rounded-[26px] border border-white/10 bg-[var(--surface-1)] p-5">

@@ -1,15 +1,8 @@
+import { ltgpPerCustomer, ltvSubscription, ratioLtgpToCac } from "./formulas";
 import {
-  annualizedRevenue,
-  arpc,
-  averageActiveCustomers,
-  cac,
-  churnRate,
-  churnedFromStart,
-  ltgpPerCustomer,
-  ltvSubscription,
-  ratioLtgpToCac,
-  periodsPerYear,
-} from "./formulas";
+  buildSubscriptionForecast,
+  deriveSubscriptionMetrics,
+} from "./subscription-forecast";
 import type { KPIResult, OfferInput, SubscriptionOfferInput } from "./types";
 
 export type OfferEvaluation = {
@@ -24,77 +17,6 @@ export interface OfferEvaluator<TInput extends OfferInput> {
   evaluate: (input: TInput) => OfferEvaluation;
 }
 
-type ProjectionTotals = {
-  revenue: number | null;
-  profit: number | null;
-};
-
-const projectSubscriptionYear = ({
-  period,
-  activeCustomersStart,
-  newCustomersPerPeriod,
-  churnRatePerPeriod,
-  arpcValue,
-  derivedMarketingSpend,
-  grossProfitInputMode,
-  grossMargin,
-  deliveryCostPerCustomerPerPeriod,
-  fixedDeliveryCostPerPeriod,
-}: {
-  period: SubscriptionOfferInput["analysisPeriod"];
-  activeCustomersStart?: number;
-  newCustomersPerPeriod: number;
-  churnRatePerPeriod: number | null;
-  arpcValue: number | null;
-  derivedMarketingSpend: number;
-  grossProfitInputMode: SubscriptionOfferInput["grossProfitInputMode"];
-  grossMargin?: number;
-  deliveryCostPerCustomerPerPeriod?: number;
-  fixedDeliveryCostPerPeriod?: number;
-}): ProjectionTotals => {
-  if (arpcValue == null || churnRatePerPeriod == null) {
-    return { revenue: null, profit: null };
-  }
-
-  const totalPeriods = periodsPerYear(period);
-  let activeCustomers = activeCustomersStart ?? 0;
-  let projectedRevenue = 0;
-  let projectedProfit = 0;
-
-  for (let periodIndex = 0; periodIndex < totalPeriods; periodIndex += 1) {
-    const churnedCustomers = activeCustomers * churnRatePerPeriod;
-    const endCustomers = activeCustomers + newCustomersPerPeriod - churnedCustomers;
-    const avgCustomers = averageActiveCustomers(activeCustomers, endCustomers);
-    const periodRevenue = arpcValue * avgCustomers;
-
-    projectedRevenue += periodRevenue;
-
-    const periodGrossProfit =
-      grossProfitInputMode === "costs"
-        ? periodRevenue -
-          (deliveryCostPerCustomerPerPeriod ?? 0) * avgCustomers -
-          (fixedDeliveryCostPerPeriod ?? 0)
-        : grossMargin != null
-          ? periodRevenue * grossMargin
-          : null;
-
-    if (periodGrossProfit == null) {
-      return {
-        revenue: projectedRevenue,
-        profit: null,
-      };
-    }
-
-    projectedProfit += periodGrossProfit - derivedMarketingSpend;
-    activeCustomers = endCustomers;
-  }
-
-  return {
-    revenue: projectedRevenue,
-    profit: projectedProfit,
-  };
-};
-
 export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> = {
   offerType: "subscription",
   evaluate: (input) => {
@@ -104,16 +26,17 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
     const grossProfitInputMode = input.grossProfitInputMode ?? "margin";
     const cacInputMode = input.cacInputMode ?? "derived";
     const retentionInputMode = input.retentionInputMode ?? "counts";
-    const activeCustomersStart = input.activeCustomersStart ?? null;
+    const derived = deriveSubscriptionMetrics(input);
+    const activeCustomersStart = derived.activeCustomersStart;
+    const churnValue = derived.churnValue;
+    const derivedEndCustomers = derived.derivedEndCustomers;
+    const avgCustomers = derived.avgCustomers;
+    const arpcValue = derived.arpcValue;
+    const cacValue = derived.cacValue;
+    const effectiveGrossMargin = derived.effectiveGrossMargin;
+    const grossProfitPerCustomer = derived.grossProfitPerCustomer;
 
-    let derivedChurned: number | null = null;
-    let churnValue: number | null = null;
     if (retentionInputMode === "rate") {
-      churnValue = input.directChurnRatePerPeriod ?? null;
-      derivedChurned =
-        churnValue != null && activeCustomersStart != null
-          ? activeCustomersStart * churnValue
-          : null;
       assumptionsApplied.push("Used direct churn rate for subscription retention.");
       if (activeCustomersStart != null) {
         assumptionsApplied.push(
@@ -121,14 +44,6 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
         );
       }
     } else {
-      derivedChurned =
-        input.retainedCustomersFromStartAtEnd != null
-          ? churnedFromStart(
-              activeCustomersStart ?? 0,
-              input.retainedCustomersFromStartAtEnd,
-            )
-          : input.churnedCustomersPerPeriod ?? null;
-
       if (input.retainedCustomersFromStartAtEnd != null) {
         assumptionsApplied.push(
           "Derived churned customers from retainedCustomersFromStartAtEnd.",
@@ -136,11 +51,6 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       } else {
         assumptionsApplied.push("Used provided churnedCustomersPerPeriod.");
       }
-
-      churnValue = churnRate(
-        derivedChurned ?? undefined,
-        activeCustomersStart ?? 0,
-      );
     }
     const retentionValue = churnValue == null ? null : 1 - churnValue;
 
@@ -148,63 +58,20 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       warnings.push("Churn is very low; LTV may be inflated.");
     }
 
-    let derivedEndCustomers: number | null = null;
-    if (derivedChurned != null && activeCustomersStart != null) {
-      derivedEndCustomers =
-        activeCustomersStart + input.newCustomersPerPeriod - derivedChurned;
+    if (derivedEndCustomers != null && activeCustomersStart != null) {
       assumptionsApplied.push("Derived end customers as start + new - churned.");
     }
     if (derivedEndCustomers != null && derivedEndCustomers < 0) {
       warnings.push(
         "Derived end customers is negative; check start, new, and churn inputs.",
       );
-      derivedEndCustomers = null;
     }
-
-    const avgCustomers =
-      activeCustomersStart == null
-        ? null
-        : derivedEndCustomers != null
-          ? averageActiveCustomers(activeCustomersStart, derivedEndCustomers)
-          : activeCustomersStart;
-
-    const arpcValue =
-      revenueInputMode === "direct_arpc"
-        ? input.directArpc ?? null
-        : input.revenuePerPeriod != null && avgCustomers != null
-          ? arpc(input.revenuePerPeriod, avgCustomers)
-          : null;
 
     if (revenueInputMode === "direct_arpc") {
       assumptionsApplied.push("Used direct subscription price / ARPC.");
     }
-
-    const derivedMarketingSpend =
-      cacInputMode === "direct" && input.directCac != null
-        ? input.directCac * input.newCustomersPerPeriod
-        : input.marketingSpendPerPeriod ?? 0;
-    const cacValue =
-      cacInputMode === "direct"
-        ? input.directCac ?? null
-        : cac(derivedMarketingSpend, input.newCustomersPerPeriod);
-
-    let effectiveGrossMargin: number | null = null;
-    let grossProfitPerCustomer: number | null = null;
-    if (grossProfitInputMode === "margin") {
-      effectiveGrossMargin = input.grossMargin ?? null;
-      grossProfitPerCustomer =
-        arpcValue != null && effectiveGrossMargin != null
-          ? arpcValue * effectiveGrossMargin
-          : null;
-    } else if (arpcValue != null) {
-      const variableCost = input.deliveryCostPerCustomerPerPeriod ?? 0;
-      const fixedCostShare =
-        avgCustomers != null && avgCustomers > 0
-          ? (input.fixedDeliveryCostPerPeriod ?? 0) / avgCustomers
-          : 0;
-      grossProfitPerCustomer = arpcValue - variableCost - fixedCostShare;
-      effectiveGrossMargin =
-        arpcValue > 0 ? grossProfitPerCustomer / arpcValue : null;
+ 
+    if (grossProfitInputMode === "costs" && arpcValue != null) {
       assumptionsApplied.push(
         "Derived gross profit from delivery costs per active customer.",
       );
@@ -246,23 +113,9 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
           : null;
     const ltgpValue = ltgpPerCustomer(ltv);
     const ratio = ratioLtgpToCac(ltgpValue, cacValue);
-    const projectedAnnualTotals = projectSubscriptionYear({
-      period: input.analysisPeriod,
-      activeCustomersStart: input.activeCustomersStart,
-      newCustomersPerPeriod: input.newCustomersPerPeriod,
-      churnRatePerPeriod: churnValue,
-      arpcValue,
-      derivedMarketingSpend,
-      grossProfitInputMode,
-      grossMargin: effectiveGrossMargin ?? undefined,
-      deliveryCostPerCustomerPerPeriod: input.deliveryCostPerCustomerPerPeriod,
-      fixedDeliveryCostPerPeriod: input.fixedDeliveryCostPerPeriod,
-    });
+    const forecast = buildSubscriptionForecast(input, derived);
 
-    if (
-      projectedAnnualTotals.revenue != null ||
-      projectedAnnualTotals.profit != null
-    ) {
+    if (forecast.totals.revenue != null || forecast.totals.profit != null) {
       assumptionsApplied.push(
         "Projected annual revenue and profit from direct price, churn rate, and sales velocity.",
       );
@@ -273,19 +126,7 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       }
     }
 
-    const hypotheticalMaxCustomers =
-      churnValue != null && churnValue > 0
-        ? input.newCustomersPerPeriod / churnValue
-        : null;
-    const hypotheticalMaxRevenuePerPeriod =
-      hypotheticalMaxCustomers != null && arpcValue != null
-        ? hypotheticalMaxCustomers * arpcValue
-        : null;
-    const hypotheticalMaxProfitPerPeriod =
-      hypotheticalMaxCustomers != null && grossProfitPerCustomer != null
-        ? hypotheticalMaxCustomers * grossProfitPerCustomer
-        : null;
-
+    const hypotheticalMaxCustomers = forecast.steadyState.customers;
     if (hypotheticalMaxCustomers != null) {
       assumptionsApplied.push(
         "Derived steady-state max customers as sales velocity divided by churn.",
@@ -302,22 +143,10 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       ltgpToCacRatio: ratio,
       cacPaybackPeriods,
       hypotheticalMaxCustomers,
-      hypotheticalMaxRevenuePerYear:
-        hypotheticalMaxRevenuePerPeriod != null
-          ? annualizedRevenue(
-              hypotheticalMaxRevenuePerPeriod,
-              input.analysisPeriod,
-            )
-          : null,
-      hypotheticalMaxProfitPerYear:
-        hypotheticalMaxProfitPerPeriod != null
-          ? annualizedRevenue(
-              hypotheticalMaxProfitPerPeriod,
-              input.analysisPeriod,
-            )
-          : null,
-      projectedRevenueNextYear: projectedAnnualTotals.revenue,
-      projectedProfitNextYear: projectedAnnualTotals.profit,
+      hypotheticalMaxRevenuePerYear: forecast.steadyState.revenuePerYear,
+      hypotheticalMaxProfitPerYear: forecast.steadyState.profitPerYear,
+      projectedRevenueNextYear: forecast.totals.revenue,
+      projectedProfitNextYear: forecast.totals.profit,
       car: input.newCustomersPerPeriod,
     };
 
