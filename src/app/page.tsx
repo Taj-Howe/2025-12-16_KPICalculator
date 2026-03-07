@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 
 import AppHeader from "@/components/home/AppHeader";
+import HeroSection from "@/components/home/HeroSection";
 import KpiInputPanel from "@/components/home/KpiInputPanel";
 import ReportsPanel from "@/components/home/ReportsPanel";
 import SampleDataControls from "@/components/home/SampleDataControls";
@@ -194,6 +195,7 @@ export default function Home() {
   const [seriesError, setSeriesError] = useState<string | null>(null);
   const [seedStatus, setSeedStatus] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const calculatorRef = useRef<HTMLDivElement | null>(null);
 
   const selectedReport =
     selectedReportId == null
@@ -455,20 +457,38 @@ export default function Home() {
     await loadSession();
   };
 
+  const jumpToCalculator = () => {
+    calculatorRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 bg-black p-6 text-white">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 text-white sm:px-6 lg:px-8">
       <AppHeader
-        hero="KPI Calculator"
-        sidekick="Business KPI"
-        description="Run quick KPI scenarios and save snapshots with a single consistent period."
+        hero="Offer Engine"
+        sidekick="Software Economics Console"
+        description="Analyze software subscription economics with the same numbers operators use to judge growth quality."
         sessionEmail={sessionEmail}
         onSignIn={() => void signIn("github", { callbackUrl: "/" })}
         onSignOut={() => void handleSignOut()}
         signInCta={<GitHubSignInButton callbackUrl="/" />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
+      <HeroSection
+        results={evaluation?.results ?? null}
+        analysisPeriod={form.analysisPeriod}
+        baselineRevenue={form.revenuePerPeriod ?? form.directArpc ?? null}
+        onJumpToCalculator={jumpToCalculator}
+        onLoadSample={handleLoadSample}
+      />
+
+      <div
+        ref={calculatorRef}
+        className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,0.78fr)]"
+      >
+        <section className="space-y-6">
           <KpiInputPanel
             value={form}
             onChange={setForm}
@@ -483,14 +503,18 @@ export default function Home() {
             />
           </KpiInputPanel>
 
-          {error && <p className="text-white/80">{error}</p>}
+          {error && (
+            <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {error}
+            </div>
+          )}
 
           {evaluation && (
             <ReportSavePanel evaluation={evaluation} warnings={warnings} />
           )}
-        </div>
+        </section>
 
-        <div className="space-y-6">
+        <section className="space-y-6">
           <ReportsPanel
             isSignedIn={Boolean(sessionEmail)}
             reports={reports}
@@ -506,19 +530,23 @@ export default function Home() {
           />
 
           {reportsError && (
-            <p className="text-sm text-white/80">{reportsError}</p>
+            <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
+              {reportsError}
+            </p>
           )}
           {seriesError && (
-            <p className="text-sm text-white/80">{seriesError}</p>
+            <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
+              {seriesError}
+            </p>
           )}
-        </div>
+        </section>
       </div>
 
-      <details className="rounded border border-white/30 p-4">
+      <details className="rounded-[26px] border border-white/10 bg-[var(--surface-1)] p-5">
         <summary className="cursor-pointer font-semibold">
           What these metrics mean
         </summary>
-        <div className="mt-3 space-y-2 text-sm text-white/80">
+        <div className="mt-3 space-y-2 text-sm text-white/64">
           <p>All values are per selected period (monthly/quarterly/yearly).</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>
@@ -637,12 +665,12 @@ const ReportSavePanel = ({
   };
 
   return (
-    <section className="rounded border border-white/30 bg-black p-4 text-sm text-white">
+    <section className="panel-shell rounded-[26px] p-5 text-sm text-white">
       <h3 className="font-semibold">Save Report</h3>
-      <p className="text-white/80">
+      <p className="text-white/62">
         Optionally tag this report before saving for future analysis.
       </p>
-      <div className="mt-2 text-xs text-white/60">
+      <div className="mt-2 text-xs text-white/48">
         <p>Calculation version: {evaluation.calculationVersion}</p>
         {evaluation.assumptionsApplied.length > 0 && (
           <p>Assumptions: {evaluation.assumptionsApplied.join(" | ")}</p>
@@ -655,7 +683,7 @@ const ReportSavePanel = ({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className="input-shell rounded-[16px] px-3 py-2 text-white"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -664,7 +692,7 @@ const ReportSavePanel = ({
             type="text"
             value={cohortLabel}
             onChange={(e) => setCohortLabel(e.target.value)}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className="input-shell rounded-[16px] px-3 py-2 text-white"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -673,7 +701,7 @@ const ReportSavePanel = ({
             type="text"
             value={channel}
             onChange={(e) => setChannel(e.target.value)}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className="input-shell rounded-[16px] px-3 py-2 text-white"
           />
         </label>
         <label className="flex flex-col gap-1 md:col-span-3">
@@ -681,7 +709,7 @@ const ReportSavePanel = ({
           <select
             value={periodLabel}
             onChange={(e) => setPeriodLabel(e.target.value)}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className="input-shell rounded-[16px] px-3 py-2 text-white"
           >
             {periodOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -689,7 +717,7 @@ const ReportSavePanel = ({
               </option>
             ))}
           </select>
-          <span className="text-xs text-white/70">
+          <span className="text-xs text-white/54">
             Selected range:{" "}
             {periodOptions.find((option) => option.value === periodLabel)?.range ??
               "Select a period"}
@@ -701,12 +729,12 @@ const ReportSavePanel = ({
           type="button"
           onClick={handleSave}
           disabled={status === "saving"}
-          className="rounded-full border border-white/60 px-4 py-2 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)] disabled:opacity-50 disabled:hover:border-white/60 disabled:hover:bg-transparent disabled:hover:text-white"
+          className="pill-action rounded-full px-4 py-2 disabled:opacity-50 disabled:hover:border-white/16 disabled:hover:bg-white/[0.018] disabled:hover:text-white"
         >
           {status === "saving" ? "Saving..." : "Save Report"}
         </button>
-        {message && <span className="text-white/80">{message}</span>}
-        {error && <span className="text-white/80">{error}</span>}
+        {message && <span className="text-white/62">{message}</span>}
+        {error && <span className="text-white/62">{error}</span>}
       </div>
     </section>
   );

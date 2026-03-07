@@ -104,3 +104,29 @@
   - token-priced AI product
   - hybrid platform + usage
   - implementation + subscription
+
+## Current Fintech UI Refresh
+- [x] Write the fintech UI refresh spec and lock the page architecture before implementation.
+- [x] Install and theme Radix so the app has a reusable dark-mode design system.
+- [x] Rebuild the home screen shell around a hero section and stronger workspace/dashboard surfaces.
+- [x] Add a minimal hero graph that visualizes projected growth / steady-state upside.
+- [ ] Group KPI outputs into unit economics, steady-state ceiling, and next-year projection cards.
+- [ ] Redesign the reports/trends area to match the new visual system.
+- [ ] Run mobile, lint, test, and build verification before merging.
+
+## Review
+- Added Radix Themes at the app shell level and established the first dark-mode fintech token layer.
+- Reworked the page shell so the hero, calculator workspace, save panel, and reports surface read as one product instead of a bare utility layout.
+- Added a new hero section and projection chart that can render current, projected, and ceiling revenue context from the existing evaluation model.
+- Verified the phase with `npm test`, `npm run lint`, and `npm run build`.
+
+## Component Build Plan
+- [x] `src/components/home/HeroSection.tsx`
+- [x] `src/components/home/ProjectionHeroChart.tsx`
+- [ ] `src/components/home/OfferWorkspace.tsx`
+- [ ] `src/components/home/OfferModeSwitch.tsx`
+- [ ] `src/components/home/OfferTypePills.tsx`
+- [ ] `src/components/home/DecisionCards.tsx`
+- [ ] `src/components/home/ResultsSections.tsx`
+- [ ] `src/components/home/SaveReportCard.tsx`
+- [ ] `src/components/home/ReportsDashboard.tsx`

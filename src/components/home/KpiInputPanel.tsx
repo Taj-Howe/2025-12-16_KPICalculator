@@ -52,6 +52,33 @@ type NumericField = {
   step?: string;
 };
 
+const ChoiceCard = ({
+  checked,
+  title,
+  description,
+  onSelect,
+}: {
+  checked: boolean;
+  title: string;
+  description: string;
+  onSelect: () => void;
+}) => {
+  return (
+    <button
+      type="button"
+      data-selected={checked}
+      onClick={onSelect}
+      className="choice-card flex w-full items-start gap-3 rounded-[18px] p-3 text-left"
+    >
+      <span className="choice-indicator mt-1 h-3.5 w-3.5 rounded-full" />
+      <span className="space-y-1">
+        <span className="block text-sm font-medium text-white">{title}</span>
+        <span className="block text-xs text-white/54">{description}</span>
+      </span>
+    </button>
+  );
+};
+
 const KpiInputPanel = ({
   value,
   onChange,
@@ -87,6 +114,10 @@ const KpiInputPanel = ({
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
   const displayInt = (val?: number) =>
     val == null ? "-" : intFormatter.format(val);
+  const fieldClass = "input-shell rounded-[16px] px-3 py-2";
+  const panelClass = "panel-subtle rounded-[22px] p-4";
+  const labelClass = "text-[13px] font-medium tracking-[0.01em] text-white/82";
+  const helperClass = "text-xs text-white/54";
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -210,11 +241,11 @@ const KpiInputPanel = ({
   ];
 
   return (
-    <section className="rounded border border-white/30 bg-black p-4 text-white">
+    <section className="panel-shell rounded-[26px] p-5 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">Offer Inputs</h2>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-white/62">
             Model one software/tech offer at a time. Start with sales velocity,
             churn, CAC, and gross profit. Use unit economics or business
             metrics for the same subscription.
@@ -225,39 +256,39 @@ const KpiInputPanel = ({
 
       <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1">
-            Offer name
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Offer name</span>
             <input
               type="text"
               name="offerName"
               value={value.offerName}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
           </label>
 
-          <label className="flex flex-col gap-1">
-            Offer ID
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Offer ID</span>
             <input
               type="text"
               name="offerId"
               value={value.offerId}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Stable key for this offer in saved reports.
             </span>
           </label>
         </div>
 
-        <label className="flex flex-col gap-1">
-          Offer type
+        <label className="flex flex-col gap-1.5">
+          <span className={labelClass}>Offer type</span>
           <select
             name="offerType"
             value={value.offerType}
             onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className={fieldClass}
           >
             {offerTypeOptions.map((option) => (
               <option key={option.value} value={option.value} disabled={!option.enabled}>
@@ -268,13 +299,13 @@ const KpiInputPanel = ({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1">
-          Analysis period
+        <label className="flex flex-col gap-1.5">
+          <span className={labelClass}>Analysis period</span>
           <select
             name="analysisPeriod"
             value={value.analysisPeriod}
             onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
+            className={fieldClass}
           >
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -282,7 +313,7 @@ const KpiInputPanel = ({
           </select>
         </label>
 
-        <div className="rounded border border-white/30 p-3 text-sm text-white/80">
+        <div className={`${panelClass} text-sm text-white/74`}>
           <p className="font-medium">Start With Four Core Levers</p>
           <p className="mt-1">
             Keep this simple: sales velocity, churn, gross profit per customer,
@@ -290,190 +321,182 @@ const KpiInputPanel = ({
           </p>
         </div>
 
-        <div className="rounded border border-white/30 p-3">
+        <div className={panelClass}>
           <p className="font-medium">Calculator mode</p>
-          <p className="mt-1 text-sm text-white/70">
+          <p className="mt-1 text-sm text-white/58">
             `Unit economics` is for modeling one software offer from price,
             churn, CAC, and delivery cost. `Business metrics` is for modeling
             the business from revenue, spend, and customer counts.
           </p>
-          <div className="mt-3 space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="calculatorMode"
-                value="unit_economics"
-                checked={calculatorMode === "unit_economics"}
-                onChange={() => setCalculatorMode("unit_economics")}
-              />
-              <span>Unit economics</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="calculatorMode"
-                value="business_metrics"
-                checked={calculatorMode === "business_metrics"}
-                onChange={() => setCalculatorMode("business_metrics")}
-              />
-              <span>Business metrics</span>
-            </label>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={calculatorMode === "unit_economics"}
+              title="Unit economics"
+              description="Model one offer from price, churn, CAC, and delivery cost."
+              onSelect={() => setCalculatorMode("unit_economics")}
+            />
+            <ChoiceCard
+              checked={calculatorMode === "business_metrics"}
+              title="Business metrics"
+              description="Model from revenue, acquisition spend, and customer counts."
+              onSelect={() => setCalculatorMode("business_metrics")}
+            />
           </div>
         </div>
 
         {calculatorMode === "business_metrics" ? (
-          <label className="flex flex-col gap-1">
-            Current Revenue Run Rate (per {periodLabel})
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>
+              Current Revenue Run Rate (per {periodLabel})
+            </span>
             <input
               type="number"
               name="revenuePerPeriod"
               value={value.revenuePerPeriod ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayMoney(value.revenuePerPeriod)}
             </span>
           </label>
         ) : (
-          <label className="flex flex-col gap-1">
-            Subscription price / ARPC (per {periodLabel})
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>
+              Subscription price / ARPC (per {periodLabel})
+            </span>
             <input
               type="number"
               name="directArpc"
               value={value.directArpc ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Example: enter 3000 for one $3,000/month subscription.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayMoney(value.directArpc)}
             </span>
           </label>
         )}
 
         {numericFields.map((field) => (
-          <label key={field.name} className="flex flex-col gap-1">
-            {field.label}
+          <label key={field.name} className="flex flex-col gap-1.5">
+            <span className={labelClass}>{field.label}</span>
             <input
               type="number"
               name={field.name}
               value={value[field.name] ?? ""}
               step={field.step}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-xs text-white/60">Formatted: {field.formatted}</span>
+            <span className={helperClass}>Formatted: {field.formatted}</span>
           </label>
         ))}
 
         {showActiveCustomersStart && (
-          <label className="flex flex-col gap-1">
-            Starting Customer Base
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Starting Customer Base</span>
             <input
               type="number"
               name="activeCustomersStart"
               value={value.activeCustomersStart ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Required for cohort-count churn and for deriving ARPC from total
               revenue.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayInt(value.activeCustomersStart)}
             </span>
           </label>
         )}
 
-        <div className="rounded border border-white/30 p-3">
+        <div className={panelClass}>
           <p className="font-medium">Gross profit input</p>
-          <p className="mt-1 text-sm text-white/70">
+          <p className="mt-1 text-sm text-white/58">
             Use gross margin if you know the margin percentage. Use delivery
             costs if you know the cost to serve each subscription.
           </p>
-          <div className="mt-3 space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="grossProfitInputMode"
-                value="margin"
-                checked={grossProfitInputMode === "margin"}
-                onChange={() => setGrossProfitMode("margin")}
-              />
-              <span>Use gross margin %</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="grossProfitInputMode"
-                value="costs"
-                checked={grossProfitInputMode === "costs"}
-                onChange={() => setGrossProfitMode("costs")}
-              />
-              <span>Use delivery costs</span>
-            </label>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={grossProfitInputMode === "margin"}
+              title="Use gross margin %"
+              description="Best when you already know the gross margin profile."
+              onSelect={() => setGrossProfitMode("margin")}
+            />
+            <ChoiceCard
+              checked={grossProfitInputMode === "costs"}
+              title="Use delivery costs"
+              description="Best when cost to serve is easier than margin %."
+              onSelect={() => setGrossProfitMode("costs")}
+            />
           </div>
         </div>
 
         {grossProfitInputMode === "margin" ? (
-          <label className="flex flex-col gap-1">
-            Gross Margin (%)
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Gross Margin (%)</span>
             <input
               type="number"
               name="grossMargin"
               value={percentInputValue(value.grossMargin)}
               step="0.1"
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Before acquisition cost. Example: 70 = 70%.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {percentText(value.grossMargin)}
             </span>
             {grossMarginError && (
-              <span className="text-sm text-white/80">{grossMarginError}</span>
+              <span className="text-sm text-white/66">{grossMarginError}</span>
             )}
           </label>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1">
-              Delivery cost per active customer (per {periodLabel})
+              <span className={labelClass}>
+                Delivery cost per active customer (per {periodLabel})
+              </span>
               <input
                 type="number"
                 name="deliveryCostPerCustomerPerPeriod"
                 value={value.deliveryCostPerCustomerPerPeriod ?? ""}
                 onChange={handleChange}
-                className="rounded border border-white/30 bg-black p-2 text-white"
+                className={fieldClass}
               />
-              <span className="text-sm text-white/70">
+              <span className={helperClass}>
                 Example: monthly AI token cost, fulfillment, or support cost per
                 active subscription.
               </span>
-              <span className="text-xs text-white/60">
+              <span className={helperClass}>
                 Formatted: {displayMoney(value.deliveryCostPerCustomerPerPeriod)}
               </span>
             </label>
 
-            <label className="flex flex-col gap-1">
-              Fixed delivery cost (optional, per {periodLabel})
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>
+                Fixed delivery cost (optional, per {periodLabel})
+              </span>
               <input
                 type="number"
                 name="fixedDeliveryCostPerPeriod"
                 value={value.fixedDeliveryCostPerPeriod ?? ""}
                 onChange={handleChange}
-                className="rounded border border-white/30 bg-black p-2 text-white"
+                className={fieldClass}
               />
-              <span className="text-sm text-white/70">
+              <span className={helperClass}>
                 Shared infrastructure or software cost allocated across active
                 customers.
               </span>
-              <span className="text-xs text-white/60">
+              <span className={helperClass}>
                 Formatted: {displayMoney(value.fixedDeliveryCostPerPeriod)}
               </span>
             </label>
@@ -481,129 +504,125 @@ const KpiInputPanel = ({
         )}
 
         {calculatorMode === "business_metrics" ? (
-          <label className="flex flex-col gap-1">
-            Customer Acquisition Spend (per {periodLabel})
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>
+              Customer Acquisition Spend (per {periodLabel})
+            </span>
             <input
               type="number"
               name="marketingSpendPerPeriod"
               value={value.marketingSpendPerPeriod ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayMoney(value.marketingSpendPerPeriod)}
             </span>
           </label>
         ) : (
-          <label className="flex flex-col gap-1">
-            Direct CAC
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Direct CAC</span>
             <input
               type="number"
               name="directCac"
               value={value.directCac ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Use this if you already know customer acquisition cost and do not
               want to back it out from spend.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayMoney(value.directCac)}
             </span>
           </label>
         )}
 
         {calculatorMode === "business_metrics" && (
-          <div className="space-y-3 rounded border border-white/30 p-3">
+          <div className={`${panelClass} space-y-3`}>
             <p className="font-medium">
               How do you want to input churn from the starting cohort?
             </p>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="churnMode"
-                value="retained"
+            <div className="grid gap-2 md:grid-cols-2">
+              <ChoiceCard
                 checked={churnInputMode === "retained"}
-                onChange={() => setChurnMode("retained")}
+                title="I know how many starting customers remained"
+                description="Use retained cohort counts from the opening customer base."
+                onSelect={() => setChurnMode("retained")}
               />
-              <span>I know how many starting customers remained</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="churnMode"
-                value="churned"
+              <ChoiceCard
                 checked={churnInputMode === "churned"}
-                onChange={() => setChurnMode("churned")}
+                title="I know how many starting customers churned"
+                description="Use direct churn counts for the same cohort."
+                onSelect={() => setChurnMode("churned")}
               />
-              <span>I know how many starting customers churned</span>
-            </label>
+            </div>
           </div>
         )}
 
         {calculatorMode === "unit_economics" ? (
-          <label className="flex flex-col gap-1">
-            Churn rate per {periodLabel} (%)
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Churn rate per {periodLabel} (%)</span>
             <input
               type="number"
               name="directChurnRatePerPeriod"
               value={percentInputValue(value.directChurnRatePerPeriod)}
               step="0.1"
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Example: enter 10 for a 10% monthly churn rate.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {percentText(value.directChurnRatePerPeriod)}
             </span>
           </label>
         ) : churnInputMode === "retained" ? (
-          <label className="flex flex-col gap-1">
-            Customers from start still active at end
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Customers from start still active at end</span>
             <input
               type="number"
               name="retainedCustomersFromStartAtEnd"
               value={value.retainedCustomersFromStartAtEnd ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Cohort retention only for the customers you had at the start of
               the period.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
             </span>
           </label>
         ) : (
-          <label className="flex flex-col gap-1">
-            Churned customers per period
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Churned customers per period</span>
             <input
               type="number"
               name="churnedCustomersPerPeriod"
               value={value.churnedCustomersPerPeriod ?? ""}
               onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              className={fieldClass}
             />
-            <span className="text-sm text-white/70">
+            <span className={helperClass}>
               Use this if you track churn directly instead of retained cohort
               counts.
             </span>
-            <span className="text-xs text-white/60">
+            <span className={helperClass}>
               Formatted: {displayInt(value.churnedCustomersPerPeriod)}
             </span>
           </label>
         )}
 
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-white/58">
           Subscription end customers are derived as start customers + new
           customers - churned customers when a starting customer base is
           provided.
         </p>
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-white/58">
           For single-unit economics, set revenue to the subscription price, use
           sales velocity for subscriptions sold in the period, and use direct
           CAC, delivery costs, or direct churn rate if those are easier to
@@ -613,7 +632,7 @@ const KpiInputPanel = ({
         <div className="flex gap-3">
           <button
             type="submit"
-            className="rounded-full border border-white/60 px-4 py-2 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)] disabled:opacity-50 disabled:hover:border-white/60 disabled:hover:bg-transparent disabled:hover:text-white"
+            className="pill-action rounded-full px-4 py-2 disabled:opacity-50 disabled:hover:border-white/15 disabled:hover:bg-white/[0.018] disabled:hover:text-white"
             disabled={isCalculating}
           >
             {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
@@ -622,7 +641,7 @@ const KpiInputPanel = ({
       </form>
 
       {warnings.length > 0 && (
-        <div className="mt-4 rounded border border-white/30 p-3 text-sm text-white/80">
+        <div className={`${panelClass} mt-4 text-sm text-white/74`}>
           <p className="font-semibold">Warnings</p>
           <ul className="mt-2 list-disc pl-5">
             {warnings.map((warning) => (
@@ -742,9 +761,9 @@ const ResultsPanel = ({
   ];
 
   return (
-    <div className="mt-4 space-y-4 rounded border border-white/30 p-4 text-white">
+    <div className="panel-subtle mt-4 space-y-4 rounded-[22px] p-5 text-white">
       <h2 className="font-semibold">Results</h2>
-      <p className="text-sm text-white/70">
+      <p className="text-sm text-white/58">
         Core growth math comes first: LTGP:CAC, payback, sales velocity, and
         churn. Steady-state ceiling and next-year projection metrics follow.
       </p>
@@ -788,7 +807,7 @@ const CustomerBridge = ({
     value == null ? "-" : intFormatter.format(value);
 
   return (
-    <div className="rounded border border-white/30 bg-black p-4 text-sm text-white">
+    <div className="panel-subtle rounded-[20px] p-4 text-sm text-white">
       <h3 className="font-semibold">Customer Bridge</h3>
       <ul className="mt-2 space-y-1">
         <li className="flex justify-between gap-4">
@@ -809,12 +828,12 @@ const CustomerBridge = ({
         </li>
       </ul>
       {start == null ? (
-        <p className="mt-2 text-xs text-white/70">
+        <p className="mt-2 text-xs text-white/56">
           Customer bridge is optional in direct price + direct churn mode. Add a
           starting customer base if you want cohort movement shown here.
         </p>
       ) : derivedChurned == null ? (
-        <p className="mt-2 text-xs text-white/70">
+        <p className="mt-2 text-xs text-white/56">
           Provide churned or retained-from-start customers to unlock the
           customer bridge.
         </p>

@@ -5,3 +5,5 @@
 - Keep steady-state ceiling metrics separate from next-year projections. If the UI calls both “max,” users will assume the wrong model.
 - Do not let taxonomy work make the product harder to think through. The user-facing flow still needs to start from simple drivers like sales velocity, churn, CAC, and LTGP.
 - For pill-style controls, keep hover states simple. Default to a full accent fill instead of layered borders, rings, or muddy intermediate states.
+- When the user gives a visual reference, match the overall design language first. Reduce decorative color and gradients unless the reference clearly calls for them.
+- When restyling a screen, update the interactive child controls too. A new container shell is not enough if radios, toggles, and field groupings still look like the old UI.
