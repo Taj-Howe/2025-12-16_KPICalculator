@@ -1,0 +1,67 @@
+import type {
+  AnyKpiInput,
+  KPIInput,
+  KpiPeriod,
+  OfferInput,
+  SubscriptionOfferInput,
+} from "./types";
+
+export const isLegacyKpiInput = (input: AnyKpiInput): input is KPIInput => {
+  return "businessModel" in input;
+};
+
+export const isOfferInput = (input: AnyKpiInput): input is OfferInput => {
+  return "offerType" in input;
+};
+
+export const isSubscriptionOfferInput = (
+  input: AnyKpiInput,
+): input is SubscriptionOfferInput => {
+  return isOfferInput(input) && input.offerType === "subscription";
+};
+
+export const getInputPeriod = (input: AnyKpiInput): KpiPeriod => {
+  return isLegacyKpiInput(input) ? input.period : input.analysisPeriod;
+};
+
+export const getInputModelLabel = (input: AnyKpiInput): string => {
+  return isLegacyKpiInput(input) ? input.businessModel : input.offerType;
+};
+
+export const getOfferMetadata = (input: AnyKpiInput) => {
+  if (isLegacyKpiInput(input)) {
+    return {
+      offerId: null,
+      offerName: null,
+      offerType: null,
+    };
+  }
+  return {
+    offerId: input.offerId,
+    offerName: input.offerName,
+    offerType: input.offerType,
+  };
+};
+
+export const adaptLegacyInputToSubscriptionOffer = (
+  input: KPIInput,
+): SubscriptionOfferInput => {
+  const offerNameByModel: Record<KPIInput["businessModel"], string> = {
+    subscription: "Legacy Subscription Offer",
+    transactional: "Legacy Transactional Offer",
+    hybrid: "Legacy Hybrid Offer",
+  };
+  return {
+    offerId: `legacy-${input.businessModel}`,
+    offerName: offerNameByModel[input.businessModel],
+    offerType: "subscription",
+    analysisPeriod: input.period,
+    revenuePerPeriod: input.revenuePerPeriod,
+    grossMargin: input.grossMargin,
+    marketingSpendPerPeriod: input.marketingSpendPerPeriod,
+    newCustomersPerPeriod: input.newCustomersPerPeriod,
+    activeCustomersStart: input.activeCustomersStart,
+    churnedCustomersPerPeriod: input.churnedCustomersPerPeriod,
+    retainedCustomersFromStartAtEnd: input.retainedCustomersFromStartAtEnd,
+  };
+};

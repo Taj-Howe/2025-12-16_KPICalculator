@@ -1,4 +1,4 @@
-import { kpiInputSchema } from "./schema";
+import { legacyKpiInputSchema, kpiInputSchema } from "./schema";
 import {
   annualizedProfit,
   annualizedRevenue,
@@ -13,22 +13,27 @@ import {
   ratioLtgpToCac,
   transactionalChurnRate,
 } from "./formulas";
-import type { KPIInput, KPIResult } from "./types";
+import { evaluateOffer } from "./offer-evaluator";
+import { isLegacyKpiInput, isSubscriptionOfferInput } from "./adapters";
+import type {
+  AnyKpiInput,
+  CalculationVersion,
+  KPIInput,
+  KpiEvaluation,
+  KPIResult,
+} from "./types";
 
-export type KpiEvaluation = {
-  inputs: KPIInput;
-  results: KPIResult;
-  warnings: string[];
-};
+const LEGACY_CALC_VERSION: CalculationVersion = "kpi-v1-legacy-model";
+const OFFER_CALC_VERSION: CalculationVersion = "kpi-v2-subscription-offer";
 
-type ModelMetrics = {
+type LegacyModelMetrics = {
   churnRate: number | null;
   retentionRate: number | null;
   ltv: number | null;
   ltgpPerCustomer: number | null;
 };
 
-const nullMetrics: ModelMetrics = {
+const nullMetrics: LegacyModelMetrics = {
   churnRate: null,
   retentionRate: null,
   ltv: null,
@@ -61,8 +66,14 @@ const nullTransactionalDerived: TransactionalDerived = {
   hasData: false,
 };
 
-export const evaluateKpis = (payload: unknown): KpiEvaluation => {
-  const parsed = kpiInputSchema.parse(payload) as KPIInput;
+const evaluateLegacyKpis = (
+  payload: unknown,
+): {
+  inputs: KPIInput;
+  results: KPIResult;
+  warnings: string[];
+} => {
+  const parsed = legacyKpiInputSchema.parse(payload) as KPIInput;
   const warnings: string[] = [];
 
   const subscriptionDerived =
@@ -133,9 +144,13 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
     warnings.push("Payback is long; growth may be cash constrained.");
   }
 
-  let modelMetrics: ModelMetrics = nullMetrics;
+  let modelMetrics: LegacyModelMetrics = nullMetrics;
   if (parsed.businessModel === "subscription") {
-    modelMetrics = finalizeSubscriptionMetrics(subscriptionDerived, arpcValue, parsed.grossMargin);
+    modelMetrics = finalizeSubscriptionMetrics(
+      subscriptionDerived,
+      arpcValue,
+      parsed.grossMargin,
+    );
   } else if (parsed.businessModel === "transactional") {
     modelMetrics = finalizeTransactionalMetrics(
       transactionalDerived,
@@ -154,7 +169,9 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
       parsed.grossMargin,
     );
     modelMetrics =
-      subMetrics.churnRate != null || subMetrics.retentionRate != null ? subMetrics : txMetrics;
+      subMetrics.churnRate != null || subMetrics.retentionRate != null
+        ? subMetrics
+        : txMetrics;
   }
 
   const ratio = ratioLtgpToCac(modelMetrics.ltgpPerCustomer, cacValue);
@@ -192,11 +209,41 @@ export const evaluateKpis = (payload: unknown): KpiEvaluation => {
   return { inputs: parsed, results, warnings };
 };
 
+export const evaluateKpis = (payload: unknown): KpiEvaluation => {
+  const parsed = kpiInputSchema.parse(payload) as AnyKpiInput;
+
+  if (isSubscriptionOfferInput(parsed)) {
+    const offerEvaluation = evaluateOffer(parsed);
+    return {
+      inputs: parsed,
+      results: offerEvaluation.results,
+      offerResults: offerEvaluation.results,
+      warnings: offerEvaluation.warnings,
+      calculationVersion: OFFER_CALC_VERSION,
+      assumptionsApplied: offerEvaluation.assumptionsApplied,
+    };
+  }
+
+  if (isLegacyKpiInput(parsed)) {
+    const legacy = evaluateLegacyKpis(parsed);
+    return {
+      inputs: legacy.inputs,
+      results: legacy.results,
+      offerResults: legacy.results,
+      warnings: legacy.warnings,
+      calculationVersion: LEGACY_CALC_VERSION,
+      assumptionsApplied: [],
+    };
+  }
+
+  throw new Error("Unsupported KPI input payload.");
+};
+
 const finalizeSubscriptionMetrics = (
   derived: SubscriptionDerived,
   arpcValue: number | null,
   grossMargin: number,
-): ModelMetrics => {
+): LegacyModelMetrics => {
   if (!derived.hasData) {
     return nullMetrics;
   }
@@ -214,7 +261,7 @@ const finalizeTransactionalMetrics = (
   derived: TransactionalDerived,
   arpcValue: number | null,
   grossMargin: number,
-): ModelMetrics => {
+): LegacyModelMetrics => {
   if (!derived.hasData) {
     return nullMetrics;
   }

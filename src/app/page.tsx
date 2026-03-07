@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 
 import AppHeader from "@/components/home/AppHeader";
@@ -9,15 +9,22 @@ import ReportsPanel from "@/components/home/ReportsPanel";
 import SampleDataControls from "@/components/home/SampleDataControls";
 import GitHubSignInButton from "@/components/GitHubSignInButton";
 import type { ReportSummary } from "@/components/report-comparison";
-import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
+import type {
+  CalculationVersion,
+  KPIResult,
+  KpiPeriod,
+  OfferInput,
+} from "@/features/kpi/types";
 import { sampleKpiInput } from "@/components/home/types";
 import type { ReportSeries } from "@/components/home/types";
 import { generateSampleYearReports } from "@/lib/sampleReports";
 
-type FormState = KPIInput;
+type FormState = OfferInput;
 type Evaluation = {
-  inputs: KPIInput;
+  inputs: OfferInput;
   results: KPIResult;
+  calculationVersion: CalculationVersion;
+  assumptionsApplied: string[];
 };
 
 type SessionSnapshot = {
@@ -27,15 +34,16 @@ type SessionSnapshot = {
 } | null;
 
 const defaultState: FormState = {
-  period: "monthly",
-  businessModel: "subscription",
+  offerId: "main-offer",
+  offerName: "Main Offer",
+  offerType: "subscription",
+  analysisPeriod: "monthly",
   revenuePerPeriod: 100000,
   grossMargin: 0.7,
   marketingSpendPerPeriod: 20000,
   newCustomersPerPeriod: 20,
   activeCustomersStart: 100,
   retainedCustomersFromStartAtEnd: 90,
-  retentionRatePerPeriod: 0.6,
 };
 
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -189,7 +197,7 @@ export default function Home() {
     void loadSession();
   }, []);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     if (!sessionEmail) {
       setReports([]);
       setSelectedReportId(null);
@@ -217,16 +225,18 @@ export default function Home() {
       setReports([]);
       setSelectedReportId(null);
     }
-  };
+  }, [sessionEmail]);
 
-  const loadSeries = async () => {
+  const loadSeries = useCallback(async () => {
     if (!sessionEmail) {
       setSeries(null);
       setSeriesError(null);
       return;
     }
     try {
-      const response = await fetch(`/api/reports/series?period=${form.period}`);
+      const response = await fetch(
+        `/api/reports/series?period=${form.analysisPeriod}`,
+      );
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error ?? "Unable to load report trends.");
@@ -238,15 +248,15 @@ export default function Home() {
       setSeriesError(err instanceof Error ? err.message : "Unknown error.");
       setSeries(null);
     }
-  };
+  }, [form.analysisPeriod, sessionEmail]);
 
   useEffect(() => {
     void loadReports();
-  }, [sessionEmail]);
+  }, [loadReports]);
 
   useEffect(() => {
     void loadSeries();
-  }, [form.period, sessionEmail]);
+  }, [loadSeries]);
 
   const refreshReports = async () => {
     await Promise.all([loadReports(), loadSeries()]);
@@ -281,7 +291,12 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setEvaluation({ inputs: data.inputs, results: data.results });
+      setEvaluation({
+        inputs: data.inputs,
+        results: data.results,
+        calculationVersion: data.calculationVersion,
+        assumptionsApplied: data.assumptionsApplied ?? [],
+      });
       setWarnings(data.warnings ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
@@ -299,8 +314,10 @@ export default function Home() {
 
   const handleClear = () => {
     setForm({
-      period: form.period,
-      businessModel: form.businessModel,
+      offerId: form.offerId,
+      offerName: form.offerName,
+      offerType: form.offerType,
+      analysisPeriod: form.analysisPeriod,
       revenuePerPeriod: 0,
       grossMargin: 0,
       marketingSpendPerPeriod: 0,
@@ -416,10 +433,6 @@ export default function Home() {
             <SampleDataControls
               onLoadSample={handleLoadSample}
               onClear={handleClear}
-              onLoadSampleYear={handleLoadSampleYear}
-              isSeeding={isSeeding}
-              seedStatus={seedStatus}
-              isSignedIn={Boolean(sessionEmail)}
             />
           </KpiInputPanel>
 
@@ -469,8 +482,7 @@ export default function Home() {
               <strong>ARPC</strong>: Average revenue per customer in the period.
             </li>
             <li>
-              <strong>Churn rate</strong>: Portion of starting customers lost
-              during the period.
+              <strong>Churn rate</strong>: Portion of starting customers lost during the period.
             </li>
             <li>
               <strong>LTGP per customer</strong>: Lifetime gross profit per
@@ -503,28 +515,31 @@ const ReportSavePanel = ({
   const [cohortLabel, setCohortLabel] = useState("");
   const [channel, setChannel] = useState("");
   const periodOptions = useMemo(
-    () => generatePeriodOptions(evaluation.inputs.period),
-    [evaluation.inputs.period],
+    () => generatePeriodOptions(evaluation.inputs.analysisPeriod),
+    [evaluation.inputs.analysisPeriod],
   );
   const [periodLabel, setPeriodLabel] = useState(
-    () => periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period),
+    () =>
+      periodOptions[0]?.value ??
+      defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
   );
   const [status, setStatus] = useState<"idle" | "saving">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const previousPeriodRef = useRef<KpiPeriod>(evaluation.inputs.period);
+  const previousPeriodRef = useRef<KpiPeriod>(evaluation.inputs.analysisPeriod);
 
   useEffect(() => {
     if (
-      previousPeriodRef.current !== evaluation.inputs.period ||
+      previousPeriodRef.current !== evaluation.inputs.analysisPeriod ||
       !periodOptions.some((option) => option.value === periodLabel)
     ) {
-      previousPeriodRef.current = evaluation.inputs.period;
+      previousPeriodRef.current = evaluation.inputs.analysisPeriod;
       setPeriodLabel(
-        periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period),
+        periodOptions[0]?.value ??
+          defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
       );
     }
-  }, [evaluation.inputs.period, periodLabel, periodOptions]);
+  }, [evaluation.inputs.analysisPeriod, periodLabel, periodOptions]);
 
   const handleSave = async () => {
     const trimmedLabel = periodLabel.trim();
@@ -548,6 +563,8 @@ const ReportSavePanel = ({
           inputs: evaluation.inputs,
           results: evaluation.results,
           warnings,
+          calculationVersion: evaluation.calculationVersion,
+          assumptionsApplied: evaluation.assumptionsApplied,
         }),
       });
       if (!response.ok) {
@@ -562,7 +579,8 @@ const ReportSavePanel = ({
       setCohortLabel("");
       setChannel("");
       setPeriodLabel(
-        periodOptions[0]?.value ?? defaultPeriodLabelFor(evaluation.inputs.period),
+        periodOptions[0]?.value ??
+          defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
@@ -577,6 +595,12 @@ const ReportSavePanel = ({
       <p className="text-white/80">
         Optionally tag this report before saving for future analysis.
       </p>
+      <div className="mt-2 text-xs text-white/60">
+        <p>Calculation version: {evaluation.calculationVersion}</p>
+        {evaluation.assumptionsApplied.length > 0 && (
+          <p>Assumptions: {evaluation.assumptionsApplied.join(" | ")}</p>
+        )}
+      </div>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <label className="flex flex-col gap-1">
           Title (optional)

@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { kpiReports, users } from "@/db/schema";
-import type { KPIInput, KPIResult } from "@/features/kpi/types";
+import type { AnyKpiInput, KPIResult } from "@/features/kpi/types";
 import type { ReportSummary } from "@/components/report-comparison";
 import { ReportComparison } from "@/components/report-comparison";
 import { ReportTrends } from "@/components/report-trends";
@@ -60,6 +60,10 @@ const DashboardPage = async () => {
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
+      offerId: kpiReports.offerId,
+      offerName: kpiReports.offerName,
+      offerType: kpiReports.offerType,
+      calculationVersion: kpiReports.calculationVersion,
       inputJson: kpiReports.inputJson,
       resultJson: kpiReports.resultJson,
       warningsJson: kpiReports.warningsJson,
@@ -70,7 +74,7 @@ const DashboardPage = async () => {
 
   const reports = rows.map((row) => ({
     ...row,
-    inputJson: row.inputJson as KPIInput,
+    inputJson: row.inputJson as AnyKpiInput,
     resultJson: row.resultJson as KPIResult,
     warningsJson: (row.warningsJson as string[]) ?? [],
   }));
@@ -84,11 +88,18 @@ const DashboardPage = async () => {
     createdAt: report.createdAt,
     period: report.period,
     businessModel: report.businessModel,
+    offerId: report.offerId,
+    offerName: report.offerName,
+    offerType: report.offerType,
+    calculationVersion: report.calculationVersion,
     inputJson: report.inputJson,
     resultJson: report.resultJson,
     warningsJson: report.warningsJson,
   }));
-
+  const describeReport = (report: (typeof reports)[number]) =>
+    report.offerName?.trim() || report.title?.trim() || "Untitled";
+  const describeType = (report: (typeof reports)[number]) =>
+    report.offerType ?? report.businessModel;
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-6">
@@ -110,9 +121,9 @@ const DashboardPage = async () => {
               <li key={report.id} className="rounded border border-gray-200 p-4">
                 <details>
                   <summary className="cursor-pointer font-medium">
-                    {report.title ?? "Untitled"} —{" "}
+                    {describeReport(report)} —{" "}
                     {report.periodLabel ?? "Unlabeled"} ({report.period} /{" "}
-                    {report.businessModel}) (
+                    {describeType(report)}) (
                     {report.createdAt
                       ? new Date(report.createdAt).toLocaleString()
                       : "unknown"}
@@ -152,6 +163,11 @@ const DashboardPage = async () => {
                         {JSON.stringify(report.resultJson, null, 2)}
                       </pre>
                     </div>
+                    {report.calculationVersion && (
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        Calculation version: {report.calculationVersion}
+                      </p>
+                    )}
                     {report.warningsJson.length > 0 && (
                       <div>
                         <h3 className="font-semibold">Warnings</h3>

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { evaluateKpis } from "../src/features/kpi/service";
-import type { KPIInput } from "../src/features/kpi/types";
+import type { KPIInput, SubscriptionOfferInput } from "../src/features/kpi/types";
 
 const baseInput: KPIInput = {
   period: "monthly",
@@ -102,5 +102,64 @@ test("hybrid inputs require active customers at end", () => {
   assert.throws(
     () => evaluateKpis(payload),
     /Active customers at end is required for transactional and hybrid models/,
+  );
+});
+
+test("subscription offer v2 returns offer calculation envelope", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "core-membership",
+    offerName: "Core Membership",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    revenuePerPeriod: 100_000,
+    grossMargin: 0.7,
+    marketingSpendPerPeriod: 20_000,
+    newCustomersPerPeriod: 20,
+    activeCustomersStart: 100,
+    retainedCustomersFromStartAtEnd: 90,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(evaluation.calculationVersion, "kpi-v2-subscription-offer");
+  assert.equal(evaluation.results.churnRate, 0.1);
+  assert.equal(evaluation.results.retentionRate, 0.9);
+  assert.deepEqual(evaluation.offerResults, evaluation.results);
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Derived churned customers from retainedCustomersFromStartAtEnd.",
+    ),
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Derived end customers as start + new - churned.",
+    ),
+  );
+});
+
+test("subscription offer v2 warns when CAC is not computable", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "core-membership",
+    offerName: "Core Membership",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    revenuePerPeriod: 100_000,
+    grossMargin: 0.7,
+    marketingSpendPerPeriod: 20_000,
+    newCustomersPerPeriod: 0,
+    activeCustomersStart: 100,
+    churnedCustomersPerPeriod: 15,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(evaluation.results.cac, null);
+  assert.ok(
+    evaluation.warnings.includes(
+      "CAC cannot be computed (newCustomersPerPeriod is 0).",
+    ),
+  );
+  assert.ok(
+    evaluation.warnings.includes("LTGP:CAC cannot be computed (CAC is 0)."),
   );
 });

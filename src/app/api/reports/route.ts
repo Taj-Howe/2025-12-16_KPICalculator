@@ -6,7 +6,8 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { authOptions } from "@/lib/auth";
 import { kpiInputSchema } from "@/features/kpi/schema";
-import type { KPIResult } from "@/features/kpi/types";
+import { getInputModelLabel, getInputPeriod, getOfferMetadata, isLegacyKpiInput } from "@/features/kpi/adapters";
+import type { AnyKpiInput, CalculationVersion, KPIResult } from "@/features/kpi/types";
 import { db } from "@/db";
 import { kpiReports, users } from "@/db/schema";
 import { validatePeriodLabel } from "@/lib/periodLabel";
@@ -35,6 +36,10 @@ const saveReportSchema = z.object({
   inputs: kpiInputSchema,
   results: resultsSchema,
   warnings: z.array(z.string()),
+  calculationVersion: z
+    .enum(["kpi-v1-legacy-model", "kpi-v2-subscription-offer"])
+    .optional(),
+  assumptionsApplied: z.array(z.string()).optional(),
 });
 
 const ensureUser = async (session: Session) => {
@@ -86,10 +91,19 @@ export const POST = async (request: Request) => {
   }
 
   const data = parsed.data;
+  const input = data.inputs as AnyKpiInput;
+  const period = getInputPeriod(input);
+  const businessModel = getInputModelLabel(input);
+  const offerMetadata = getOfferMetadata(input);
+  const calculationVersion: CalculationVersion =
+    data.calculationVersion ??
+    (isLegacyKpiInput(input) ? "kpi-v1-legacy-model" : "kpi-v2-subscription-offer");
+  const assumptionsApplied = data.assumptionsApplied ?? [];
+
   let normalizedLabel: string;
   try {
     normalizedLabel = validatePeriodLabel(
-      data.inputs.period,
+      period,
       data.periodLabel.trim(),
     );
   } catch (error) {
@@ -110,11 +124,19 @@ export const POST = async (request: Request) => {
         title: data.title ?? null,
         cohortLabel: data.cohortLabel ?? null,
         channel: data.channel ?? null,
-        period: data.inputs.period,
+        period,
         periodLabel: normalizedLabel,
-        businessModel: data.inputs.businessModel,
+        businessModel,
+        offerId: offerMetadata.offerId,
+        offerName: offerMetadata.offerName,
+        offerType: offerMetadata.offerType,
+        calculationVersion,
         inputJson: data.inputs,
-        resultJson: data.results,
+        resultJson: {
+          ...data.results,
+          calculationVersion,
+          assumptionsApplied,
+        },
         warningsJson: data.warnings,
       })
       .returning({
@@ -126,9 +148,20 @@ export const POST = async (request: Request) => {
         createdAt: kpiReports.createdAt,
         period: kpiReports.period,
         businessModel: kpiReports.businessModel,
+        offerId: kpiReports.offerId,
+        offerName: kpiReports.offerName,
+        offerType: kpiReports.offerType,
+        calculationVersion: kpiReports.calculationVersion,
       });
 
-    return NextResponse.json({ report }, { status: 201 });
+    return NextResponse.json(
+      {
+        report,
+        calculationVersion,
+        assumptionsApplied,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     if (isUniqueViolation(error)) {
       return NextResponse.json(
@@ -161,6 +194,10 @@ export const GET = async () => {
       createdAt: kpiReports.createdAt,
       period: kpiReports.period,
       businessModel: kpiReports.businessModel,
+      offerId: kpiReports.offerId,
+      offerName: kpiReports.offerName,
+      offerType: kpiReports.offerType,
+      calculationVersion: kpiReports.calculationVersion,
       inputJson: kpiReports.inputJson,
       resultJson: kpiReports.resultJson,
       warningsJson: kpiReports.warningsJson,

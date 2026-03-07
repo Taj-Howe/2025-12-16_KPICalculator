@@ -48,12 +48,13 @@ Every number you enter must match the selected period:
 
 If you pick **quarterly**, then ARPC is *per quarter*, churn is *per quarter*, CAC is *per quarter*, etc. No hidden conversions. No “monthly churn + yearly revenue” chaos.
 
-### Supported business models
-The app supports different business models because the same KPI name can mean different things depending on how revenue behaves.
+### Offer-first modeling
+The app is moving to an offer-first model so inputs map to how a product actually monetizes.
 
-- **Subscription**: recurring revenue, churn is meaningful.
-- **Transactional**: one-time purchases; “churn” is replaced by a retention/repeat proxy.
-- **Hybrid**: mix of both (supported, but may require additional inputs to avoid garbage outputs).
+- **Offer**: one independently modeled product or service.
+- **Offer Portfolio**: a future view across multiple offers.
+- **Subscription Offer**: first supported offer type in the new flow.
+- Legacy `businessModel` payloads are still accepted during migration.
 
 ### KPIs (v1)
 - **CAC** (Customer Acquisition Cost)
@@ -79,7 +80,7 @@ The app supports different business models because the same KPI name can mean di
 
 ### User workflow
 1. **Sign in**
-2. Choose **Period** (monthly/quarterly/yearly) and **Business Model**
+2. Choose **Analysis Period** (monthly/quarterly/yearly) and **Offer Type**
 3. Enter inputs (all “per period”)
 4. Click **Calculate**
 5. View dashboard results + warnings

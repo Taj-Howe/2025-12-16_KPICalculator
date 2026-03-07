@@ -72,6 +72,10 @@ const ReportsPanel = ({
     compareMetric && series
       ? (series[compareMetric.key as keyof typeof series] as (number | null)[])
       : [];
+  const describeReport = (report: (typeof reports)[number]) =>
+    report.offerName?.trim() || report.title?.trim() || "Untitled";
+  const describeType = (report: (typeof reports)[number]) =>
+    report.offerType ?? report.businessModel;
 
   return (
     <section className="rounded border border-white/30 bg-black p-4 text-white">
@@ -113,7 +117,6 @@ const ReportsPanel = ({
                   ? "—"
                   : new Date(report.createdAt).toLocaleDateString();
               const label = formatLabel(report.periodLabel ?? "Unlabeled");
-              const title = report.title?.trim();
               const isSelected = selected?.id === report.id;
               return (
                 <li key={report.id}>
@@ -127,13 +130,11 @@ const ReportsPanel = ({
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">
-                        {title && title.length > 0 ? title : "Untitled"}
-                      </span>
+                      <span className="font-medium">{describeReport(report)}</span>
                       <span className="text-xs text-white/60">{createdAt}</span>
                     </div>
                     <div className="text-xs text-white/70">
-                      {label} · {report.period} · {report.businessModel}
+                      {label} · {report.period} · {describeType(report)}
                     </div>
                   </button>
                 </li>
@@ -144,12 +145,10 @@ const ReportsPanel = ({
           <div className="rounded border border-white/30 p-3 text-sm">
             {selected ? (
               <>
-                <div className="text-sm font-semibold">
-                  {selected.title ?? "Untitled"}
-                </div>
+                <div className="text-sm font-semibold">{describeReport(selected)}</div>
                 <div className="text-xs text-white/70">
                   {formatLabel(selected.periodLabel ?? "Unlabeled")} ·{" "}
-                  {selected.period} · {selected.businessModel}
+                  {selected.period} · {describeType(selected)}
                 </div>
                 <div className="mt-3 grid gap-2 text-xs text-white/80">
                   <div className="flex items-center justify-between">

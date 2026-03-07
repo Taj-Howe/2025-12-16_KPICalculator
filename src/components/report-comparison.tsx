@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { KPIInput, KPIResult } from "@/features/kpi/types";
+import type { AnyKpiInput, KPIResult } from "@/features/kpi/types";
 
 export type ReportSummary = {
   id: number;
@@ -10,15 +10,22 @@ export type ReportSummary = {
   createdAt: Date | string | null;
   period: string;
   businessModel: string;
+  offerId?: string | null;
+  offerName?: string | null;
+  offerType?: string | null;
+  calculationVersion?: string | null;
   cohortLabel?: string | null;
   channel?: string | null;
-  inputJson: KPIInput;
+  inputJson: AnyKpiInput;
   resultJson: KPIResult;
   warningsJson: string[];
 };
 
 export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
   const [selected, setSelected] = useState<number[]>([]);
+  const describeReport = (report: ReportSummary) =>
+    report.offerName?.trim() || report.title?.trim() || "Untitled";
+  const describeType = (report: ReportSummary) => report.offerType ?? report.businessModel;
 
   const toggleReport = (id: number) => {
     setSelected((prev) => {
@@ -125,9 +132,9 @@ const formatValue = (value: number | null | undefined, format: string) => {
               onChange={() => toggleReport(report.id)}
             />
             <span>
-              {report.title ?? "Untitled"} —{" "}
+              {describeReport(report)} —{" "}
               {report.periodLabel ?? "Unlabeled"} ({report.period} /{" "}
-              {report.businessModel})
+              {describeType(report)})
             </span>
           </label>
         ))}

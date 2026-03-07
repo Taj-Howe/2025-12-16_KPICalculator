@@ -1,0 +1,29 @@
+{
+  "name": "subscription-churned",
+  "input": {
+    "period": "monthly",
+    "businessModel": "subscription",
+    "revenuePerPeriod": 100000,
+    "grossMargin": 0.7,
+    "marketingSpendPerPeriod": 20000,
+    "newCustomersPerPeriod": 20,
+    "activeCustomersStart": 100,
+    "churnedCustomersPerPeriod": 15
+  },
+  "expected": {
+    "results": {
+      "cac": 1000,
+      "arpc": 975.609756097561,
+      "churnRate": 0.15,
+      "retentionRate": 0.85,
+      "ltv": 4552.845528455285,
+      "ltgpPerCustomer": 4552.845528455285,
+      "ltgpToCacRatio": 4.5528455284552845,
+      "cacPaybackPeriods": 1.4642857142857144,
+      "hypotheticalMaxRevenuePerYear": 1200000,
+      "hypotheticalMaxProfitPerYear": 600000,
+      "car": 20
+    },
+    "warnings": []
+  }
+}

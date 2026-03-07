@@ -1,0 +1,29 @@
+{
+  "name": "subscription-retained",
+  "input": {
+    "period": "monthly",
+    "businessModel": "subscription",
+    "revenuePerPeriod": 100000,
+    "grossMargin": 0.7,
+    "marketingSpendPerPeriod": 20000,
+    "newCustomersPerPeriod": 20,
+    "activeCustomersStart": 100,
+    "retainedCustomersFromStartAtEnd": 90
+  },
+  "expected": {
+    "results": {
+      "cac": 1000,
+      "arpc": 952.3809523809524,
+      "churnRate": 0.1,
+      "retentionRate": 0.9,
+      "ltv": 6666.666666666666,
+      "ltgpPerCustomer": 6666.666666666666,
+      "ltgpToCacRatio": 6.666666666666666,
+      "cacPaybackPeriods": 1.5,
+      "hypotheticalMaxRevenuePerYear": 1200000,
+      "hypotheticalMaxProfitPerYear": 600000,
+      "car": 20
+    },
+    "warnings": []
+  }
+}

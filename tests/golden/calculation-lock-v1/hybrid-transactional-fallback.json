@@ -1,0 +1,32 @@
+{
+  "name": "hybrid-transactional-fallback",
+  "input": {
+    "period": "monthly",
+    "businessModel": "hybrid",
+    "revenuePerPeriod": 100000,
+    "grossMargin": 0.7,
+    "marketingSpendPerPeriod": 20000,
+    "newCustomersPerPeriod": 20,
+    "activeCustomersStart": 100,
+    "activeCustomersEnd": 115,
+    "retentionRatePerPeriod": 0.7
+  },
+  "expected": {
+    "results": {
+      "cac": 1000,
+      "arpc": 930.2325581395348,
+      "churnRate": 0.30000000000000004,
+      "retentionRate": 0.7,
+      "ltv": 2170.542635658914,
+      "ltgpPerCustomer": 2170.542635658914,
+      "ltgpToCacRatio": 2.170542635658914,
+      "cacPaybackPeriods": 1.5357142857142858,
+      "hypotheticalMaxRevenuePerYear": 1200000,
+      "hypotheticalMaxProfitPerYear": 600000,
+      "car": 20
+    },
+    "warnings": [
+      "Hybrid: subscription retention missing; subscription churn not computed."
+    ]
+  }
+}

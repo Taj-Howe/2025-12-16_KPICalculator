@@ -1,7 +1,7 @@
-import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
+import type { KPIResult, KpiPeriod, OfferInput } from "@/features/kpi/types";
 import type { ReportSummary } from "@/components/report-comparison";
 
-export type KPIInputState = KPIInput;
+export type KPIInputState = OfferInput;
 export type KPIResults = KPIResult;
 
 export type ReportSeries = {
@@ -60,13 +60,14 @@ export type ReportsPanelProps = {
 };
 
 export const sampleKpiInput: KPIInputState = {
-  period: "monthly",
-  businessModel: "subscription",
+  offerId: "sample-offer",
+  offerName: "Sample Subscription Offer",
+  offerType: "subscription",
+  analysisPeriod: "monthly",
   revenuePerPeriod: 120000,
   grossMargin: 0.72,
   marketingSpendPerPeriod: 24000,
   newCustomersPerPeriod: 30,
   activeCustomersStart: 150,
   retainedCustomersFromStartAtEnd: 130,
-  retentionRatePerPeriod: 0.65,
 };

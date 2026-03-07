@@ -10,10 +10,17 @@ This app stores KPI reports as snapshots. Inputs and results are stored as JSON 
 - quarterly
 - yearly
 
-#### BusinessModel
+#### BusinessModel (legacy)
 - subscription
 - transactional
 - hybrid
+
+#### OfferType (v2)
+- subscription
+- one_time
+- installment
+- usage_based
+- service_retainer
 
 ---
 
@@ -43,7 +50,11 @@ A saved snapshot of inputs + computed results for a specific period/model at a p
 - title: string | null
 - notes: string | null (optional, v2)
 - period: "monthly" | "quarterly" | "yearly"
-- businessModel: "subscription" | "transactional" | "hybrid"
+- businessModel: "subscription" | "transactional" | "hybrid"  // legacy compatibility
+- offerId: string | null
+- offerName: string | null
+- offerType: string | null
+- calculationVersion: string | null
 - inputJson: jsonb (KPIInput)
 - resultJson: jsonb (KPIResult)
 - warningsJson: jsonb (string[])
@@ -57,6 +68,23 @@ A saved snapshot of inputs + computed results for a specific period/model at a p
 Required
 - period: Period
 - businessModel: BusinessModel
+
+### OfferInput (JSON, v2)
+
+Required
+- offerId: string
+- offerName: string
+- offerType: "subscription"  // first supported v2 type
+- analysisPeriod: Period
+- revenuePerPeriod: number (>= 0)
+- grossMargin: number (0..1)
+- marketingSpendPerPeriod: number (>= 0)
+- newCustomersPerPeriod: number (>= 0)
+- activeCustomersStart: number (>= 0)
+
+Subscription-specific
+- churnedCustomersPerPeriod: number (>= 0), optional if retained count provided
+- retainedCustomersFromStartAtEnd: number (>= 0), optional if churned count provided
 
 Common inputs (v1 minimal set)
 - revenuePerPeriod: number (>= 0)

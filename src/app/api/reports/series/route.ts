@@ -7,7 +7,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { kpiReports, users } from "@/db/schema";
-import type { KPIInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
+import type { AnyKpiInput, KPIResult, KpiPeriod } from "@/features/kpi/types";
 
 const ensureUser = async (session: Session) => {
   const email = session.user?.email;
@@ -214,7 +214,7 @@ export const GET = async (request: Request) => {
       return;
     }
 
-    const input = row.inputJson as KPIInput;
+    const input = row.inputJson as AnyKpiInput;
     const result = row.resultJson as KPIResult;
 
     series.customersStart.push(input.activeCustomersStart ?? null);

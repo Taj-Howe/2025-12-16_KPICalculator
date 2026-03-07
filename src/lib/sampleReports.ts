@@ -1,13 +1,15 @@
-import type { KPIInput } from "@/features/kpi/types";
+import type { CalculationVersion, OfferInput } from "@/features/kpi/types";
 import { evaluateKpis } from "@/features/kpi/service";
 
 type ReportPayload = {
   title?: string;
   channel?: string;
   periodLabel: string;
-  inputs: KPIInput;
+  inputs: OfferInput;
   results: ReturnType<typeof evaluateKpis>["results"];
   warnings: string[];
+  calculationVersion: CalculationVersion;
+  assumptionsApplied: string[];
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -29,16 +31,17 @@ export const generateSampleYearReports = (year: number): ReportPayload[] => {
     const churnRate = clamp(baseChurnRate - month * 0.004, 0.04, 0.2);
     const retainedFromStart = Math.round(startCustomers * (1 - churnRate));
 
-    const inputs: KPIInput = {
-      period: "monthly",
-      businessModel: "subscription",
+    const inputs: OfferInput = {
+      offerId: "sample-subscription-offer",
+      offerName: "Sample Subscription Offer",
+      offerType: "subscription",
+      analysisPeriod: "monthly",
       revenuePerPeriod: revenue,
       grossMargin: 0.7,
       marketingSpendPerPeriod: marketingSpend,
       newCustomersPerPeriod: newCustomers,
       activeCustomersStart: startCustomers,
       retainedCustomersFromStartAtEnd: retainedFromStart,
-      retentionRatePerPeriod: 0.62,
     };
 
     const evaluation = evaluateKpis(inputs);
@@ -49,6 +52,8 @@ export const generateSampleYearReports = (year: number): ReportPayload[] => {
       inputs,
       results: evaluation.results,
       warnings: evaluation.warnings,
+      calculationVersion: evaluation.calculationVersion,
+      assumptionsApplied: evaluation.assumptionsApplied,
     });
   }
 

@@ -1,6 +1,16 @@
 export type KpiPeriod = "monthly" | "quarterly" | "yearly";
 
 export type BusinessModel = "subscription" | "transactional" | "hybrid";
+export type OfferType =
+  | "subscription"
+  | "one_time"
+  | "installment"
+  | "usage_based"
+  | "service_retainer";
+
+export type CalculationVersion =
+  | "kpi-v1-legacy-model"
+  | "kpi-v2-subscription-offer";
 
 export type KPIInput = {
   period: KpiPeriod;
@@ -16,6 +26,23 @@ export type KPIInput = {
   retentionRatePerPeriod?: number;
 };
 
+export type SubscriptionOfferInput = {
+  offerId: string;
+  offerName: string;
+  offerType: "subscription";
+  analysisPeriod: KpiPeriod;
+  revenuePerPeriod: number;
+  grossMargin: number;
+  marketingSpendPerPeriod: number;
+  newCustomersPerPeriod: number;
+  activeCustomersStart: number;
+  churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
+};
+
+export type OfferInput = SubscriptionOfferInput;
+export type AnyKpiInput = KPIInput | OfferInput;
+
 export type KPIResult = {
   cac: number | null;
   arpc: number | null;
@@ -28,4 +55,13 @@ export type KPIResult = {
   hypotheticalMaxRevenuePerYear: number | null;
   hypotheticalMaxProfitPerYear: number | null;
   car: number | null;
+};
+
+export type KpiEvaluation<TInput extends AnyKpiInput = AnyKpiInput> = {
+  inputs: TInput;
+  results: KPIResult;
+  offerResults: KPIResult;
+  warnings: string[];
+  calculationVersion: CalculationVersion;
+  assumptionsApplied: string[];
 };

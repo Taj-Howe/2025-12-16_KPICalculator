@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { KPIInput, KPIResult } from "@/features/kpi/types";
+import { useMemo } from "react";
+import type { OfferInput, KPIResult } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
+
+const offerTypeOptions = [
+  { value: "subscription", label: "Subscription Offer", enabled: true },
+  { value: "one_time", label: "One-Time Offer", enabled: false },
+  { value: "installment", label: "Installment Offer", enabled: false },
+  { value: "usage_based", label: "Usage-Based Offer", enabled: false },
+  { value: "service_retainer", label: "Service Retainer", enabled: false },
+] as const;
 
 const KpiInputPanel = ({
   value,
@@ -13,19 +21,38 @@ const KpiInputPanel = ({
   warnings,
   children,
 }: KpiInputPanelProps) => {
-  const [churnInputMode, setChurnInputMode] = useState<"retained" | "churned">(
-    "retained",
+  const churnInputMode =
+    value.churnedCustomersPerPeriod != null && value.retainedCustomersFromStartAtEnd == null
+      ? "churned"
+      : "retained";
+
+  const periodLabel = `${value.analysisPeriod} period`;
+
+  const usd = useMemo(
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
+    [],
+  );
+  const intFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0,
+      }),
+    [],
   );
 
-  const periodLabel = useMemo(() => `${value.period} period`, [value.period]);
+  const percentInputValue = (val?: number) =>
+    val == null ? "" : Number((val * 100).toFixed(2));
+  const percentText = (val?: number) =>
+    val == null ? "-" : `${Number((val * 100).toFixed(2))}%`;
+  const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
+  const displayInt = (val?: number) => (val == null ? "-" : intFormatter.format(val));
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
-    const percentFields = ["grossMargin", "retentionRatePerPeriod"];
     const parseValue = () => {
-      if (name === "period" || name === "businessModel") {
+      if (name === "analysisPeriod" || name === "offerType" || name === "offerName" || name === "offerId") {
         return nextValue;
       }
       if (nextValue === "") {
@@ -35,67 +62,32 @@ const KpiInputPanel = ({
       if (Number.isNaN(numeric)) {
         return undefined;
       }
-      if (percentFields.includes(name)) {
+      if (name === "grossMargin") {
         return numeric / 100;
       }
       return numeric;
     };
-    const nextState = {
+
+    onChange({
       ...value,
       [name]: parseValue(),
-    } as typeof value;
-    onChange(nextState);
+    });
   };
 
-  const showRetainedField =
-    value.businessModel === "subscription" || value.businessModel === "hybrid";
-  const showRetentionRateField =
-    value.businessModel === "transactional" || value.businessModel === "hybrid";
-  const showActiveCustomersEnd =
-    value.businessModel === "transactional" || value.businessModel === "hybrid";
-
-  useEffect(() => {
-    const updates: Record<string, number | undefined> = {};
-    if (!showRetainedField) {
-      if (value.retainedCustomersFromStartAtEnd != null) {
-        updates.retainedCustomersFromStartAtEnd = undefined;
-      }
-      if (value.churnedCustomersPerPeriod != null) {
-        updates.churnedCustomersPerPeriod = undefined;
-      }
-    } else if (churnInputMode === "retained") {
-      if (value.churnedCustomersPerPeriod != null) {
-        updates.churnedCustomersPerPeriod = undefined;
-      }
-    } else if (value.retainedCustomersFromStartAtEnd != null) {
-      updates.retainedCustomersFromStartAtEnd = undefined;
+  const setChurnMode = (mode: "retained" | "churned") => {
+    if (mode === "retained") {
+      onChange({
+        ...value,
+        churnedCustomersPerPeriod: undefined,
+      });
+      return;
     }
 
-    if (!showRetentionRateField && value.retentionRatePerPeriod != null) {
-      updates.retentionRatePerPeriod = undefined;
-    }
-
-    if (!showActiveCustomersEnd && value.activeCustomersEnd != null) {
-      updates.activeCustomersEnd = undefined;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      onChange({ ...value, ...updates } as typeof value);
-    }
-  }, [
-    churnInputMode,
-    onChange,
-    showActiveCustomersEnd,
-    showRetainedField,
-    showRetentionRateField,
-    value,
-  ]);
-
-  useEffect(() => {
-    if (!showRetainedField && churnInputMode !== "retained") {
-      setChurnInputMode("retained");
-    }
-  }, [showRetainedField, churnInputMode]);
+    onChange({
+      ...value,
+      retainedCustomersFromStartAtEnd: undefined,
+    });
+  };
 
   const grossMarginError =
     value.grossMargin != null && value.grossMargin > 1
@@ -110,63 +102,74 @@ const KpiInputPanel = ({
     void onCalculate();
   };
 
-  const usd = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
-    [],
-  );
-  const intFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        maximumFractionDigits: 0,
-      }),
-    [],
-  );
-
-  const displayPercent = (val?: number) =>
-    val == null ? "" : Number((val * 100).toFixed(2));
-  const displayMoney = (val?: number) =>
-    val == null ? "—" : usd.format(val);
-  const displayInt = (val?: number) =>
-    val == null ? "—" : intFormatter.format(val);
-
   return (
     <section className="rounded border border-white/30 bg-black p-4 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Inputs</h2>
+          <h2 className="text-xl font-semibold">Offer Inputs</h2>
           <p className="text-sm text-white/70">
-            Enter KPI inputs for a single analysis period.
+            Model one offer at a time. Subscription is live first; other offer types are staged next.
           </p>
         </div>
         {children}
       </div>
 
       <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="flex flex-col gap-1">
+            Offer name
+            <input
+              type="text"
+              name="offerName"
+              value={value.offerName}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            Offer ID
+            <input
+              type="text"
+              name="offerId"
+              value={value.offerId}
+              onChange={handleChange}
+              className="rounded border border-white/30 bg-black p-2 text-white"
+            />
+            <span className="text-xs text-white/60">
+              Stable key for this offer in saved reports.
+            </span>
+          </label>
+        </div>
+
         <label className="flex flex-col gap-1">
-          Period
+          Offer type
           <select
-            name="period"
-            value={value.period}
+            name="offerType"
+            value={value.offerType}
+            onChange={handleChange}
+            className="rounded border border-white/30 bg-black p-2 text-white"
+          >
+            {offerTypeOptions.map((option) => (
+              <option key={option.value} value={option.value} disabled={!option.enabled}>
+                {option.label}
+                {!option.enabled ? " (coming next)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1">
+          Analysis period
+          <select
+            name="analysisPeriod"
+            value={value.analysisPeriod}
             onChange={handleChange}
             className="rounded border border-white/30 bg-black p-2 text-white"
           >
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          Business Model
-          <select
-            name="businessModel"
-            value={value.businessModel}
-            onChange={handleChange}
-            className="rounded border border-white/30 bg-black p-2 text-white"
-          >
-            <option value="subscription">Subscription</option>
-            <option value="transactional">Transactional</option>
-            <option value="hybrid">Hybrid</option>
           </select>
         </label>
 
@@ -180,10 +183,8 @@ const KpiInputPanel = ({
             label: "Gross Margin (%)",
             name: "grossMargin",
             helper: "Before marketing/CAC. Example: 70 = 70%.",
-            formatted:
-              value.grossMargin == null
-                ? "—"
-                : `${displayPercent(value.grossMargin)}%`,
+            formatted: percentText(value.grossMargin),
+            step: "0.1",
           },
           {
             label: `Marketing Spend (per ${periodLabel})`,
@@ -208,9 +209,10 @@ const KpiInputPanel = ({
               name={field.name}
               value={
                 field.name === "grossMargin"
-                  ? displayPercent(value.grossMargin)
-                  : value[field.name as keyof typeof value] ?? ""
+                  ? percentInputValue(value.grossMargin)
+                  : value[field.name as keyof OfferInput] ?? ""
               }
+              step={"step" in field ? field.step : undefined}
               onChange={handleChange}
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
@@ -218,9 +220,7 @@ const KpiInputPanel = ({
               <span className="text-sm text-white/70">{field.helper}</span>
             )}
             {"formatted" in field && field.formatted && (
-              <span className="text-xs text-white/60">
-                Formatted: {field.formatted}
-              </span>
+              <span className="text-xs text-white/60">Formatted: {field.formatted}</span>
             )}
             {field.name === "grossMargin" && grossMarginError && (
               <span className="text-sm text-white/80">{grossMarginError}</span>
@@ -228,57 +228,31 @@ const KpiInputPanel = ({
           </label>
         ))}
 
-        {showActiveCustomersEnd && (
-          <label className="flex flex-col gap-1">
-            Active customers at end (per period)
+        <div className="space-y-3 rounded border border-white/30 p-3">
+          <p className="font-medium">How do you want to input churn?</p>
+          <label className="flex items-center gap-2">
             <input
-              type="number"
-              name="activeCustomersEnd"
-              value={value.activeCustomersEnd ?? ""}
-              onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
+              type="radio"
+              name="churnMode"
+              value="retained"
+              checked={churnInputMode === "retained"}
+              onChange={() => setChurnMode("retained")}
             />
-            <span className="text-sm text-white/70">
-              Transactional/Hybrid: number of unique customers active by period
-              end (used for ARPC averaging).
-            </span>
-            <span className="text-xs text-white/60">
-              Formatted: {displayInt(value.activeCustomersEnd)}
-            </span>
+            <span>I know how many start customers remained</span>
           </label>
-        )}
-        <p className="text-sm text-white/70">
-          End customers are derived from start customers + new customers − churn
-          (or derived churn).
-        </p>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="churnMode"
+              value="churned"
+              checked={churnInputMode === "churned"}
+              onChange={() => setChurnMode("churned")}
+            />
+            <span>I know how many customers churned</span>
+          </label>
+        </div>
 
-        {showRetainedField && (
-          <div className="space-y-3 rounded border border-white/30 p-3">
-            <p className="font-medium">How do you want to input churn?</p>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="churnMode"
-                value="retained"
-                checked={churnInputMode === "retained"}
-                onChange={() => setChurnInputMode("retained")}
-              />
-              <span>I know how many start customers remained</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="churnMode"
-                value="churned"
-                checked={churnInputMode === "churned"}
-                onChange={() => setChurnInputMode("churned")}
-              />
-              <span>I know churned customers</span>
-            </label>
-          </div>
-        )}
-
-        {showRetainedField && churnInputMode === "retained" && (
+        {churnInputMode === "retained" ? (
           <label className="flex flex-col gap-1">
             Customers from start still active at end
             <input
@@ -289,15 +263,13 @@ const KpiInputPanel = ({
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
             <span className="text-sm text-white/70">
-              Cohort retention: subset of starting customers.
+              Cohort retention for the starting customer base.
             </span>
             <span className="text-xs text-white/60">
               Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
             </span>
           </label>
-        )}
-
-        {showRetainedField && churnInputMode === "churned" && (
+        ) : (
           <label className="flex flex-col gap-1">
             Churned customers per period
             <input
@@ -307,31 +279,18 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
+            <span className="text-sm text-white/70">
+              Use this if you track churn directly instead of retained cohort counts.
+            </span>
             <span className="text-xs text-white/60">
               Formatted: {displayInt(value.churnedCustomersPerPeriod)}
             </span>
           </label>
         )}
 
-        {showRetentionRateField && (
-          <label className="flex flex-col gap-1">
-            Retention rate (repeat purchase rate) per period (%)
-            <input
-              type="number"
-              step="0.01"
-              name="retentionRatePerPeriod"
-              value={displayPercent(value.retentionRatePerPeriod)}
-              onChange={handleChange}
-              className="rounded border border-white/30 bg-black p-2 text-white"
-            />
-            <span className="text-sm text-white/70">
-              Example: 60 means 60% of the period-start cohort repeats.
-            </span>
-            <span className="text-xs text-white/60">
-              Formatted: {displayPercent(value.retentionRatePerPeriod)}%
-            </span>
-          </label>
-        )}
+        <p className="text-sm text-white/70">
+          Subscription end customers are derived as start customers + new customers - churned customers.
+        </p>
 
         <div className="flex gap-3">
           <button
@@ -339,7 +298,7 @@ const KpiInputPanel = ({
             className="rounded border border-white/60 px-4 py-2 text-white disabled:opacity-50"
             disabled={isCalculating}
           >
-            {isCalculating ? "Calculating..." : "Calculate KPIs"}
+            {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
           </button>
         </div>
       </form>
@@ -376,21 +335,21 @@ const ResultsPanel = ({
   intFormatter,
 }: {
   results: KPIResult;
-  inputs: KPIInput;
+  inputs: OfferInput;
   usd: Intl.NumberFormat;
   intFormatter: Intl.NumberFormat;
 }) => {
   const pct = (value: number | null) =>
-    value == null ? "—" : `${(value * 100).toFixed(2)}%`;
+    value == null ? "-" : `${(value * 100).toFixed(2)}%`;
 
   const ratioX = (value: number | null) =>
-    value == null ? "—" : `${value.toFixed(2)}x`;
+    value == null ? "-" : `${value.toFixed(2)}x`;
 
   const formatMoney = (value: number | null) =>
-    value == null ? "—" : usd.format(value);
+    value == null ? "-" : usd.format(value);
 
   const formatInt = (value: number | null) =>
-    value == null ? "—" : intFormatter.format(value);
+    value == null ? "-" : intFormatter.format(value);
 
   type ResultKey =
     | "cac"
@@ -415,7 +374,7 @@ const ResultsPanel = ({
     ltgpToCacRatio: () => ratioX(results.ltgpToCacRatio),
     cacPaybackPeriods: () =>
       results.cacPaybackPeriods == null
-        ? "—"
+        ? "-"
         : `${results.cacPaybackPeriods.toFixed(2)} periods`,
     hypotheticalMaxRevenuePerYear: () =>
       formatMoney(results.hypotheticalMaxRevenuePerYear),
@@ -472,27 +431,24 @@ const CustomerBridge = ({
   inputs,
   intFormatter,
 }: {
-  inputs: KPIInput;
+  inputs: OfferInput;
   intFormatter: Intl.NumberFormat;
 }) => {
   const start = inputs.activeCustomersStart ?? null;
   const newCustomers = inputs.newCustomersPerPeriod ?? null;
-  let derivedChurned: number | null = null;
-  if (inputs.churnedCustomersPerPeriod != null) {
-    derivedChurned = inputs.churnedCustomersPerPeriod;
-  } else if (
-    inputs.retainedCustomersFromStartAtEnd != null &&
-    inputs.activeCustomersStart != null
-  ) {
-    derivedChurned = inputs.activeCustomersStart - inputs.retainedCustomersFromStartAtEnd;
-  }
+  const derivedChurned =
+    inputs.churnedCustomersPerPeriod != null
+      ? inputs.churnedCustomersPerPeriod
+      : inputs.retainedCustomersFromStartAtEnd != null
+        ? inputs.activeCustomersStart - inputs.retainedCustomersFromStartAtEnd
+        : null;
   const derivedEnd =
     start != null && newCustomers != null && derivedChurned != null
       ? start + newCustomers - derivedChurned
       : null;
 
   const formatInt = (value: number | null) =>
-    value == null ? "—" : intFormatter.format(value);
+    value == null ? "-" : intFormatter.format(value);
 
   return (
     <div className="rounded border border-white/30 bg-black p-4 text-sm text-white">
@@ -517,8 +473,7 @@ const CustomerBridge = ({
       </ul>
       {derivedChurned == null && (
         <p className="mt-2 text-xs text-white/70">
-          Provide churned or retained-from-start customers to unlock the customer
-          bridge.
+          Provide churned or retained-from-start customers to unlock the customer bridge.
         </p>
       )}
     </div>

@@ -1,0 +1,30 @@
+{
+  "name": "transactional-standard",
+  "input": {
+    "period": "monthly",
+    "businessModel": "transactional",
+    "revenuePerPeriod": 100000,
+    "grossMargin": 0.7,
+    "marketingSpendPerPeriod": 20000,
+    "newCustomersPerPeriod": 20,
+    "activeCustomersStart": 100,
+    "activeCustomersEnd": 120,
+    "retentionRatePerPeriod": 0.6
+  },
+  "expected": {
+    "results": {
+      "cac": 1000,
+      "arpc": 909.0909090909091,
+      "churnRate": 0.4,
+      "retentionRate": 0.6,
+      "ltv": 1590.9090909090908,
+      "ltgpPerCustomer": 1590.9090909090908,
+      "ltgpToCacRatio": 1.5909090909090908,
+      "cacPaybackPeriods": 1.5714285714285714,
+      "hypotheticalMaxRevenuePerYear": 1200000,
+      "hypotheticalMaxProfitPerYear": 600000,
+      "car": 20
+    },
+    "warnings": []
+  }
+}
