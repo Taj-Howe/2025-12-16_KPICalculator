@@ -1,139 +1,43 @@
-# Offer-Based KPI Refactor - Execution Tracker
+# KPI Calculator Roadmap
 
-## Plan
-- [x] Create `docs/specs/calculation-lock-v1.md` with formula/validation/warning contract.
-- [x] Add golden fixtures under `tests/golden/calculation-lock-v1/*.json`.
-- [x] Add golden test runner that verifies deterministic outputs.
-- [x] Introduce Offer v2 types in `src/features/kpi/types.ts`.
-- [x] Add v1/v2 schemas + input adapters for backward compatibility.
-- [x] Refactor KPI service into offer/legacy evaluators with a unified envelope.
-- [x] Update calculate and reports APIs for v1/v2 payloads + `calculationVersion` + `assumptionsApplied`.
-- [x] Replace UI “Business Model” control with Offer-first controls (subscription-first, other types disabled).
-- [x] Add DB migration + schema columns for offer metadata and calculation version.
-- [x] Add regression tests for v1 lock parity.
-- [x] Add tests for v2 subscription offer evaluation and API shape.
-- [x] Update docs language to “Offer” / “Offer Portfolio”.
+## Current Product Shape
+- Single-offer profitability calculator, optimized first for software subscriptions.
+- Core math is locked with regression coverage and legacy compatibility.
+- Current UI is a dashboard-first dark-mode workflow with live forecast, grouped results, and saved reports.
 
-## Review
-- Added an executable v1 math lock via spec + golden fixtures.
-- Preserved legacy `businessModel` payload support while introducing v2 subscription-offer inputs.
-- Persisted `offerId`, `offerName`, `offerType`, and `calculationVersion` metadata for new reports.
-- Reworked the home input flow to model one subscription offer at a time.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## Flexible Subscription Inputs
-- [x] Add flexible unit-economics inputs to subscription offers.
-- [x] Support direct CAC as an alternative to marketing spend / new customers.
-- [x] Support delivery-cost-based gross profit as an alternative to direct gross margin.
-- [x] Update the offer UI to switch between top-down and unit-economics inputs.
-- [x] Add tests for direct CAC and delivery cost scenarios.
-
-## Review
-- Added direct CAC and delivery-cost-driven gross profit paths to the subscription offer flow.
-- Kept backward compatibility for business-metrics mode while opening a true unit-economics path.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## Churn Input Fix
-- [x] Fix unit-economics churn rate percent entry so the input stores decimals correctly.
-- [x] Add regression coverage for percent parse/display helpers used by churn and margin fields.
-- [x] Verify with `npm test`, `npm run lint`, and targeted build/test coverage.
-
-## Review
-- Fixed the unit-economics churn input so percent-form values are stored as decimals instead of being multiplied again on re-render.
-- Added shared percent helpers for parsing and display to keep churn and gross-margin inputs consistent.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## Projection Fix
-- [x] Use unit-economics inputs to project annual revenue/profit instead of returning `-`.
-- [x] Add regression tests for annual projection with direct ARPC, churn rate, and sales velocity.
-- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
-
-## Review
-- Unit-economics mode now projects annual revenue and profit from direct ARPC, churn rate, sales velocity, and optional starting customers.
-- The projection simulates each period in the analysis year instead of requiring `revenuePerPeriod`.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## Metric Split
-- [x] Split steady-state hypothetical-max metrics from 12-month projection metrics.
-- [x] Implement transcript-aligned hypothetical-max customers/revenue/profit formulas for subscription offers.
-- [x] Update UI, reports, and comparison views to use honest labels for projection vs steady-state outputs.
-- [x] Add regression coverage and verify with `npm test`, `npm run lint`, and `npm run build`.
-
-## Review
-- Subscription offers now report steady-state hypothetical max separately from next-year projected revenue/profit.
-- Added `hypotheticalMaxCustomers`, `projectedRevenueNextYear`, and `projectedProfitNextYear` to the shared KPI result envelope.
-- Updated result panels, report comparison, and trends/report series to surface the split cleanly while preserving legacy lock behavior.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## Software/Tech Taxonomy
-- [x] Specialize the offer system for software/tech monetization models instead of generic business categories.
-- [x] Define the software/tech offer taxonomy and shared revenue-component model in code.
-- [x] Make `software_subscription` a first-class offer type while keeping legacy `subscription` compatibility.
-- [x] Reserve paid pilot, pilot-to-subscription, token pricing, hybrid, and implementation-based offers as defined but not yet implemented.
-- [x] Move defaults and sample data onto a software subscription preset.
-- [x] Add docs/tests and verify with `npm test`, `npm run lint`, and `npm run build`.
-
-## Review
-- Added a dedicated software/tech taxonomy spec and code model for monetization types and revenue components.
-- `software_subscription` now runs through the existing subscription evaluator with required software metadata.
-- The UI defaults and staged offer selector now point at software-native models instead of generic offer categories.
-- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
-
-## UI Regression Fix
-- [x] Restore Hormozi-style software subscription framing in the form.
-- [x] Make sales velocity, churn, LTGP:CAC, and payback the obvious center of the software subscription experience.
-- [x] Keep software taxonomy metadata under the hood instead of making the current form feel more complex.
-- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
-
-## Review
-- Restored the simple user-facing framing around sales velocity, churn, CAC, and LTGP while keeping software offer taxonomy in the data model.
-- Reordered the results panel so the core growth math appears first instead of being buried behind generic KPI labels.
-- Verified the branch with `npm test`, `npm run lint`, and `npm run build`.
-
-## Future Exploration
-- [ ] Figure out how to expose this as an API/integration surface so CRMs can plug in and generate reports automatically.
-- [ ] Make API/payment integration a one-click setup so the app can automatically analyze Stripe or another payments dashboard.
-- [ ] Rework the home experience around a software/tech offer picker before the broader UI redesign.
-- [ ] Implement the larger UI refresh after the offer taxonomy is stable:
-  - Radix Themes
-  - dark-mode fintech visual system
-  - hero graph for projected revenue growth
-  - cleaner results hierarchy for projection vs steady-state outputs
-- [ ] Build the next software/tech offer set in this order:
+## Next Build
+- [ ] Rework the home experience around a clearer software/tech offer picker.
+- [ ] Build the next software/tech offer types in this order:
   - paid pilot
   - token-priced AI product
   - hybrid platform + usage
   - implementation + subscription
 
-## Current Fintech UI Refresh
-- [x] Write the fintech UI refresh spec and lock the page architecture before implementation.
-- [x] Install and theme Radix so the app has a reusable dark-mode design system.
-- [x] Rebuild the home screen shell around a hero section and stronger workspace/dashboard surfaces.
-- [x] Add a minimal hero graph that visualizes projected growth / steady-state upside.
-- [x] Add a top-level workspace selector so the page can switch between Offer Inputs and Reports.
-- [x] Make the hero graph use live offer inputs and add a selector for revenue, profit, and customer views.
-- [x] Fix the calculator field primitives so inputs and selects render as explicit styled controls in the new dark UI.
-- [ ] Group KPI outputs into unit economics, steady-state ceiling, and next-year projection cards.
-- [ ] Redesign the reports/trends area to match the new visual system.
-- [ ] Run mobile, lint, test, and build verification before merging.
+## Intelligence Layer
+- [ ] Add AI that analyzes the current offer data, runs improvement scenarios against the existing math, and identifies the single highest-ROI move so the app can surface the lowest-hanging-fruit metric to improve first.
+- [ ] Add scenario and sensitivity analysis that shows what happens if the operator increases sales velocity, lowers CAC, lowers churn, improves gross margin, or changes price, so the app can quantify which lever creates the biggest upside before AI summarizes it.
+- [ ] Make the scenario/sensitivity layer exportable with a comprehensive dataset, including baseline inputs, baseline outputs, each lever tested, percent and absolute change assumptions, resulting KPI deltas, ranked upside opportunities, AI recommendation summary, and enough structured fields for CSV/API/report consumption.
+- [ ] Expand the graph into a richer analytics surface for payments/accounting integrations: trend overlays, cohort movement, payback movement, churn/retention shifts, revenue mix, margin drift, and other decision-making stats that matter when real business data is flowing in automatically.
 
-## Review
-- Added Radix Themes at the app shell level and established the first dark-mode fintech token layer.
-- Reworked the page shell so the hero, calculator workspace, save panel, and reports surface read as one product instead of a bare utility layout.
-- Added a new hero section and projection chart that can render current, projected, and ceiling revenue context from the existing evaluation model.
-- Replaced the static hero interpolation with a live subscription forecast that updates directly from the current form inputs and can switch between revenue, profit, and customer views.
-- Extracted shared subscription forecast math so the chart and evaluator use the same projection logic instead of drifting apart.
-- Strengthened the calculator field primitives so inputs and selects render as visible styled controls instead of blending into the black page background.
-- Verified the phase with `npm test`, `npm run lint`, and `npm run build`.
+## Integrations
+- [ ] Expose this as an API/integration surface so external systems can generate reports automatically.
+- [ ] Make payments/accounting integration a one-click setup so the app can automatically analyze Stripe or another payments/accounting source.
 
-## Component Build Plan
-- [x] `src/components/home/HeroSection.tsx`
-- [x] `src/components/home/ProjectionHeroChart.tsx`
-- [x] `src/components/home/WorkspaceViewSelector.tsx`
-- [ ] `src/components/home/OfferWorkspace.tsx`
-- [ ] `src/components/home/OfferModeSwitch.tsx`
-- [ ] `src/components/home/OfferTypePills.tsx`
-- [ ] `src/components/home/DecisionCards.tsx`
-- [ ] `src/components/home/ResultsSections.tsx`
-- [ ] `src/components/home/SaveReportCard.tsx`
-- [ ] `src/components/home/ReportsDashboard.tsx`
+## UI Follow-Ups
+- [x] Make `Offer Inputs` a wide workspace and keep decision output under `Reports` so the tab structure matches the user workflow more cleanly.
+- [ ] Continue polishing the dashboard after the offer taxonomy stabilizes, especially around the software/tech offer picker and deeper analytics views.
+
+## Completed Milestones
+- [x] Locked the existing KPI math with a written spec, golden fixtures, and regression tests.
+- [x] Shipped the offer-based KPI refactor with backward compatibility for legacy business-model payloads.
+- [x] Added flexible subscription inputs: direct CAC, direct ARPC, delivery-cost-based gross profit, and direct churn-rate paths.
+- [x] Split steady-state ceiling metrics from next-year projection metrics.
+- [x] Specialized the current offer system around software/tech subscriptions and reserved future software monetization models.
+- [x] Re-centered the product around Hormozi-style drivers: sales velocity, churn, CAC, LTGP, and payback.
+- [x] Rebuilt the home experience into a dashboard UI with a live hero chart, offer workspace, grouped result sections, save snapshot surface, and reports dashboard.
+
+## Latest Review
+- The app now behaves like a usable MVP for one software offer at a time.
+- The dashboard is wired to live input math instead of static placeholders.
+- Reports, trends, and comparison surfaces now match the same dark UI system.
+- Verification baseline for the current MVP remains `npm test`, `npm run lint`, and `npm run build`.

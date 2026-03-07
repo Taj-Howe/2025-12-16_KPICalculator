@@ -135,14 +135,14 @@ export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
       : [];
 
   return (
-    <div className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100">
+    <div className="panel-shell rounded-[26px] p-5 text-white">
       <h2 className="text-xl font-semibold">Compare Reports</h2>
-      <p className="text-sm text-gray-600 dark:text-gray-300">
+      <p className="text-sm text-white/56">
         Select up to two reports to compare their KPIs.
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
         {reports.map((report) => (
-          <label key={report.id} className="flex items-center gap-2">
+          <label key={report.id} className="flex items-center gap-2 text-sm text-white/72">
             <input
               type="checkbox"
               checked={selected.includes(report.id)}
@@ -158,35 +158,35 @@ export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
       </div>
 
       {rows.length > 0 && (
-        <div className="mt-6 overflow-auto">
-          <table className="w-full border-collapse text-sm">
+        <div className="panel-subtle mt-6 overflow-auto rounded-[20px] p-3">
+          <table className="w-full border-collapse text-sm text-white/78">
             <thead>
               <tr>
-                <th className="border border-gray-200 p-2 text-left">Metric</th>
-                <th className="border border-gray-200 p-2 text-left">Report A</th>
-                <th className="border border-gray-200 p-2 text-left">Report B</th>
-                <th className="border border-gray-200 p-2 text-left">Delta</th>
-                <th className="border border-gray-200 p-2 text-left">% Change</th>
+                <th className="border-b border-white/10 p-2 text-left">Metric</th>
+                <th className="border-b border-white/10 p-2 text-left">Report A</th>
+                <th className="border-b border-white/10 p-2 text-left">Report B</th>
+                <th className="border-b border-white/10 p-2 text-left">Delta</th>
+                <th className="border-b border-white/10 p-2 text-left">% Change</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.metric.key}>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {row.metric.label}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatValue(row.a, row.metric.format)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatValue(row.b, row.metric.format)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {row.delta == null
                       ? "—"
                       : formatValue(row.delta, row.metric.format)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {row.percent == null ? "—" : `${row.percent.toFixed(2)}%`}
                   </td>
                 </tr>

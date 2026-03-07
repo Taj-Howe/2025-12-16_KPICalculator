@@ -23,11 +23,12 @@ type ChartSeries = {
   values: number[];
   ceiling: number | null;
   formatter: (value: number | null) => string;
+  axisFormatter: (value: number) => string;
 };
 
 const WIDTH = 620;
 const HEIGHT = 280;
-const PADDING = { top: 18, right: 18, bottom: 28, left: 18 };
+const PADDING = { top: 18, right: 24, bottom: 28, left: 60 };
 
 const metricOptions: Array<{ id: HeroMetric; label: string }> = [
   { id: "revenue", label: "Revenue" },
@@ -41,6 +42,21 @@ const countFormatter = new Intl.NumberFormat("en-US", {
 
 const formatCount = (value: number | null) =>
   value == null ? "—" : countFormatter.format(value);
+
+const compactMoneyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+const compactCountFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+const formatCompactMoney = (value: number) => compactMoneyFormatter.format(value);
+const formatCompactCount = (value: number) => compactCountFormatter.format(value);
 
 const periodUnitLabel = (period: KpiPeriod) => {
   if (period === "monthly") {
@@ -83,6 +99,7 @@ const seriesForMetric = (
       values: [current, ...future],
       ceiling: forecast.steadyState.revenuePerPeriod,
       formatter: formatMoney,
+      axisFormatter: formatCompactMoney,
     };
   }
 
@@ -102,6 +119,7 @@ const seriesForMetric = (
       values: [current, ...(future as number[])],
       ceiling: forecast.steadyState.profitPerPeriod,
       formatter: formatMoney,
+      axisFormatter: formatCompactMoney,
     };
   }
 
@@ -116,6 +134,7 @@ const seriesForMetric = (
     values: [forecast.current.customers, ...future],
     ceiling: forecast.steadyState.customers,
     formatter: formatCount,
+    axisFormatter: formatCompactCount,
   };
 };
 
@@ -182,6 +201,11 @@ const ProjectionHeroChart = ({
 
   const currentValue = series.values[0] ?? null;
   const projectedValue = series.values[series.values.length - 1] ?? null;
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((tick) => {
+    const y = PADDING.top + innerHeight - innerHeight * tick;
+    const value = chartMin + chartRange * tick;
+    return { tick, y, value };
+  });
 
   return (
     <div className="rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
@@ -238,7 +262,8 @@ const ProjectionHeroChart = ({
 
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="mt-4 h-[280px] w-full"
+        preserveAspectRatio="none"
+        className="mt-4 block h-[280px] w-full"
         role="img"
         aria-label={`${series.title} chart`}
       >
@@ -249,18 +274,27 @@ const ProjectionHeroChart = ({
           </linearGradient>
         </defs>
 
-        {[0.25, 0.5, 0.75].map((tick) => {
-          const y = PADDING.top + innerHeight - innerHeight * tick;
+        {yTicks.map(({ tick, y, value }) => {
           return (
-            <line
-              key={tick}
-              x1={PADDING.left}
-              x2={WIDTH - PADDING.right}
-              y1={y}
-              y2={y}
-              stroke="rgba(255,255,255,0.08)"
-              strokeDasharray="6 8"
-            />
+            <g key={tick}>
+              <line
+                x1={PADDING.left}
+                x2={WIDTH - PADDING.right}
+                y1={y}
+                y2={y}
+                stroke="rgba(255,255,255,0.08)"
+                strokeDasharray="6 8"
+              />
+              <text
+                x={PADDING.left - 10}
+                y={y + 3}
+                textAnchor="end"
+                fontSize="10"
+                fill="rgba(255,255,255,0.44)"
+              >
+                {series.axisFormatter(value)}
+              </text>
+            </g>
           );
         })}
 
@@ -309,7 +343,9 @@ const ProjectionHeroChart = ({
             key={label}
             x={xForIndex(index)}
             y={HEIGHT - 6}
-            textAnchor="middle"
+            textAnchor={
+              index === 0 ? "start" : index === labels.length - 1 ? "end" : "middle"
+            }
             fontSize="10"
             fill="rgba(255,255,255,0.44)"
           >

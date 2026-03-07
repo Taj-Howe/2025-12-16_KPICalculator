@@ -109,18 +109,18 @@ export const ReportTrends = () => {
 
   if (loading) {
     return (
-      <section className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100">
+      <section className="panel-shell rounded-[26px] p-5 text-white">
         <h2 className="text-xl font-semibold">Trends</h2>
-        <p className="text-sm text-gray-700 dark:text-gray-300">Loading…</p>
+        <p className="text-sm text-white/58">Loading…</p>
       </section>
     );
   }
 
   if (error || !series) {
     return (
-      <section className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100">
+      <section className="panel-shell rounded-[26px] p-5 text-white">
         <h2 className="text-xl font-semibold">Trends</h2>
-        <p className="text-sm text-red-600">{error ?? "Unable to load trends."}</p>
+        <p className="text-sm text-white/58">{error ?? "Unable to load trends."}</p>
       </section>
     );
   }
@@ -184,7 +184,7 @@ export const ReportTrends = () => {
   }));
 
   return (
-    <section className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100">
+    <section className="panel-shell rounded-[26px] p-5 text-white">
       <h2 className="text-xl font-semibold">Trends</h2>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <label className="flex items-center gap-2">
@@ -192,14 +192,14 @@ export const ReportTrends = () => {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as KpiPeriod)}
-            className="rounded border border-gray-300 p-1 text-sm"
+            className="input-shell rounded-[14px] px-2 py-1 text-sm text-white"
           >
             <option value="monthly">Monthly labels</option>
             <option value="quarterly">Quarterly labels</option>
             <option value="yearly">Yearly labels</option>
           </select>
         </label>
-        <span className="text-xs text-gray-600 dark:text-gray-300">
+        <span className="text-xs text-white/54">
           Only reports with period labels appear here.
         </span>
       </div>
@@ -211,7 +211,7 @@ export const ReportTrends = () => {
             onChange={(e) =>
               setMetricKey(e.target.value as (typeof metricOptions)[number]["key"])
             }
-            className="rounded border border-gray-300 p-1 text-sm"
+            className="input-shell rounded-[14px] px-2 py-1 text-sm text-white"
           >
             {metricOptions.map((metric) => (
               <option key={metric.key} value={metric.key}>
@@ -220,7 +220,7 @@ export const ReportTrends = () => {
             ))}
           </select>
         </label>
-        <div className="flex flex-wrap gap-3 text-xs text-gray-700 dark:text-gray-300">
+        <div className="flex flex-wrap gap-3 text-xs text-white/56">
           <span>
             Latest ({latestLabel || "—"}): <strong>{formattedLatest}</strong>
           </span>
@@ -239,7 +239,7 @@ export const ReportTrends = () => {
                 e.target.value as (typeof metricOptions)[number]["key"] | "none",
               )
             }
-            className="rounded border border-gray-300 p-1 text-sm"
+            className="input-shell rounded-[14px] px-2 py-1 text-sm text-white"
           >
             <option value="none">None</option>
             {metricOptions.map((metric) => (
@@ -251,10 +251,10 @@ export const ReportTrends = () => {
         </label>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-700 dark:text-gray-300">No report history yet.</p>
+        <p className="text-sm text-white/58">No report history yet.</p>
       ) : (
         <>
-          <div className="mt-4 overflow-auto rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+          <div className="panel-subtle mt-4 overflow-auto rounded-[20px] p-3">
             <LineChart
               labels={series.labels}
               series={[
@@ -285,29 +285,29 @@ export const ReportTrends = () => {
               }
             />
           </div>
-          <div className="mt-4 overflow-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="panel-subtle mt-4 overflow-auto rounded-[20px] p-3">
+            <table className="w-full border-collapse text-sm text-white/78">
             <thead>
               <tr>
-                <th className="border border-gray-200 p-2 text-left">Period label</th>
-                <th className="border border-gray-200 p-2 text-left">CAC</th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">Period label</th>
+                <th className="border-b border-white/10 p-2 text-left">CAC</th>
+                <th className="border-b border-white/10 p-2 text-left">
                   LTGP/customer
                 </th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">
                   LTGP:CAC
                 </th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">
                   Payback
                 </th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">
                   Churn
                 </th>
-                <th className="border border-gray-200 p-2 text-left">ARPC</th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">ARPC</th>
+                <th className="border-b border-white/10 p-2 text-left">
                   Hypothetical Max Profit / Year
                 </th>
-                <th className="border border-gray-200 p-2 text-left">
+                <th className="border-b border-white/10 p-2 text-left">
                   Projected Profit / Next Year
                 </th>
               </tr>
@@ -315,33 +315,33 @@ export const ReportTrends = () => {
             <tbody>
               {rows.map((row, index) => (
                 <tr key={`${row.label}-${index}`}>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {row.label || "—"}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatMoney(row.cac)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatMoney(row.ltgpPerCustomer)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatRatio(row.ltgpToCacRatio)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {row.cacPaybackPeriods == null
                       ? "—"
                       : `${row.cacPaybackPeriods.toFixed(2)} periods`}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatPercent(row.churnRate)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatMoney(row.arpc)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatMoney(row.hypotheticalMaxProfitPerYear)}
                   </td>
-                  <td className="border border-gray-200 p-2">
+                  <td className="border-b border-white/6 p-2">
                     {formatMoney(row.projectedProfitNextYear)}
                   </td>
                 </tr>
@@ -370,12 +370,12 @@ const SparklineCard = ({
     series.length > 0 ? series[series.length - 1] ?? null : null;
 
   return (
-    <div className="rounded border border-gray-200 bg-white dark:bg-gray-800 p-3 text-gray-900 dark:text-gray-100">
+    <div className="panel-subtle rounded-[20px] p-3 text-white">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+        <span className="text-sm font-medium text-white/72">
           {label}
         </span>
-        <span className="text-sm text-gray-900 dark:text-gray-100">
+        <span className="text-sm text-white">
           {format(latest)}
         </span>
       </div>

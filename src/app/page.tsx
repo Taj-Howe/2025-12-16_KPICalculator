@@ -1,22 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 
 import AppHeader from "@/components/home/AppHeader";
+import DecisionCards from "@/components/home/DecisionCards";
 import HeroSection from "@/components/home/HeroSection";
-import KpiInputPanel from "@/components/home/KpiInputPanel";
-import ReportsPanel from "@/components/home/ReportsPanel";
+import OfferWorkspace from "@/components/home/OfferWorkspace";
+import ReportsDashboard from "@/components/home/ReportsDashboard";
+import ResultsSections from "@/components/home/ResultsSections";
+import SaveReportCard from "@/components/home/SaveReportCard";
 import SampleDataControls from "@/components/home/SampleDataControls";
 import WorkspaceViewSelector from "@/components/home/WorkspaceViewSelector";
 import GitHubSignInButton from "@/components/GitHubSignInButton";
 import type { ReportSummary } from "@/components/report-comparison";
-import type {
-  CalculationVersion,
-  KPIResult,
-  KpiPeriod,
-  SubscriptionOfferInput,
-} from "@/features/kpi/types";
+import type { CalculationVersion, KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
 import { sampleKpiInput } from "@/components/home/types";
 import type { ReportSeries } from "@/components/home/types";
 import { generateSampleYearReports } from "@/lib/sampleReports";
@@ -71,119 +69,6 @@ const defaultState: FormState = {
   },
 };
 
-const pad = (value: number) => String(value).padStart(2, "0");
-
-const defaultPeriodLabelFor = (period: KpiPeriod, date = new Date()) => {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  if (period === "monthly") {
-    return `${year}-${pad(month + 1)}`;
-  }
-  if (period === "quarterly") {
-    const quarter = Math.floor(month / 3) + 1;
-    return `${year}-Q${quarter}`;
-  }
-  return `${year}`;
-};
-
-const startOfPeriod = (date: Date, period: KpiPeriod) => {
-  const start = new Date(date);
-  if (period === "monthly") {
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }
-  if (period === "quarterly") {
-    const quarter = Math.floor(start.getMonth() / 3);
-    start.setMonth(quarter * 3, 1);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }
-  start.setMonth(0, 1);
-  start.setHours(0, 0, 0, 0);
-  return start;
-};
-
-const addPeriods = (date: Date, period: KpiPeriod, offset: number) => {
-  const next = new Date(date);
-  if (period === "monthly") {
-    next.setMonth(next.getMonth() + offset);
-    return startOfPeriod(next, period);
-  }
-  if (period === "quarterly") {
-    next.setMonth(next.getMonth() + offset * 3);
-    return startOfPeriod(next, period);
-  }
-  next.setFullYear(next.getFullYear() + offset);
-  return startOfPeriod(next, period);
-};
-
-const endOfPeriod = (start: Date, period: KpiPeriod) => {
-  const nextStart = addPeriods(start, period, 1);
-  const end = new Date(nextStart.getTime() - 1);
-  end.setHours(0, 0, 0, 0);
-  return end;
-};
-
-const formatRangeDate = (date: Date) =>
-  date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-const quarterLabel = (date: Date) => {
-  const quarter = Math.floor(date.getMonth() / 3) + 1;
-  return `${date.getFullYear()}-Q${quarter}`;
-};
-
-const labelForPeriodStart = (start: Date, period: KpiPeriod) => {
-  if (period === "monthly") {
-    return `${start.getFullYear()}-${pad(start.getMonth() + 1)}`;
-  }
-  if (period === "quarterly") {
-    return quarterLabel(start);
-  }
-  return `${start.getFullYear()}`;
-};
-
-const displayLabelForPeriod = (start: Date, end: Date, period: KpiPeriod) => {
-  if (period === "monthly") {
-    return `${start.toLocaleDateString(undefined, {
-      month: "long",
-      year: "numeric",
-    })} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
-  }
-  if (period === "quarterly") {
-    const quarter = Math.floor(start.getMonth() / 3) + 1;
-    return `Q${quarter} ${start.getFullYear()} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
-  }
-  return `${start.getFullYear()} (${formatRangeDate(start)} – ${formatRangeDate(end)})`;
-};
-
-type PeriodOption = {
-  value: string;
-  display: string;
-  range: string;
-};
-
-const generatePeriodOptions = (period: KpiPeriod, count = 12): PeriodOption[] => {
-  const options: PeriodOption[] = [];
-  const start = startOfPeriod(new Date(), period);
-  for (let i = 0; i < count; i += 1) {
-    const currentStart = addPeriods(start, period, -i);
-    const end = endOfPeriod(currentStart, period);
-    const value = labelForPeriodStart(currentStart, period);
-    const display = displayLabelForPeriod(currentStart, end, period);
-    options.push({
-      value,
-      display,
-      range: `${formatRangeDate(currentStart)} – ${formatRangeDate(end)}`,
-    });
-  }
-  return options;
-};
-
 export default function Home() {
   const [form, setForm] = useState<FormState>(defaultState);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
@@ -198,7 +83,6 @@ export default function Home() {
   const [seriesError, setSeriesError] = useState<string | null>(null);
   const [seedStatus, setSeedStatus] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
-  const calculatorRef = useRef<HTMLDivElement | null>(null);
   const [activeWorkspaceView, setActiveWorkspaceView] =
     useState<WorkspaceView>("offer_inputs");
 
@@ -462,14 +346,6 @@ export default function Home() {
     await loadSession();
   };
 
-  const jumpToCalculator = () => {
-    setActiveWorkspaceView("offer_inputs");
-    calculatorRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
   const workspaceViews = [
     {
       id: "offer_inputs",
@@ -503,11 +379,9 @@ export default function Home() {
         input={form}
         results={evaluation?.results ?? null}
         analysisPeriod={form.analysisPeriod}
-        onJumpToCalculator={jumpToCalculator}
-        onLoadSample={handleLoadSample}
       />
 
-      <div ref={calculatorRef} className="space-y-6">
+      <div className="space-y-6">
         <WorkspaceViewSelector
           activeView={activeWorkspaceView}
           options={workspaceViews}
@@ -516,56 +390,76 @@ export default function Home() {
 
         {activeWorkspaceView === "offer_inputs" ? (
           <section className="space-y-6">
-            <KpiInputPanel
+            <OfferWorkspace
               value={form}
               onChange={setForm}
               onCalculate={handleCalculate}
               isCalculating={isSubmitting}
-              results={evaluation?.results ?? null}
-              warnings={warnings}
-            >
-              <SampleDataControls
-                onLoadSample={handleLoadSample}
-                onClear={handleClear}
-              />
-            </KpiInputPanel>
-
-            {error && (
-              <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {error}
-              </div>
-            )}
-
-            {evaluation && (
-              <ReportSavePanel evaluation={evaluation} warnings={warnings} />
-            )}
+              headerActions={
+                <SampleDataControls
+                  onLoadSample={handleLoadSample}
+                  onClear={handleClear}
+                />
+              }
+            />
           </section>
         ) : (
           <section className="space-y-6">
-            <ReportsPanel
+            <section className="panel-shell rounded-[28px] p-5">
+              <div className="border-b border-white/8 pb-4">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/34">
+                  Current Scenario
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  Decision output
+                </h2>
+                <p className="mt-1 text-sm text-white/58">
+                  Review the current calculation, save the scenario, and compare it
+                  against your report history in one place.
+                </p>
+              </div>
+
+              {error && (
+                <div className="mt-4 rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                  {error}
+                </div>
+              )}
+
+              {evaluation ? (
+                <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+                  <div className="space-y-5">
+                    <DecisionCards results={evaluation.results} />
+                    <ResultsSections
+                      results={evaluation.results}
+                      warnings={warnings}
+                      inputs={evaluation.inputs}
+                    />
+                  </div>
+                  <SaveReportCard evaluation={evaluation} warnings={warnings} />
+                </div>
+              ) : (
+                <div className="panel-subtle mt-5 rounded-[22px] p-5 text-sm text-white/58">
+                  Run a scenario from <span className="font-medium text-white">Offer Inputs</span>{" "}
+                  to populate the current decision output here.
+                </div>
+              )}
+            </section>
+
+            <ReportsDashboard
               isSignedIn={Boolean(sessionEmail)}
               reports={reports}
               selectedReport={selectedReport}
               onSelectReport={(id) => setSelectedReportId(id)}
               onRefresh={refreshReports}
               series={series}
+              reportsError={reportsError}
+              seriesError={seriesError}
               signInCta={<GitHubSignInButton callbackUrl="/" />}
               onSeedSampleYear={handleLoadSampleYear}
               isSeeding={isSeeding}
               seedStatus={seedStatus}
               onDeleteReport={handleDeleteReport}
             />
-
-            {reportsError && (
-              <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
-                {reportsError}
-              </p>
-            )}
-            {seriesError && (
-              <p className="panel-subtle rounded-[20px] px-4 py-3 text-sm text-white/64">
-                {seriesError}
-              </p>
-            )}
           </section>
         )}
       </div>
@@ -605,165 +499,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-const ReportSavePanel = ({
-  evaluation,
-  warnings,
-}: {
-  evaluation: Evaluation;
-  warnings: string[];
-}) => {
-  const [title, setTitle] = useState("");
-  const [cohortLabel, setCohortLabel] = useState("");
-  const [channel, setChannel] = useState("");
-  const periodOptions = useMemo(
-    () => generatePeriodOptions(evaluation.inputs.analysisPeriod),
-    [evaluation.inputs.analysisPeriod],
-  );
-  const [periodLabel, setPeriodLabel] = useState(
-    () =>
-      periodOptions[0]?.value ??
-      defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
-  );
-  const [status, setStatus] = useState<"idle" | "saving">("idle");
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const previousPeriodRef = useRef<KpiPeriod>(evaluation.inputs.analysisPeriod);
-
-  useEffect(() => {
-    if (
-      previousPeriodRef.current !== evaluation.inputs.analysisPeriod ||
-      !periodOptions.some((option) => option.value === periodLabel)
-    ) {
-      previousPeriodRef.current = evaluation.inputs.analysisPeriod;
-      setPeriodLabel(
-        periodOptions[0]?.value ??
-          defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
-      );
-    }
-  }, [evaluation.inputs.analysisPeriod, periodLabel, periodOptions]);
-
-  const handleSave = async () => {
-    const trimmedLabel = periodLabel.trim();
-    if (!trimmedLabel) {
-      setError("Period label is required.");
-      setMessage(null);
-      return;
-    }
-    setStatus("saving");
-    setMessage(null);
-    setError(null);
-    try {
-      const response = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim() || undefined,
-          cohortLabel: cohortLabel.trim() || undefined,
-          channel: channel.trim() || undefined,
-          periodLabel: trimmedLabel,
-          inputs: evaluation.inputs,
-          results: evaluation.results,
-          warnings,
-          calculationVersion: evaluation.calculationVersion,
-          assumptionsApplied: evaluation.assumptionsApplied,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        if (response.status === 409) {
-          throw new Error("A report already exists for that period label.");
-        }
-        throw new Error(data.error ?? "Failed to save report.");
-      }
-      setMessage("Report saved.");
-      setTitle("");
-      setCohortLabel("");
-      setChannel("");
-      setPeriodLabel(
-        periodOptions[0]?.value ??
-          defaultPeriodLabelFor(evaluation.inputs.analysisPeriod),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error.");
-    } finally {
-      setStatus("idle");
-    }
-  };
-
-  return (
-    <section className="panel-shell rounded-[26px] p-5 text-sm text-white">
-      <h3 className="font-semibold">Save Report</h3>
-      <p className="text-white/62">
-        Optionally tag this report before saving for future analysis.
-      </p>
-      <div className="mt-2 text-xs text-white/48">
-        <p>Calculation version: {evaluation.calculationVersion}</p>
-        {evaluation.assumptionsApplied.length > 0 && (
-          <p>Assumptions: {evaluation.assumptionsApplied.join(" | ")}</p>
-        )}
-      </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
-        <label className="flex flex-col gap-1">
-          Title (optional)
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="input-shell rounded-[16px] px-3 py-2 text-white"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Cohort label (optional)
-          <input
-            type="text"
-            value={cohortLabel}
-            onChange={(e) => setCohortLabel(e.target.value)}
-            className="input-shell rounded-[16px] px-3 py-2 text-white"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          Channel (optional)
-          <input
-            type="text"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            className="input-shell rounded-[16px] px-3 py-2 text-white"
-          />
-        </label>
-        <label className="flex flex-col gap-1 md:col-span-3">
-          Period label (required)
-          <select
-            value={periodLabel}
-            onChange={(e) => setPeriodLabel(e.target.value)}
-            className="input-shell rounded-[16px] px-3 py-2 text-white"
-          >
-            {periodOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.display}
-              </option>
-            ))}
-          </select>
-          <span className="text-xs text-white/54">
-            Selected range:{" "}
-            {periodOptions.find((option) => option.value === periodLabel)?.range ??
-              "Select a period"}
-          </span>
-        </label>
-      </div>
-      <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={status === "saving"}
-          className="pill-action rounded-full px-4 py-2 disabled:opacity-50 disabled:hover:border-white/16 disabled:hover:bg-white/[0.018] disabled:hover:text-white"
-        >
-          {status === "saving" ? "Saving..." : "Save Report"}
-        </button>
-        {message && <span className="text-white/62">{message}</span>}
-        {error && <span className="text-white/62">{error}</span>}
-      </div>
-    </section>
-  );
-};

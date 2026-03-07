@@ -42,9 +42,6 @@ export type KpiInputPanelProps = {
   onChange: (next: KPIInputState) => void;
   onCalculate: () => Promise<void>;
   isCalculating: boolean;
-  results: KPIResults | null;
-  warnings: string[];
-  children?: React.ReactNode;
 };
 
 export type SampleDataControlsProps = {
@@ -59,6 +56,8 @@ export type ReportsPanelProps = {
   onSelectReport: (id: number) => void;
   onRefresh: () => Promise<void>;
   series?: ReportSeries | null;
+  reportsError?: string | null;
+  seriesError?: string | null;
   signInCta?: React.ReactNode;
   onSeedSampleYear: () => void;
   isSeeding: boolean;

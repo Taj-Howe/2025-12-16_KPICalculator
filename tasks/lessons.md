@@ -12,3 +12,8 @@
 - If a hero chart is supposed to guide decisions, wire it to the live form state and shared business math. Static interpolations break trust as soon as the inputs change.
 - In a near-black UI, form controls need explicit chrome. Subtle border-only styling is not enough for inputs and selects; give them a defined surface, width, and custom select treatment so they do not read like plain text.
 - Do not use broad block-level `<label>` wrappers as generic field containers in dense interactive layouts. They can create oversized click targets and interfere with nearby buttons and custom controls.
+- In SSR UI surfaces, avoid default-locale date formatting for visible labels. Use an explicit locale like `en-US` so server and client render the same text and do not drift into hydration mismatches.
+- When the user sharpens product wording, update the roadmap language immediately. Do not leave stale terms like CRM if the real integration target is payments or accounting data.
+- Make tab boundaries match the job-to-be-done. Keep `Offer Inputs` focused on entering and running the scenario, and put decision output alongside reports/history instead of splitting one workflow across two tabs.
+- When planning analysis features, specify the export surface up front. If the product will generate recommendations or sensitivity runs, define the structured data users should be able to export for CSV/API/reporting instead of treating export as an afterthought.
+- Dashboard charts need real axes, not just decorative lines. Add Y-axis units and anchor the first/last X-axis labels to the edges so the chart reads like an analytical tool instead of a loose visual.

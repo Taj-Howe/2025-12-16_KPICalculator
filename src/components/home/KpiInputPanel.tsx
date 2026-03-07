@@ -1,36 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ChangeEvent, FormEvent, ReactNode } from "react";
-import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
+import type { ChangeEvent, FormEvent } from "react";
+import type { SubscriptionOfferInput } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
 import { parsePercentInput, percentInputValue, percentText } from "./percent";
-
-const offerTypeOptions = [
-  { value: "software_subscription", label: "Software Subscription", enabled: true },
-  {
-    value: "subscription",
-    label: "Legacy Subscription (compatibility)",
-    enabled: true,
-  },
-  { value: "software_paid_pilot", label: "Paid Pilot", enabled: false },
-  {
-    value: "software_pilot_to_subscription",
-    label: "Pilot to Subscription",
-    enabled: false,
-  },
-  { value: "software_token_pricing", label: "Token-Priced AI", enabled: false },
-  {
-    value: "software_hybrid_platform_usage",
-    label: "Platform + Usage Hybrid",
-    enabled: false,
-  },
-  {
-    value: "software_implementation_plus_subscription",
-    label: "Implementation + Subscription",
-    enabled: false,
-  },
-] as const;
+import OfferModeSwitch from "./OfferModeSwitch";
+import OfferTypePills from "./OfferTypePills";
+import {
+  ChoiceCard,
+  FieldBlock,
+  SelectField,
+  fieldClassName,
+  panelClassName,
+  pillClassName,
+} from "./form-primitives";
 
 const defaultSoftwareConfig = {
   industryPreset: "software_tech" as const,
@@ -53,86 +37,11 @@ type NumericField = {
   step?: string;
 };
 
-const ChoiceCard = ({
-  checked,
-  title,
-  description,
-  onSelect,
-}: {
-  checked: boolean;
-  title: string;
-  description: string;
-  onSelect: () => void;
-}) => {
-  return (
-    <button
-      type="button"
-      data-selected={checked}
-      onClick={onSelect}
-      className="choice-card flex w-full items-start gap-3 rounded-[18px] p-3 text-left"
-    >
-      <span className="choice-indicator mt-1 h-3.5 w-3.5 rounded-full" />
-      <span className="space-y-1">
-        <span className="block text-sm font-medium text-white">{title}</span>
-        <span className="block text-xs text-white/54">{description}</span>
-      </span>
-    </button>
-  );
-};
-
-const FieldBlock = ({
-  label,
-  helper,
-  children,
-}: {
-  label: string;
-  helper?: ReactNode;
-  children: ReactNode;
-}) => {
-  return (
-    <div className="field-block">
-      <span className="text-[13px] font-medium tracking-[0.01em] text-white/82">
-        {label}
-      </span>
-      {children}
-      {helper ? <span className="text-xs text-white/54">{helper}</span> : null}
-    </div>
-  );
-};
-
-const SelectField = ({
-  name,
-  value,
-  onChange,
-  children,
-}: {
-  name: string;
-  value: string;
-  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  children: ReactNode;
-}) => {
-  return (
-    <span className="select-shell">
-      <select
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="input-shell px-3 py-2.5 text-base sm:text-sm"
-      >
-        {children}
-      </select>
-    </span>
-  );
-};
-
 const KpiInputPanel = ({
   value,
   onChange,
   onCalculate,
   isCalculating,
-  results,
-  warnings,
-  children,
 }: KpiInputPanelProps) => {
   const calculatorMode = value.calculatorMode ?? "business_metrics";
   const churnInputMode =
@@ -160,8 +69,8 @@ const KpiInputPanel = ({
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
   const displayInt = (val?: number) =>
     val == null ? "-" : intFormatter.format(val);
-  const fieldClass = "input-shell px-3 py-2.5 text-base sm:text-sm";
-  const panelClass = "panel-subtle rounded-[22px] p-4";
+  const fieldClass = fieldClassName;
+  const panelClass = panelClassName;
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -170,7 +79,6 @@ const KpiInputPanel = ({
     const parseValue = () => {
       if (
         name === "analysisPeriod" ||
-        name === "offerType" ||
         name === "offerName" ||
         name === "offerId" ||
         name === "revenueInputMode" ||
@@ -191,22 +99,20 @@ const KpiInputPanel = ({
       return numeric;
     };
 
-    if (name === "offerType") {
-      const offerType = parseValue() as SubscriptionOfferInput["offerType"];
-      onChange({
-        ...value,
-        offerType,
-        softwareConfig:
-          offerType === "software_subscription"
-            ? value.softwareConfig ?? defaultSoftwareConfig
-            : value.softwareConfig,
-      });
-      return;
-    }
-
     onChange({
       ...value,
       [name]: parseValue(),
+    });
+  };
+
+  const setOfferType = (offerType: SubscriptionOfferInput["offerType"]) => {
+    onChange({
+      ...value,
+      offerType,
+      softwareConfig:
+        offerType === "software_subscription"
+          ? value.softwareConfig ?? defaultSoftwareConfig
+          : value.softwareConfig,
     });
   };
 
@@ -285,20 +191,7 @@ const KpiInputPanel = ({
   ];
 
   return (
-    <section className="panel-shell rounded-[26px] p-5 text-white">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Offer Inputs</h2>
-          <p className="text-sm text-white/62">
-            Model one software/tech offer at a time. Start with sales velocity,
-            churn, CAC, and gross profit. Use unit economics or business
-            metrics for the same subscription.
-          </p>
-        </div>
-        {children}
-      </div>
-
-      <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
           <FieldBlock label="Offer name">
             <input
@@ -324,20 +217,7 @@ const KpiInputPanel = ({
           </FieldBlock>
         </div>
 
-        <FieldBlock label="Offer type">
-          <SelectField
-            name="offerType"
-            value={value.offerType}
-            onChange={handleChange}
-          >
-            {offerTypeOptions.map((option) => (
-              <option key={option.value} value={option.value} disabled={!option.enabled}>
-                {option.label}
-                {!option.enabled ? " (coming next)" : ""}
-              </option>
-            ))}
-          </SelectField>
-        </FieldBlock>
+        <OfferTypePills value={value.offerType} onChange={setOfferType} />
 
         <FieldBlock label="Analysis period">
           <SelectField
@@ -359,28 +239,7 @@ const KpiInputPanel = ({
           </p>
         </div>
 
-        <div className={panelClass}>
-          <p className="font-medium">Calculator mode</p>
-          <p className="mt-1 text-sm text-white/58">
-            `Unit economics` is for modeling one software offer from price,
-            churn, CAC, and delivery cost. `Business metrics` is for modeling
-            the business from revenue, spend, and customer counts.
-          </p>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            <ChoiceCard
-              checked={calculatorMode === "unit_economics"}
-              title="Unit economics"
-              description="Model one offer from price, churn, CAC, and delivery cost."
-              onSelect={() => setCalculatorMode("unit_economics")}
-            />
-            <ChoiceCard
-              checked={calculatorMode === "business_metrics"}
-              title="Business metrics"
-              description="Model from revenue, acquisition spend, and customer counts."
-              onSelect={() => setCalculatorMode("business_metrics")}
-            />
-          </div>
-        </div>
+        <OfferModeSwitch value={calculatorMode} onChange={setCalculatorMode} />
 
         {calculatorMode === "business_metrics" ? (
           <FieldBlock
@@ -692,212 +551,14 @@ const KpiInputPanel = ({
         <div className="flex gap-3">
           <button
             type="submit"
-            className="pill-action rounded-full px-4 py-2 disabled:opacity-50 disabled:hover:border-white/15 disabled:hover:bg-white/[0.018] disabled:hover:text-white"
+            className={`${pillClassName} px-4 py-2 disabled:opacity-50 disabled:hover:border-white/15 disabled:hover:bg-white/[0.018] disabled:hover:text-white`}
             disabled={isCalculating}
           >
             {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
           </button>
         </div>
       </form>
-
-      {warnings.length > 0 && (
-        <div className={`${panelClass} mt-4 text-sm text-white/74`}>
-          <p className="font-semibold">Warnings</p>
-          <ul className="mt-2 list-disc pl-5">
-            {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {results && (
-        <ResultsPanel
-          results={results}
-          inputs={value}
-          usd={usd}
-          intFormatter={intFormatter}
-        />
-      )}
-    </section>
   );
 };
 
 export default KpiInputPanel;
-
-const ResultsPanel = ({
-  results,
-  inputs,
-  usd,
-  intFormatter,
-}: {
-  results: KPIResult;
-  inputs: SubscriptionOfferInput;
-  usd: Intl.NumberFormat;
-  intFormatter: Intl.NumberFormat;
-}) => {
-  const pct = (value: number | null) =>
-    value == null ? "-" : `${(value * 100).toFixed(2)}%`;
-
-  const ratioX = (value: number | null) =>
-    value == null ? "-" : `${value.toFixed(2)}x`;
-
-  const formatMoney = (value: number | null) =>
-    value == null ? "-" : usd.format(value);
-
-  const formatInt = (value: number | null) =>
-    value == null ? "-" : intFormatter.format(value);
-
-  type ResultKey =
-    | "cac"
-    | "arpc"
-    | "churnRate"
-    | "retentionRate"
-    | "ltv"
-    | "ltgpPerCustomer"
-    | "ltgpToCacRatio"
-    | "hypotheticalMaxCustomers"
-    | "hypotheticalMaxRevenuePerYear"
-    | "hypotheticalMaxProfitPerYear"
-    | "projectedRevenueNextYear"
-    | "projectedProfitNextYear"
-    | "car"
-    | "cacPaybackPeriods";
-
-  const formatMap: Record<ResultKey, () => string> = {
-    cac: () => formatMoney(results.cac),
-    arpc: () => formatMoney(results.arpc),
-    churnRate: () => pct(results.churnRate),
-    retentionRate: () => pct(results.retentionRate),
-    ltv: () => formatMoney(results.ltv),
-    ltgpPerCustomer: () => formatMoney(results.ltgpPerCustomer),
-    ltgpToCacRatio: () => ratioX(results.ltgpToCacRatio),
-    cacPaybackPeriods: () =>
-      results.cacPaybackPeriods == null
-        ? "-"
-        : `${results.cacPaybackPeriods.toFixed(2)} periods`,
-    hypotheticalMaxCustomers: () => formatInt(results.hypotheticalMaxCustomers),
-    hypotheticalMaxRevenuePerYear: () =>
-      formatMoney(results.hypotheticalMaxRevenuePerYear),
-    hypotheticalMaxProfitPerYear: () =>
-      formatMoney(results.hypotheticalMaxProfitPerYear),
-    projectedRevenueNextYear: () => formatMoney(results.projectedRevenueNextYear),
-    projectedProfitNextYear: () => formatMoney(results.projectedProfitNextYear),
-    car: () => `${formatInt(results.car)} per period`,
-  };
-
-  const labelMap: Record<ResultKey, string> = {
-    cac: "Customer acquisition cost (CAC)",
-    arpc: "Average revenue per customer (ARPC)",
-    churnRate: "Churn rate",
-    retentionRate: "Retention rate",
-    ltv: "Lifetime value (LTV)",
-    ltgpPerCustomer: "Lifetime gross profit per customer (LTGP)",
-    ltgpToCacRatio: "LTGP:CAC (core growth ratio)",
-    cacPaybackPeriods: "CAC payback",
-    hypotheticalMaxCustomers: "Hypothetical max customers",
-    hypotheticalMaxRevenuePerYear: "Hypothetical max revenue / year",
-    hypotheticalMaxProfitPerYear: "Hypothetical max profit / year",
-    projectedRevenueNextYear: "Projected revenue over next year",
-    projectedProfitNextYear: "Projected profit over next year",
-    car: "Sales velocity / new customers per period",
-  };
-
-  const orderedKeys: ResultKey[] = [
-    "ltgpToCacRatio",
-    "cacPaybackPeriods",
-    "car",
-    "churnRate",
-    "cac",
-    "arpc",
-    "retentionRate",
-    "ltv",
-    "ltgpPerCustomer",
-    "hypotheticalMaxCustomers",
-    "hypotheticalMaxRevenuePerYear",
-    "hypotheticalMaxProfitPerYear",
-    "projectedRevenueNextYear",
-    "projectedProfitNextYear",
-  ];
-
-  return (
-    <div className="panel-subtle mt-4 space-y-4 rounded-[22px] p-5 text-white">
-      <h2 className="font-semibold">Results</h2>
-      <p className="text-sm text-white/58">
-        Core growth math comes first: LTGP:CAC, payback, sales velocity, and
-        churn. Steady-state ceiling and next-year projection metrics follow.
-      </p>
-      <ul className="mt-4 space-y-2 text-sm">
-        {orderedKeys.map((key) => (
-          <li key={key} className="flex items-center justify-between gap-4">
-            <span className="font-medium">{labelMap[key]}</span>
-            <span>{formatMap[key]()}</span>
-          </li>
-        ))}
-      </ul>
-      <CustomerBridge inputs={inputs} intFormatter={intFormatter} />
-    </div>
-  );
-};
-
-const CustomerBridge = ({
-  inputs,
-  intFormatter,
-}: {
-  inputs: SubscriptionOfferInput;
-  intFormatter: Intl.NumberFormat;
-}) => {
-  const start = inputs.activeCustomersStart ?? null;
-  const newCustomers = inputs.newCustomersPerPeriod ?? null;
-  const derivedChurned =
-    inputs.churnedCustomersPerPeriod != null
-      ? inputs.churnedCustomersPerPeriod
-      : inputs.retainedCustomersFromStartAtEnd != null &&
-          inputs.activeCustomersStart != null
-        ? inputs.activeCustomersStart - inputs.retainedCustomersFromStartAtEnd
-        : inputs.directChurnRatePerPeriod != null && start != null
-          ? start * inputs.directChurnRatePerPeriod
-          : null;
-  const derivedEnd =
-    start != null && newCustomers != null && derivedChurned != null
-      ? start + newCustomers - derivedChurned
-      : null;
-
-  const formatInt = (value: number | null) =>
-    value == null ? "-" : intFormatter.format(value);
-
-  return (
-    <div className="panel-subtle rounded-[20px] p-4 text-sm text-white">
-      <h3 className="font-semibold">Customer Bridge</h3>
-      <ul className="mt-2 space-y-1">
-        <li className="flex justify-between gap-4">
-          <span>Start customers</span>
-          <span>{formatInt(start)}</span>
-        </li>
-        <li className="flex justify-between gap-4">
-          <span>+ New customers</span>
-          <span>{formatInt(newCustomers)}</span>
-        </li>
-        <li className="flex justify-between gap-4">
-          <span>- Churned customers (derived)</span>
-          <span>{formatInt(derivedChurned)}</span>
-        </li>
-        <li className="flex justify-between gap-4 border-t border-gray-200 pt-1 font-medium">
-          <span>= Derived end customers</span>
-          <span>{formatInt(derivedEnd)}</span>
-        </li>
-      </ul>
-      {start == null ? (
-        <p className="mt-2 text-xs text-white/56">
-          Customer bridge is optional in direct price + direct churn mode. Add a
-          starting customer base if you want cohort movement shown here.
-        </p>
-      ) : derivedChurned == null ? (
-        <p className="mt-2 text-xs text-white/56">
-          Provide churned or retained-from-start customers to unlock the
-          customer bridge.
-        </p>
-      ) : null}
-    </div>
-  );
-};
