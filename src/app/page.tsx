@@ -38,6 +38,10 @@ const defaultState: FormState = {
   offerName: "Main Offer",
   offerType: "subscription",
   analysisPeriod: "monthly",
+  revenueInputMode: "total_revenue",
+  grossProfitInputMode: "margin",
+  cacInputMode: "derived",
+  retentionInputMode: "counts",
   revenuePerPeriod: 100000,
   grossMargin: 0.7,
   marketingSpendPerPeriod: 20000,
@@ -264,6 +268,7 @@ export default function Home() {
 
   const handleCalculate = async () => {
     const grossMarginError =
+      (form.grossProfitInputMode ?? "margin") === "margin" &&
       form.grossMargin != null && form.grossMargin > 1
         ? "Gross margin cannot exceed 1.0 (100%)."
         : null;
@@ -318,11 +323,36 @@ export default function Home() {
       offerName: form.offerName,
       offerType: form.offerType,
       analysisPeriod: form.analysisPeriod,
-      revenuePerPeriod: 0,
-      grossMargin: 0,
-      marketingSpendPerPeriod: 0,
+      revenueInputMode: form.revenueInputMode ?? "total_revenue",
+      grossProfitInputMode: form.grossProfitInputMode ?? "margin",
+      cacInputMode: form.cacInputMode ?? "derived",
+      retentionInputMode: form.retentionInputMode ?? "counts",
+      revenuePerPeriod:
+        (form.revenueInputMode ?? "total_revenue") === "total_revenue"
+          ? 0
+          : undefined,
+      directArpc:
+        (form.revenueInputMode ?? "total_revenue") === "direct_arpc"
+          ? 0
+          : undefined,
+      grossMargin:
+        (form.grossProfitInputMode ?? "margin") === "margin" ? 0 : undefined,
+      deliveryCostPerCustomerPerPeriod:
+        (form.grossProfitInputMode ?? "margin") === "costs" ? 0 : undefined,
+      fixedDeliveryCostPerPeriod:
+        (form.grossProfitInputMode ?? "margin") === "costs" ? 0 : undefined,
+      marketingSpendPerPeriod:
+        (form.cacInputMode ?? "derived") === "derived" ? 0 : undefined,
+      directCac:
+        (form.cacInputMode ?? "derived") === "direct" ? 0 : undefined,
       newCustomersPerPeriod: 0,
-      activeCustomersStart: 0,
+      activeCustomersStart:
+        (form.retentionInputMode ?? "counts") === "counts" ||
+        (form.revenueInputMode ?? "total_revenue") === "total_revenue"
+          ? 0
+          : undefined,
+      directChurnRatePerPeriod:
+        (form.retentionInputMode ?? "counts") === "rate" ? 0 : undefined,
     });
     setEvaluation(null);
     setWarnings([]);

@@ -163,3 +163,112 @@ test("subscription offer v2 warns when CAC is not computable", () => {
     evaluation.warnings.includes("LTGP:CAC cannot be computed (CAC is 0)."),
   );
 });
+
+test("subscription offer v2 supports direct CAC and delivery costs", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "ai-membership",
+    offerName: "AI Membership",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    grossProfitInputMode: "costs",
+    cacInputMode: "direct",
+    revenuePerPeriod: 30_000,
+    deliveryCostPerCustomerPerPeriod: 400,
+    fixedDeliveryCostPerPeriod: 500,
+    directCac: 1_200,
+    newCustomersPerPeriod: 1,
+    activeCustomersStart: 10,
+    retainedCustomersFromStartAtEnd: 9,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(
+    evaluation.calculationVersion,
+    "kpi-v2-subscription-offer-flexible-inputs",
+  );
+  assert.equal(evaluation.results.arpc, 3_000);
+  assert.equal(evaluation.results.cac, 1_200);
+  assert.equal(evaluation.results.churnRate, 0.1);
+  assert.equal(evaluation.results.ltv, 25_500);
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Derived gross profit from delivery costs per active customer.",
+    ),
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Used direct CAC instead of deriving CAC from marketing spend.",
+    ),
+  );
+});
+
+test("subscription offer v2 supports direct churn rate and sales velocity", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "advisory-membership",
+    offerName: "Advisory Membership",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    grossProfitInputMode: "margin",
+    cacInputMode: "derived",
+    retentionInputMode: "rate",
+    revenuePerPeriod: 30_000,
+    grossMargin: 0.8,
+    marketingSpendPerPeriod: 6_000,
+    newCustomersPerPeriod: 3,
+    activeCustomersStart: 10,
+    directChurnRatePerPeriod: 0.1,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(
+    evaluation.calculationVersion,
+    "kpi-v2-subscription-offer-flexible-inputs",
+  );
+  assert.equal(evaluation.results.churnRate, 0.1);
+  assert.equal(evaluation.results.retentionRate, 0.9);
+  assert.equal(evaluation.results.cac, 2_000);
+  assert.equal(evaluation.results.arpc, 2727.2727272727275);
+  assert.equal(evaluation.results.ltv, 21818.18181818182);
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Used direct churn rate for subscription retention.",
+    ),
+  );
+});
+
+test("subscription offer v2 supports direct price without a starting customer base", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "solo-subscription",
+    offerName: "Solo Subscription",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    revenueInputMode: "direct_arpc",
+    directArpc: 3_000,
+    grossProfitInputMode: "costs",
+    deliveryCostPerCustomerPerPeriod: 400,
+    cacInputMode: "direct",
+    directCac: 1_200,
+    retentionInputMode: "rate",
+    directChurnRatePerPeriod: 0.1,
+    newCustomersPerPeriod: 1,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(
+    evaluation.calculationVersion,
+    "kpi-v2-subscription-offer-flexible-inputs",
+  );
+  assert.equal(evaluation.results.arpc, 3_000);
+  assert.equal(evaluation.results.churnRate, 0.1);
+  assert.equal(evaluation.results.cac, 1_200);
+  assert.equal(evaluation.results.ltgpPerCustomer, 26_000);
+  assert.equal(evaluation.results.cacPaybackPeriods, 0.46153846153846156);
+  assert.equal(evaluation.results.hypotheticalMaxRevenuePerYear, null);
+  assert.equal(evaluation.results.hypotheticalMaxProfitPerYear, null);
+  assert.ok(
+    evaluation.assumptionsApplied.includes("Used direct subscription price / ARPC."),
+  );
+});

@@ -20,3 +20,13 @@
 - Persisted `offerId`, `offerName`, `offerType`, and `calculationVersion` metadata for new reports.
 - Reworked the home input flow to model one subscription offer at a time.
 - Verification completed with `npm test`, `npm run lint`, and `npm run build`.
+
+## Next Task
+- [x] Add flexible unit-economics inputs to subscription offers.
+- [x] Support direct CAC as an alternative to marketing spend / new customers.
+- [x] Support delivery-cost-based gross profit as an alternative to direct gross margin.
+- [x] Update the offer UI to switch between top-down and unit-economics inputs.
+- [x] Add tests for direct CAC and delivery cost scenarios.
+
+## Future Exploration
+- [ ] Figure out how to expose this as an API/integration surface so CRMs can plug in and generate reports automatically.
