@@ -13,7 +13,7 @@ const Sparkline = ({
   labels,
   width = 120,
   height = 40,
-  stroke = "#2563eb",
+  stroke = "rgba(255,255,255,0.82)",
 }: SparklineProps) => {
   const points = buildPoints(values, width, height);
 
@@ -25,7 +25,7 @@ const Sparkline = ({
           y={height / 2}
           dominantBaseline="middle"
           textAnchor="middle"
-          fill="#6b7280"
+          fill="rgba(255,255,255,0.38)"
           fontSize="10"
         >
           No data
