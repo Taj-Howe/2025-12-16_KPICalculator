@@ -89,7 +89,7 @@ const ReportsPanel = ({
         <button
           type="button"
           onClick={() => void onRefresh()}
-          className="rounded border border-white/60 px-3 py-1 text-sm text-white"
+          className="rounded-full border border-white/60 px-3 py-1 text-sm text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)]"
         >
           Refresh
         </button>
@@ -191,7 +191,7 @@ const ReportsPanel = ({
                   <button
                     type="button"
                     onClick={() => onDeleteReport(selected.id)}
-                    className="rounded border border-white/60 px-3 py-1 text-xs text-white"
+                    className="rounded-full border border-white/60 px-3 py-1 text-xs text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)]"
                   >
                     Delete report
                   </button>
@@ -300,7 +300,7 @@ const ReportsPanel = ({
             type="button"
             onClick={onSeedSampleYear}
             disabled={!isSignedIn || isSeeding}
-            className="rounded border border-white/60 px-3 py-1 text-white disabled:opacity-50"
+            className="rounded-full border border-white/60 px-3 py-1 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)] disabled:opacity-50 disabled:hover:border-white/60 disabled:hover:bg-transparent disabled:hover:text-white"
           >
             Load sample year of reports (12 months)
           </button>

@@ -13,15 +13,15 @@ import type {
   CalculationVersion,
   KPIResult,
   KpiPeriod,
-  OfferInput,
+  SubscriptionOfferInput,
 } from "@/features/kpi/types";
 import { sampleKpiInput } from "@/components/home/types";
 import type { ReportSeries } from "@/components/home/types";
 import { generateSampleYearReports } from "@/lib/sampleReports";
 
-type FormState = OfferInput;
+type FormState = SubscriptionOfferInput;
 type Evaluation = {
-  inputs: OfferInput;
+  inputs: SubscriptionOfferInput;
   results: KPIResult;
   calculationVersion: CalculationVersion;
   assumptionsApplied: string[];
@@ -35,8 +35,8 @@ type SessionSnapshot = {
 
 const defaultState: FormState = {
   offerId: "main-offer",
-  offerName: "Main Offer",
-  offerType: "subscription",
+  offerName: "Main Software Offer",
+  offerType: "software_subscription",
   analysisPeriod: "monthly",
   revenuePerPeriod: 100000,
   grossMargin: 0.7,
@@ -44,6 +44,23 @@ const defaultState: FormState = {
   newCustomersPerPeriod: 20,
   activeCustomersStart: 100,
   retainedCustomersFromStartAtEnd: 90,
+  softwareConfig: {
+    industryPreset: "software_tech",
+    monetizationModel: "subscription_seat_based",
+    revenueComponents: [
+      {
+        componentType: "platform_subscription",
+        label: "Core platform subscription",
+        pricingMetric: "workspace",
+      },
+      {
+        componentType: "seat_subscription",
+        label: "Per-seat subscription",
+        pricingMetric: "seat",
+      },
+    ],
+    goToMarketMotion: "sales_led",
+  },
 };
 
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -654,7 +671,7 @@ const ReportSavePanel = ({
           type="button"
           onClick={handleSave}
           disabled={status === "saving"}
-          className="rounded border border-white/60 px-4 py-2 text-white disabled:opacity-50"
+          className="rounded-full border border-white/60 px-4 py-2 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)] disabled:opacity-50 disabled:hover:border-white/60 disabled:hover:bg-transparent disabled:hover:text-white"
         >
           {status === "saving" ? "Saving..." : "Save Report"}
         </button>

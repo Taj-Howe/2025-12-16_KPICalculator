@@ -1,7 +1,11 @@
-import type { KPIResult, KpiPeriod, OfferInput } from "@/features/kpi/types";
+import type {
+  KPIResult,
+  KpiPeriod,
+  SubscriptionOfferInput,
+} from "@/features/kpi/types";
 import type { ReportSummary } from "@/components/report-comparison";
 
-export type KPIInputState = OfferInput;
+export type KPIInputState = SubscriptionOfferInput;
 export type KPIResults = KPIResult;
 
 export type ReportSeries = {
@@ -61,8 +65,8 @@ export type ReportsPanelProps = {
 
 export const sampleKpiInput: KPIInputState = {
   offerId: "sample-offer",
-  offerName: "Sample Subscription Offer",
-  offerType: "subscription",
+  offerName: "Sample Software Subscription",
+  offerType: "software_subscription",
   analysisPeriod: "monthly",
   revenuePerPeriod: 120000,
   grossMargin: 0.72,
@@ -70,4 +74,21 @@ export const sampleKpiInput: KPIInputState = {
   newCustomersPerPeriod: 30,
   activeCustomersStart: 150,
   retainedCustomersFromStartAtEnd: 130,
+  softwareConfig: {
+    industryPreset: "software_tech",
+    monetizationModel: "subscription_seat_based",
+    revenueComponents: [
+      {
+        componentType: "platform_subscription",
+        label: "Base platform fee",
+        pricingMetric: "workspace",
+      },
+      {
+        componentType: "seat_subscription",
+        label: "Seat pricing",
+        pricingMetric: "seat",
+      },
+    ],
+    goToMarketMotion: "product_led",
+  },
 };

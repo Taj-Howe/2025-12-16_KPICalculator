@@ -17,7 +17,11 @@ export const isOfferInput = (input: AnyKpiInput): input is OfferInput => {
 export const isSubscriptionOfferInput = (
   input: AnyKpiInput,
 ): input is SubscriptionOfferInput => {
-  return isOfferInput(input) && input.offerType === "subscription";
+  return (
+    isOfferInput(input) &&
+    (input.offerType === "subscription" ||
+      input.offerType === "software_subscription")
+  );
 };
 
 export const getInputPeriod = (input: AnyKpiInput): KpiPeriod => {
@@ -25,7 +29,15 @@ export const getInputPeriod = (input: AnyKpiInput): KpiPeriod => {
 };
 
 export const getInputModelLabel = (input: AnyKpiInput): string => {
-  return isLegacyKpiInput(input) ? input.businessModel : input.offerType;
+  if (isLegacyKpiInput(input)) {
+    return input.businessModel;
+  }
+
+  if (isSubscriptionOfferInput(input) && input.softwareConfig?.industryPreset === "software_tech") {
+    return input.softwareConfig.monetizationModel;
+  }
+
+  return input.offerType;
 };
 
 export const getOfferMetadata = (input: AnyKpiInput) => {

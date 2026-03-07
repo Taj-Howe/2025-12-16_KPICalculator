@@ -1,16 +1,62 @@
 "use client";
 
 import { useMemo } from "react";
-import type { OfferInput, KPIResult } from "@/features/kpi/types";
+import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
 
 const offerTypeOptions = [
-  { value: "subscription", label: "Subscription Offer", enabled: true },
-  { value: "one_time", label: "One-Time Offer", enabled: false },
-  { value: "installment", label: "Installment Offer", enabled: false },
-  { value: "usage_based", label: "Usage-Based Offer", enabled: false },
-  { value: "service_retainer", label: "Service Retainer", enabled: false },
+  { value: "software_subscription", label: "Software Subscription", enabled: true },
+  {
+    value: "subscription",
+    label: "Legacy Subscription (compatibility)",
+    enabled: true,
+  },
+  { value: "software_paid_pilot", label: "Paid Pilot", enabled: false },
+  {
+    value: "software_pilot_to_subscription",
+    label: "Pilot to Subscription",
+    enabled: false,
+  },
+  { value: "software_token_pricing", label: "Token-Priced AI", enabled: false },
+  {
+    value: "software_hybrid_platform_usage",
+    label: "Platform + Usage Hybrid",
+    enabled: false,
+  },
+  {
+    value: "software_implementation_plus_subscription",
+    label: "Implementation + Subscription",
+    enabled: false,
+  },
 ] as const;
+
+const defaultSoftwareConfig = {
+  industryPreset: "software_tech" as const,
+  monetizationModel: "subscription_seat_based" as const,
+  revenueComponents: [
+    {
+      componentType: "platform_subscription" as const,
+      label: "Core platform subscription",
+      pricingMetric: "workspace" as const,
+    },
+  ],
+  goToMarketMotion: "sales_led" as const,
+};
+
+type FormFieldName =
+  | "revenuePerPeriod"
+  | "grossMargin"
+  | "marketingSpendPerPeriod"
+  | "newCustomersPerPeriod"
+  | "activeCustomersStart";
+
+type FormField = {
+  label: string;
+  name: FormFieldName;
+  formatted: string;
+  helper?: string;
+  step?: string;
+};
 
 const KpiInputPanel = ({
   value,
@@ -68,6 +114,19 @@ const KpiInputPanel = ({
       return numeric;
     };
 
+    if (name === "offerType") {
+      const offerType = parseValue() as SubscriptionOfferInput["offerType"];
+      onChange({
+        ...value,
+        offerType,
+        softwareConfig:
+          offerType === "software_subscription"
+            ? value.softwareConfig ?? defaultSoftwareConfig
+            : value.softwareConfig,
+      });
+      return;
+    }
+
     onChange({
       ...value,
       [name]: parseValue(),
@@ -102,13 +161,43 @@ const KpiInputPanel = ({
     void onCalculate();
   };
 
+  const formFields: FormField[] = [
+    {
+      label: `Current Revenue Run Rate (per ${periodLabel})`,
+      name: "revenuePerPeriod",
+      formatted: displayMoney(value.revenuePerPeriod),
+    },
+    {
+      label: "Gross Margin (%)",
+      name: "grossMargin",
+      helper: "Before marketing/CAC. Example: 70 = 70%.",
+      formatted: percentText(value.grossMargin),
+      step: "0.1",
+    },
+    {
+      label: `Sales Velocity / New Customers (per ${periodLabel})`,
+      name: "newCustomersPerPeriod",
+      formatted: displayInt(value.newCustomersPerPeriod),
+    },
+    {
+      label: "Starting Customer Base",
+      name: "activeCustomersStart",
+      formatted: displayInt(value.activeCustomersStart),
+    },
+    {
+      label: `Customer Acquisition Spend (per ${periodLabel})`,
+      name: "marketingSpendPerPeriod",
+      formatted: displayMoney(value.marketingSpendPerPeriod),
+    },
+  ];
+
   return (
     <section className="rounded border border-white/30 bg-black p-4 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">Offer Inputs</h2>
           <p className="text-sm text-white/70">
-            Model one offer at a time. Subscription is live first; other offer types are staged next.
+            Model one software/tech offer at a time. Start with sales velocity, churn, CAC, and gross profit. Software subscriptions are live first; pilots, token pricing, and hybrids are staged next.
           </p>
         </div>
         {children}
@@ -173,35 +262,14 @@ const KpiInputPanel = ({
           </select>
         </label>
 
-        {[
-          {
-            label: `Revenue (per ${periodLabel})`,
-            name: "revenuePerPeriod",
-            formatted: displayMoney(value.revenuePerPeriod),
-          },
-          {
-            label: "Gross Margin (%)",
-            name: "grossMargin",
-            helper: "Before marketing/CAC. Example: 70 = 70%.",
-            formatted: percentText(value.grossMargin),
-            step: "0.1",
-          },
-          {
-            label: `Marketing Spend (per ${periodLabel})`,
-            name: "marketingSpendPerPeriod",
-            formatted: displayMoney(value.marketingSpendPerPeriod),
-          },
-          {
-            label: `New Customers (per ${periodLabel})`,
-            name: "newCustomersPerPeriod",
-            formatted: displayInt(value.newCustomersPerPeriod),
-          },
-          {
-            label: "Active Customers Start",
-            name: "activeCustomersStart",
-            formatted: displayInt(value.activeCustomersStart),
-          },
-        ].map((field) => (
+        <div className="rounded border border-white/30 p-3 text-sm text-white/80">
+          <p className="font-medium">Start With Four Core Levers</p>
+          <p className="mt-1">
+            Keep this simple: sales velocity, churn from the starting cohort, gross profit per customer, and acquisition cost.
+          </p>
+        </div>
+
+        {formFields.map((field) => (
           <label key={field.name} className="flex flex-col gap-1">
             {field.label}
             <input
@@ -210,16 +278,16 @@ const KpiInputPanel = ({
               value={
                 field.name === "grossMargin"
                   ? percentInputValue(value.grossMargin)
-                  : value[field.name as keyof OfferInput] ?? ""
+                  : value[field.name] ?? ""
               }
-              step={"step" in field ? field.step : undefined}
+              step={field.step}
               onChange={handleChange}
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
-            {"helper" in field && field.helper && (
+            {field.helper && (
               <span className="text-sm text-white/70">{field.helper}</span>
             )}
-            {"formatted" in field && field.formatted && (
+            {field.formatted && (
               <span className="text-xs text-white/60">Formatted: {field.formatted}</span>
             )}
             {field.name === "grossMargin" && grossMarginError && (
@@ -229,7 +297,7 @@ const KpiInputPanel = ({
         ))}
 
         <div className="space-y-3 rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to input churn?</p>
+          <p className="font-medium">How do you want to input churn from the starting cohort?</p>
           <label className="flex items-center gap-2">
             <input
               type="radio"
@@ -238,7 +306,7 @@ const KpiInputPanel = ({
               checked={churnInputMode === "retained"}
               onChange={() => setChurnMode("retained")}
             />
-            <span>I know how many start customers remained</span>
+            <span>I know how many starting customers remained</span>
           </label>
           <label className="flex items-center gap-2">
             <input
@@ -248,7 +316,7 @@ const KpiInputPanel = ({
               checked={churnInputMode === "churned"}
               onChange={() => setChurnMode("churned")}
             />
-            <span>I know how many customers churned</span>
+            <span>I know how many starting customers churned</span>
           </label>
         </div>
 
@@ -263,7 +331,7 @@ const KpiInputPanel = ({
               className="rounded border border-white/30 bg-black p-2 text-white"
             />
             <span className="text-sm text-white/70">
-              Cohort retention for the starting customer base.
+              Cohort retention only for the customers you had at the start of the period.
             </span>
             <span className="text-xs text-white/60">
               Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
@@ -289,13 +357,13 @@ const KpiInputPanel = ({
         )}
 
         <p className="text-sm text-white/70">
-          Subscription end customers are derived as start customers + new customers - churned customers.
+          Subscription end customers are derived as starting customer base + sales velocity - churned starting customers.
         </p>
 
         <div className="flex gap-3">
           <button
             type="submit"
-            className="rounded border border-white/60 px-4 py-2 text-white disabled:opacity-50"
+            className="rounded-full border border-white/60 px-4 py-2 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)] disabled:opacity-50 disabled:hover:border-white/60 disabled:hover:bg-transparent disabled:hover:text-white"
             disabled={isCalculating}
           >
             {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
@@ -335,7 +403,7 @@ const ResultsPanel = ({
   intFormatter,
 }: {
   results: KPIResult;
-  inputs: OfferInput;
+  inputs: SubscriptionOfferInput;
   usd: Intl.NumberFormat;
   intFormatter: Intl.NumberFormat;
 }) => {
@@ -388,32 +456,35 @@ const ResultsPanel = ({
     arpc: "Average revenue per customer (ARPC)",
     churnRate: "Churn rate",
     retentionRate: "Retention rate",
-    ltv: "Lifetime value (gross margin-adjusted)",
+    ltv: "Lifetime value (LTV)",
     ltgpPerCustomer: "Lifetime gross profit per customer (LTGP)",
-    ltgpToCacRatio: "LTGP:CAC",
-    cacPaybackPeriods: "CAC payback (periods)",
-    hypotheticalMaxRevenuePerYear: "Hypothetical max revenue per year",
-    hypotheticalMaxProfitPerYear: "Hypothetical max profit per year",
-    car: "New customers per period",
+    ltgpToCacRatio: "LTGP:CAC (core growth ratio)",
+    cacPaybackPeriods: "CAC payback",
+    hypotheticalMaxRevenuePerYear: "Hypothetical max revenue / year",
+    hypotheticalMaxProfitPerYear: "Hypothetical max profit / year",
+    car: "Sales velocity / new customers per period",
   };
 
   const orderedKeys: ResultKey[] = [
+    "ltgpToCacRatio",
+    "cacPaybackPeriods",
+    "car",
+    "churnRate",
     "cac",
     "arpc",
-    "churnRate",
     "retentionRate",
     "ltv",
     "ltgpPerCustomer",
-    "ltgpToCacRatio",
-    "cacPaybackPeriods",
     "hypotheticalMaxRevenuePerYear",
     "hypotheticalMaxProfitPerYear",
-    "car",
   ];
 
   return (
     <div className="mt-4 space-y-4 rounded border border-white/30 p-4 text-white">
       <h2 className="font-semibold">Results</h2>
+      <p className="text-sm text-white/70">
+        Core growth math comes first: LTGP:CAC, payback, sales velocity, and churn. Revenue ceiling metrics follow.
+      </p>
       <ul className="mt-4 space-y-2 text-sm">
         {orderedKeys.map((key) => (
           <li key={key} className="flex items-center justify-between gap-4">
@@ -431,7 +502,7 @@ const CustomerBridge = ({
   inputs,
   intFormatter,
 }: {
-  inputs: OfferInput;
+  inputs: SubscriptionOfferInput;
   intFormatter: Intl.NumberFormat;
 }) => {
   const start = inputs.activeCustomersStart ?? null;

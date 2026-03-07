@@ -29,7 +29,7 @@ const AppHeader = ({
               <button
                 type="button"
                 onClick={onSignOut}
-                className="rounded border border-white/60 px-3 py-1 text-white"
+                className="rounded-full border border-white/60 px-3 py-1 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)]"
               >
                 Sign out
               </button>
@@ -40,7 +40,7 @@ const AppHeader = ({
             <button
               type="button"
               onClick={onSignIn}
-              className="rounded border border-white/60 px-3 py-1 text-white"
+              className="rounded-full border border-white/60 px-3 py-1 text-white transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:border-[var(--accent)] focus-visible:bg-[var(--accent)] focus-visible:text-[var(--accent-foreground)]"
             >
               Sign in
             </button>

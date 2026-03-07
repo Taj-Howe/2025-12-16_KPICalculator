@@ -1,5 +1,10 @@
 import { z } from "zod";
 import type { BusinessModel, KpiPeriod } from "./types";
+import {
+  softwareSubscriptionModels,
+  softwareTechMonetizationModels,
+  softwareTechOfferTypes,
+} from "./software-tech";
 
 const periods: readonly KpiPeriod[] = ["monthly", "quarterly", "yearly"];
 const businessModels: readonly BusinessModel[] = [
@@ -15,6 +20,62 @@ const offerTypes = [
   "usage_based",
   "service_retainer",
 ] as const;
+
+const softwareRevenueComponentSchema = z.discriminatedUnion("componentType", [
+  z.object({
+    componentType: z.literal("platform_subscription"),
+    label: z.string().trim().min(1).max(120),
+    pricingMetric: z
+      .enum(["workspace", "account", "organization"])
+      .optional(),
+  }),
+  z.object({
+    componentType: z.literal("seat_subscription"),
+    label: z.string().trim().min(1).max(120),
+    pricingMetric: z
+      .enum(["seat", "active_user", "licensed_user"])
+      .optional(),
+  }),
+  z.object({
+    componentType: z.literal("usage_metered"),
+    label: z.string().trim().min(1).max(120),
+    unitName: z.string().trim().min(1).max(60),
+  }),
+  z.object({
+    componentType: z.literal("token_usage"),
+    label: z.string().trim().min(1).max(120),
+    tokenUnit: z.enum(["1k_tokens", "1m_tokens"]),
+  }),
+  z.object({
+    componentType: z.literal("pilot_fee"),
+    label: z.string().trim().min(1).max(120),
+  }),
+  z.object({
+    componentType: z.literal("implementation_fee"),
+    label: z.string().trim().min(1).max(120),
+  }),
+  z.object({
+    componentType: z.literal("transaction_fee"),
+    label: z.string().trim().min(1).max(120),
+    pricingMetric: z.enum(["gsv", "tpv", "order_volume"]).optional(),
+  }),
+]);
+
+const softwareTechConfigSchema = z.object({
+  industryPreset: z.literal("software_tech"),
+  monetizationModel: z.enum(softwareTechMonetizationModels),
+  revenueComponents: z.array(softwareRevenueComponentSchema).min(1),
+  goToMarketMotion: z
+    .enum([
+      "self_serve",
+      "product_led",
+      "sales_led",
+      "enterprise",
+      "channel_partner",
+    ])
+    .optional(),
+  notes: z.string().trim().max(500).optional(),
+});
 
 const legacyBaseSchema = z.object({
   period: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
@@ -83,7 +144,7 @@ export const legacyKpiInputSchema = legacyBaseSchema.superRefine((value, ctx) =>
 const subscriptionOfferSchemaBase = z.object({
   offerId: z.string().trim().min(1).max(120),
   offerName: z.string().trim().min(1).max(120),
-  offerType: z.literal("subscription"),
+  offerType: z.enum(["subscription", "software_subscription"]),
   analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
   revenuePerPeriod: z.number().nonnegative(),
   grossMargin: z.number().min(0).max(1),
@@ -92,6 +153,7 @@ const subscriptionOfferSchemaBase = z.object({
   activeCustomersStart: z.number().nonnegative(),
   churnedCustomersPerPeriod: z.number().nonnegative().optional(),
   retainedCustomersFromStartAtEnd: z.number().nonnegative().optional(),
+  softwareConfig: softwareTechConfigSchema.optional(),
 });
 
 export const subscriptionOfferInputSchema = subscriptionOfferSchemaBase.superRefine(
@@ -122,8 +184,60 @@ export const subscriptionOfferInputSchema = subscriptionOfferSchemaBase.superRef
         path: ["churnedCustomersPerPeriod"],
       });
     }
+
+    if (value.offerType === "software_subscription") {
+      if (value.softwareConfig == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Software subscription offers require software/tech monetization metadata.",
+          path: ["softwareConfig"],
+        });
+        return;
+      }
+
+      if (
+        !softwareSubscriptionModels.includes(
+          value.softwareConfig.monetizationModel as
+            (typeof softwareSubscriptionModels)[number],
+        )
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Software subscription offers must use a subscription monetization model.",
+          path: ["softwareConfig", "monetizationModel"],
+        });
+      }
+    }
   },
 );
+
+const unsupportedSoftwareOfferInputSchema = z
+  .object({
+    offerId: z.string().trim().min(1).max(120),
+    offerName: z.string().trim().min(1).max(120),
+    offerType: z.enum(
+      softwareTechOfferTypes.filter(
+        (type) => type !== "software_subscription",
+      ) as [
+        Exclude<(typeof softwareTechOfferTypes)[number], "software_subscription">,
+        ...Exclude<
+          (typeof softwareTechOfferTypes)[number],
+          "software_subscription"
+        >[],
+      ],
+    ),
+    analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+    softwareConfig: softwareTechConfigSchema,
+  })
+  .superRefine((value, ctx) => {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["offerType"],
+      message: `Software/tech offer type '${value.offerType}' is defined but not implemented yet.`,
+    });
+  });
 
 const unsupportedOfferInputSchema = z
   .object({
@@ -147,6 +261,7 @@ const unsupportedOfferInputSchema = z
 
 export const offerInputSchema = z.union([
   subscriptionOfferInputSchema,
+  unsupportedSoftwareOfferInputSchema,
   unsupportedOfferInputSchema,
 ]);
 

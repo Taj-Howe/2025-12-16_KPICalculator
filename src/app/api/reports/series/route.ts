@@ -217,8 +217,12 @@ export const GET = async (request: Request) => {
     const input = row.inputJson as AnyKpiInput;
     const result = row.resultJson as KPIResult;
 
-    series.customersStart.push(input.activeCustomersStart ?? null);
-    series.newCustomers.push(input.newCustomersPerPeriod ?? null);
+    series.customersStart.push(
+      "activeCustomersStart" in input ? input.activeCustomersStart ?? null : null,
+    );
+    series.newCustomers.push(
+      "newCustomersPerPeriod" in input ? input.newCustomersPerPeriod ?? null : null,
+    );
     series.churnRate.push(result.churnRate ?? null);
     series.retentionRate.push(result.retentionRate ?? null);
     series.cac.push(result.cac ?? null);

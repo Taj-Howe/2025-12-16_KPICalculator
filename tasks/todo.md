@@ -22,7 +22,7 @@
 - Verification completed with `npm test`, `npm run lint`, and `npm run build`.
 
 ## Next Phase Plan
-- [ ] Specialize the offer system for software/tech monetization models instead of generic business categories.
+- [x] Specialize the offer system for software/tech monetization models instead of generic business categories.
 - [ ] Define a staged software/tech taxonomy:
   - `subscription_seat_based`
   - `subscription_usage_based`
@@ -65,3 +65,27 @@
   - dark-mode fintech visual system
   - hero graph for projected revenue growth
   - cleaner results hierarchy for projection vs steady-state outputs
+
+## Current Software/Tech Taxonomy
+- [x] Define the software/tech offer taxonomy and shared revenue-component model in code.
+- [x] Make `software_subscription` a first-class offer type while keeping legacy `subscription` compatibility.
+- [x] Reserve paid pilot, pilot-to-subscription, token pricing, hybrid, and implementation-based offers as defined but not yet implemented.
+- [x] Move defaults and sample data onto a software subscription preset.
+- [x] Add docs/tests and verify with `npm test`, `npm run lint`, and `npm run build`.
+
+## Review
+- Added a dedicated software/tech taxonomy spec and code model for monetization types and revenue components.
+- `software_subscription` now runs through the existing subscription evaluator with required software metadata.
+- The UI defaults and staged offer selector now point at software-native models instead of generic offer categories.
+- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
+
+## Current UI Regression Fix
+- [x] Restore Hormozi-style software subscription framing in the form.
+- [x] Make sales velocity, churn, LTGP:CAC, and payback the obvious center of the software subscription experience.
+- [x] Keep software taxonomy metadata under the hood instead of making the current form feel more complex.
+- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
+
+## Review
+- Restored the simple user-facing framing around sales velocity, churn, CAC, and LTGP while keeping software offer taxonomy in the data model.
+- Reordered the results panel so the core growth math appears first instead of being buried behind generic KPI labels.
+- Verified the branch with `npm test`, `npm run lint`, and `npm run build`.

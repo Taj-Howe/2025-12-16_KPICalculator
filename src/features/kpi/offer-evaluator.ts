@@ -128,7 +128,7 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
 };
 
 export const evaluateOffer = (input: OfferInput): OfferEvaluation => {
-  if (input.offerType === "subscription") {
+  if (input.offerType === "subscription" || input.offerType === "software_subscription") {
     return subscriptionOfferEvaluator.evaluate(input);
   }
   throw new Error(`Unsupported offer type '${input.offerType}'.`);

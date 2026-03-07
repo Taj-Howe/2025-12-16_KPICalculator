@@ -33,8 +33,8 @@ export const generateSampleYearReports = (year: number): ReportPayload[] => {
 
     const inputs: OfferInput = {
       offerId: "sample-subscription-offer",
-      offerName: "Sample Subscription Offer",
-      offerType: "subscription",
+      offerName: "Sample Software Subscription",
+      offerType: "software_subscription",
       analysisPeriod: "monthly",
       revenuePerPeriod: revenue,
       grossMargin: 0.7,
@@ -42,6 +42,23 @@ export const generateSampleYearReports = (year: number): ReportPayload[] => {
       newCustomersPerPeriod: newCustomers,
       activeCustomersStart: startCustomers,
       retainedCustomersFromStartAtEnd: retainedFromStart,
+      softwareConfig: {
+        industryPreset: "software_tech",
+        monetizationModel: "subscription_seat_based",
+        revenueComponents: [
+          {
+            componentType: "platform_subscription",
+            label: "Base platform fee",
+            pricingMetric: "workspace",
+          },
+          {
+            componentType: "seat_subscription",
+            label: "Seat pricing",
+            pricingMetric: "seat",
+          },
+        ],
+        goToMarketMotion: "sales_led",
+      },
     };
 
     const evaluation = evaluateKpis(inputs);

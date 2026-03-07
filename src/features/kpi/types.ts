@@ -1,12 +1,20 @@
+import type {
+  SoftwareTechConfig,
+  SoftwareTechOfferType,
+} from "./software-tech";
+
 export type KpiPeriod = "monthly" | "quarterly" | "yearly";
 
 export type BusinessModel = "subscription" | "transactional" | "hybrid";
-export type OfferType =
+
+export type LegacyOfferType =
   | "subscription"
   | "one_time"
   | "installment"
   | "usage_based"
   | "service_retainer";
+
+export type OfferType = LegacyOfferType | SoftwareTechOfferType;
 
 export type CalculationVersion =
   | "kpi-v1-legacy-model"
@@ -29,7 +37,7 @@ export type KPIInput = {
 export type SubscriptionOfferInput = {
   offerId: string;
   offerName: string;
-  offerType: "subscription";
+  offerType: "subscription" | "software_subscription";
   analysisPeriod: KpiPeriod;
   revenuePerPeriod: number;
   grossMargin: number;
@@ -38,9 +46,20 @@ export type SubscriptionOfferInput = {
   activeCustomersStart: number;
   churnedCustomersPerPeriod?: number;
   retainedCustomersFromStartAtEnd?: number;
+  softwareConfig?: SoftwareTechConfig;
 };
 
-export type OfferInput = SubscriptionOfferInput;
+export type UnsupportedSoftwareTechOfferInput = {
+  offerId: string;
+  offerName: string;
+  offerType: Exclude<SoftwareTechOfferType, "software_subscription">;
+  analysisPeriod: KpiPeriod;
+  softwareConfig: SoftwareTechConfig;
+};
+
+export type OfferInput =
+  | SubscriptionOfferInput
+  | UnsupportedSoftwareTechOfferInput;
 export type AnyKpiInput = KPIInput | OfferInput;
 
 export type KPIResult = {
