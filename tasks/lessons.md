@@ -10,3 +10,5 @@
 - Be careful with inline SVG `<title>` nodes in client-rendered charts. Browser normalization can produce hydration mismatches, so prefer deterministic labels or aria attributes instead.
 - When a screen has multiple primary surfaces, add an explicit top-level view selector instead of letting sections compete in one layout. It scales better when more sections get added later.
 - If a hero chart is supposed to guide decisions, wire it to the live form state and shared business math. Static interpolations break trust as soon as the inputs change.
+- In a near-black UI, form controls need explicit chrome. Subtle border-only styling is not enough for inputs and selects; give them a defined surface, width, and custom select treatment so they do not read like plain text.
+- Do not use broad block-level `<label>` wrappers as generic field containers in dense interactive layouts. They can create oversized click targets and interfere with nearby buttons and custom controls.

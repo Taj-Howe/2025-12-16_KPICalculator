@@ -112,7 +112,7 @@
 - [x] Add a minimal hero graph that visualizes projected growth / steady-state upside.
 - [x] Add a top-level workspace selector so the page can switch between Offer Inputs and Reports.
 - [x] Make the hero graph use live offer inputs and add a selector for revenue, profit, and customer views.
-- [ ] Fix the calculator field primitives so inputs and selects render as explicit styled controls in the new dark UI.
+- [x] Fix the calculator field primitives so inputs and selects render as explicit styled controls in the new dark UI.
 - [ ] Group KPI outputs into unit economics, steady-state ceiling, and next-year projection cards.
 - [ ] Redesign the reports/trends area to match the new visual system.
 - [ ] Run mobile, lint, test, and build verification before merging.
@@ -123,6 +123,7 @@
 - Added a new hero section and projection chart that can render current, projected, and ceiling revenue context from the existing evaluation model.
 - Replaced the static hero interpolation with a live subscription forecast that updates directly from the current form inputs and can switch between revenue, profit, and customer views.
 - Extracted shared subscription forecast math so the chart and evaluator use the same projection logic instead of drifting apart.
+- Strengthened the calculator field primitives so inputs and selects render as visible styled controls instead of blending into the black page background.
 - Verified the phase with `npm test`, `npm run lint`, and `npm run build`.
 
 ## Component Build Plan

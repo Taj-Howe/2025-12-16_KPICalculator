@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
 import { parsePercentInput, percentInputValue, percentText } from "./percent";
@@ -79,6 +80,51 @@ const ChoiceCard = ({
   );
 };
 
+const FieldBlock = ({
+  label,
+  helper,
+  children,
+}: {
+  label: string;
+  helper?: ReactNode;
+  children: ReactNode;
+}) => {
+  return (
+    <div className="field-block">
+      <span className="text-[13px] font-medium tracking-[0.01em] text-white/82">
+        {label}
+      </span>
+      {children}
+      {helper ? <span className="text-xs text-white/54">{helper}</span> : null}
+    </div>
+  );
+};
+
+const SelectField = ({
+  name,
+  value,
+  onChange,
+  children,
+}: {
+  name: string;
+  value: string;
+  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  children: ReactNode;
+}) => {
+  return (
+    <span className="select-shell">
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="input-shell px-3 py-2.5 text-base sm:text-sm"
+      >
+        {children}
+      </select>
+    </span>
+  );
+};
+
 const KpiInputPanel = ({
   value,
   onChange,
@@ -114,13 +160,11 @@ const KpiInputPanel = ({
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
   const displayInt = (val?: number) =>
     val == null ? "-" : intFormatter.format(val);
-  const fieldClass = "input-shell rounded-[16px] px-3 py-2";
+  const fieldClass = "input-shell px-3 py-2.5 text-base sm:text-sm";
   const panelClass = "panel-subtle rounded-[22px] p-4";
-  const labelClass = "text-[13px] font-medium tracking-[0.01em] text-white/82";
-  const helperClass = "text-xs text-white/54";
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
     const parseValue = () => {
@@ -221,7 +265,7 @@ const KpiInputPanel = ({
       ? "Gross margin cannot exceed 100%."
       : null;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (grossMarginError) {
       return;
@@ -256,8 +300,7 @@ const KpiInputPanel = ({
 
       <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Offer name</span>
+          <FieldBlock label="Offer name">
             <input
               type="text"
               name="offerName"
@@ -265,10 +308,12 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-          </label>
+          </FieldBlock>
 
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Offer ID</span>
+          <FieldBlock
+            label="Offer ID"
+            helper="Stable key for this offer in saved reports."
+          >
             <input
               type="text"
               name="offerId"
@@ -276,19 +321,14 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Stable key for this offer in saved reports.
-            </span>
-          </label>
+          </FieldBlock>
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span className={labelClass}>Offer type</span>
-          <select
+        <FieldBlock label="Offer type">
+          <SelectField
             name="offerType"
             value={value.offerType}
             onChange={handleChange}
-            className={fieldClass}
           >
             {offerTypeOptions.map((option) => (
               <option key={option.value} value={option.value} disabled={!option.enabled}>
@@ -296,22 +336,20 @@ const KpiInputPanel = ({
                 {!option.enabled ? " (coming next)" : ""}
               </option>
             ))}
-          </select>
-        </label>
+          </SelectField>
+        </FieldBlock>
 
-        <label className="flex flex-col gap-1.5">
-          <span className={labelClass}>Analysis period</span>
-          <select
+        <FieldBlock label="Analysis period">
+          <SelectField
             name="analysisPeriod"
             value={value.analysisPeriod}
             onChange={handleChange}
-            className={fieldClass}
           >
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>
-          </select>
-        </label>
+          </SelectField>
+        </FieldBlock>
 
         <div className={`${panelClass} text-sm text-white/74`}>
           <p className="font-medium">Start With Four Core Levers</p>
@@ -345,10 +383,10 @@ const KpiInputPanel = ({
         </div>
 
         {calculatorMode === "business_metrics" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>
-              Current Revenue Run Rate (per {periodLabel})
-            </span>
+          <FieldBlock
+            label={`Current Revenue Run Rate (per ${periodLabel})`}
+            helper={`Formatted: ${displayMoney(value.revenuePerPeriod)}`}
+          >
             <input
               type="number"
               name="revenuePerPeriod"
@@ -356,15 +394,18 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Formatted: {displayMoney(value.revenuePerPeriod)}
-            </span>
-          </label>
+          </FieldBlock>
         ) : (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>
-              Subscription price / ARPC (per {periodLabel})
-            </span>
+          <FieldBlock
+            label={`Subscription price / ARPC (per ${periodLabel})`}
+            helper={
+              <>
+                <span>Example: enter 3000 for one $3,000/month subscription.</span>
+                <br />
+                <span>Formatted: {displayMoney(value.directArpc)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="directArpc"
@@ -372,18 +413,15 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Example: enter 3000 for one $3,000/month subscription.
-            </span>
-            <span className={helperClass}>
-              Formatted: {displayMoney(value.directArpc)}
-            </span>
-          </label>
+          </FieldBlock>
         )}
 
         {numericFields.map((field) => (
-          <label key={field.name} className="flex flex-col gap-1.5">
-            <span className={labelClass}>{field.label}</span>
+          <FieldBlock
+            key={field.name}
+            label={field.label}
+            helper={`Formatted: ${field.formatted}`}
+          >
             <input
               type="number"
               name={field.name}
@@ -392,13 +430,23 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>Formatted: {field.formatted}</span>
-          </label>
+          </FieldBlock>
         ))}
 
         {showActiveCustomersStart && (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Starting Customer Base</span>
+          <FieldBlock
+            label="Starting Customer Base"
+            helper={
+              <>
+                <span>
+                  Required for cohort-count churn and for deriving ARPC from total
+                  revenue.
+                </span>
+                <br />
+                <span>Formatted: {displayInt(value.activeCustomersStart)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="activeCustomersStart"
@@ -406,14 +454,7 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Required for cohort-count churn and for deriving ARPC from total
-              revenue.
-            </span>
-            <span className={helperClass}>
-              Formatted: {displayInt(value.activeCustomersStart)}
-            </span>
-          </label>
+          </FieldBlock>
         )}
 
         <div className={panelClass}>
@@ -439,8 +480,16 @@ const KpiInputPanel = ({
         </div>
 
         {grossProfitInputMode === "margin" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Gross Margin (%)</span>
+          <FieldBlock
+            label="Gross Margin (%)"
+            helper={
+              <>
+                <span>Before acquisition cost. Example: 70 = 70%.</span>
+                <br />
+                <span>Formatted: {percentText(value.grossMargin)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="grossMargin"
@@ -449,22 +498,27 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Before acquisition cost. Example: 70 = 70%.
-            </span>
-            <span className={helperClass}>
-              Formatted: {percentText(value.grossMargin)}
-            </span>
             {grossMarginError && (
               <span className="text-sm text-white/66">{grossMarginError}</span>
             )}
-          </label>
+          </FieldBlock>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-1">
-              <span className={labelClass}>
-                Delivery cost per active customer (per {periodLabel})
-              </span>
+            <FieldBlock
+              label={`Delivery cost per active customer (per ${periodLabel})`}
+              helper={
+                <>
+                  <span>
+                    Example: monthly AI token cost, fulfillment, or support cost per
+                    active subscription.
+                  </span>
+                  <br />
+                  <span>
+                    Formatted: {displayMoney(value.deliveryCostPerCustomerPerPeriod)}
+                  </span>
+                </>
+              }
+            >
               <input
                 type="number"
                 name="deliveryCostPerCustomerPerPeriod"
@@ -472,19 +526,21 @@ const KpiInputPanel = ({
                 onChange={handleChange}
                 className={fieldClass}
               />
-              <span className={helperClass}>
-                Example: monthly AI token cost, fulfillment, or support cost per
-                active subscription.
-              </span>
-              <span className={helperClass}>
-                Formatted: {displayMoney(value.deliveryCostPerCustomerPerPeriod)}
-              </span>
-            </label>
+            </FieldBlock>
 
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>
-                Fixed delivery cost (optional, per {periodLabel})
-              </span>
+            <FieldBlock
+              label={`Fixed delivery cost (optional, per ${periodLabel})`}
+              helper={
+                <>
+                  <span>
+                    Shared infrastructure or software cost allocated across active
+                    customers.
+                  </span>
+                  <br />
+                  <span>Formatted: {displayMoney(value.fixedDeliveryCostPerPeriod)}</span>
+                </>
+              }
+            >
               <input
                 type="number"
                 name="fixedDeliveryCostPerPeriod"
@@ -492,22 +548,15 @@ const KpiInputPanel = ({
                 onChange={handleChange}
                 className={fieldClass}
               />
-              <span className={helperClass}>
-                Shared infrastructure or software cost allocated across active
-                customers.
-              </span>
-              <span className={helperClass}>
-                Formatted: {displayMoney(value.fixedDeliveryCostPerPeriod)}
-              </span>
-            </label>
+            </FieldBlock>
           </div>
         )}
 
         {calculatorMode === "business_metrics" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>
-              Customer Acquisition Spend (per {periodLabel})
-            </span>
+          <FieldBlock
+            label={`Customer Acquisition Spend (per ${periodLabel})`}
+            helper={`Formatted: ${displayMoney(value.marketingSpendPerPeriod)}`}
+          >
             <input
               type="number"
               name="marketingSpendPerPeriod"
@@ -515,13 +564,21 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Formatted: {displayMoney(value.marketingSpendPerPeriod)}
-            </span>
-          </label>
+          </FieldBlock>
         ) : (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Direct CAC</span>
+          <FieldBlock
+            label="Direct CAC"
+            helper={
+              <>
+                <span>
+                  Use this if you already know customer acquisition cost and do not
+                  want to back it out from spend.
+                </span>
+                <br />
+                <span>Formatted: {displayMoney(value.directCac)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="directCac"
@@ -529,14 +586,7 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Use this if you already know customer acquisition cost and do not
-              want to back it out from spend.
-            </span>
-            <span className={helperClass}>
-              Formatted: {displayMoney(value.directCac)}
-            </span>
-          </label>
+          </FieldBlock>
         )}
 
         {calculatorMode === "business_metrics" && (
@@ -562,8 +612,16 @@ const KpiInputPanel = ({
         )}
 
         {calculatorMode === "unit_economics" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Churn rate per {periodLabel} (%)</span>
+          <FieldBlock
+            label={`Churn rate per ${periodLabel} (%)`}
+            helper={
+              <>
+                <span>Example: enter 10 for a 10% monthly churn rate.</span>
+                <br />
+                <span>Formatted: {percentText(value.directChurnRatePerPeriod)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="directChurnRatePerPeriod"
@@ -572,16 +630,21 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Example: enter 10 for a 10% monthly churn rate.
-            </span>
-            <span className={helperClass}>
-              Formatted: {percentText(value.directChurnRatePerPeriod)}
-            </span>
-          </label>
+          </FieldBlock>
         ) : churnInputMode === "retained" ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Customers from start still active at end</span>
+          <FieldBlock
+            label="Customers from start still active at end"
+            helper={
+              <>
+                <span>
+                  Cohort retention only for the customers you had at the start of
+                  the period.
+                </span>
+                <br />
+                <span>Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="retainedCustomersFromStartAtEnd"
@@ -589,17 +652,21 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Cohort retention only for the customers you had at the start of
-              the period.
-            </span>
-            <span className={helperClass}>
-              Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}
-            </span>
-          </label>
+          </FieldBlock>
         ) : (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Churned customers per period</span>
+          <FieldBlock
+            label="Churned customers per period"
+            helper={
+              <>
+                <span>
+                  Use this if you track churn directly instead of retained cohort
+                  counts.
+                </span>
+                <br />
+                <span>Formatted: {displayInt(value.churnedCustomersPerPeriod)}</span>
+              </>
+            }
+          >
             <input
               type="number"
               name="churnedCustomersPerPeriod"
@@ -607,14 +674,7 @@ const KpiInputPanel = ({
               onChange={handleChange}
               className={fieldClass}
             />
-            <span className={helperClass}>
-              Use this if you track churn directly instead of retained cohort
-              counts.
-            </span>
-            <span className={helperClass}>
-              Formatted: {displayInt(value.churnedCustomersPerPeriod)}
-            </span>
-          </label>
+          </FieldBlock>
         )}
 
         <p className="text-sm text-white/58">
