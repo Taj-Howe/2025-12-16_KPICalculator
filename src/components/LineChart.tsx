@@ -25,7 +25,7 @@ const margins = {
   left: 44,
 };
 
-const palette = ["#2563eb", "#7c3aed", "#059669", "#f59e0b"];
+const palette = ["rgba(255,255,255,0.92)", "rgba(255,255,255,0.38)"];
 
 const LineChart = ({
   labels,
@@ -52,7 +52,7 @@ const LineChart = ({
           y={height / 2}
           dominantBaseline="middle"
           textAnchor="middle"
-          fill="#6b7280"
+          fill="rgba(255,255,255,0.38)"
           fontSize="12"
         >
           No data
@@ -85,7 +85,7 @@ const LineChart = ({
         y1={height - margins.bottom}
         x2={width - margins.right}
         y2={height - margins.bottom}
-        stroke="#d1d5db"
+        stroke="rgba(255,255,255,0.18)"
         strokeWidth={1}
       />
       <line
@@ -93,7 +93,7 @@ const LineChart = ({
         y1={margins.top}
         x2={margins.left}
         y2={height - margins.bottom}
-        stroke="#d1d5db"
+        stroke="rgba(255,255,255,0.18)"
         strokeWidth={1}
       />
       {yLabel && (
@@ -102,7 +102,7 @@ const LineChart = ({
           y={margins.top}
           textAnchor="end"
           fontSize="10"
-          fill="#6b7280"
+          fill="rgba(255,255,255,0.38)"
         >
           {yLabel}
         </text>
@@ -153,7 +153,7 @@ const LineChart = ({
                   cy={y}
                   r={4}
                   fill={color}
-                  stroke="#fff"
+                  stroke="rgba(5,5,5,0.95)"
                   strokeWidth={1}
                 >
                   <title>{title}</title>
@@ -172,7 +172,7 @@ const LineChart = ({
           return (
             <g key={`legend-${seriesKey}`} transform={`translate(${idx * 120}, 0)`}>
               <rect x={0} y={-8} width={12} height={12} fill={color} />
-              <text x={16} y={2} fontSize="10" fill="#374151">
+              <text x={16} y={2} fontSize="10" fill="rgba(255,255,255,0.58)">
                 {s.name}
               </text>
             </g>
