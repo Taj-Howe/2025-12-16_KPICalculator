@@ -16,8 +16,11 @@ export type ReportSeries = {
   ltgpPerCustomer: (number | null)[];
   ltgpToCacRatio: (number | null)[];
   cacPaybackPeriods: (number | null)[];
-  maxRevenuePerYear: (number | null)[];
-  maxProfitPerYear: (number | null)[];
+  hypotheticalMaxCustomers: (number | null)[];
+  hypotheticalMaxRevenuePerYear: (number | null)[];
+  hypotheticalMaxProfitPerYear: (number | null)[];
+  projectedRevenueNextYear: (number | null)[];
+  projectedProfitNextYear: (number | null)[];
 };
 
 export type AppHeaderProps = {

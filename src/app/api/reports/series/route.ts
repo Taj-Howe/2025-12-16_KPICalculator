@@ -193,8 +193,11 @@ export const GET = async (request: Request) => {
     ltgpPerCustomer: [] as (number | null)[],
     ltgpToCacRatio: [] as (number | null)[],
     cacPaybackPeriods: [] as (number | null)[],
-    maxRevenuePerYear: [] as (number | null)[],
-    maxProfitPerYear: [] as (number | null)[],
+    hypotheticalMaxCustomers: [] as (number | null)[],
+    hypotheticalMaxRevenuePerYear: [] as (number | null)[],
+    hypotheticalMaxProfitPerYear: [] as (number | null)[],
+    projectedRevenueNextYear: [] as (number | null)[],
+    projectedProfitNextYear: [] as (number | null)[],
   };
 
   alignedLabels.forEach((label) => {
@@ -209,8 +212,11 @@ export const GET = async (request: Request) => {
       series.ltgpPerCustomer.push(null);
       series.ltgpToCacRatio.push(null);
       series.cacPaybackPeriods.push(null);
-      series.maxRevenuePerYear.push(null);
-      series.maxProfitPerYear.push(null);
+      series.hypotheticalMaxCustomers.push(null);
+      series.hypotheticalMaxRevenuePerYear.push(null);
+      series.hypotheticalMaxProfitPerYear.push(null);
+      series.projectedRevenueNextYear.push(null);
+      series.projectedProfitNextYear.push(null);
       return;
     }
 
@@ -226,8 +232,23 @@ export const GET = async (request: Request) => {
     series.ltgpPerCustomer.push(result.ltgpPerCustomer ?? null);
     series.ltgpToCacRatio.push(result.ltgpToCacRatio ?? null);
     series.cacPaybackPeriods.push(result.cacPaybackPeriods ?? null);
-    series.maxRevenuePerYear.push(result.hypotheticalMaxRevenuePerYear ?? null);
-    series.maxProfitPerYear.push(result.hypotheticalMaxProfitPerYear ?? null);
+    series.hypotheticalMaxCustomers.push(result.hypotheticalMaxCustomers ?? null);
+    series.hypotheticalMaxRevenuePerYear.push(
+      result.hypotheticalMaxRevenuePerYear ?? null,
+    );
+    series.hypotheticalMaxProfitPerYear.push(
+      result.hypotheticalMaxProfitPerYear ?? null,
+    );
+    series.projectedRevenueNextYear.push(
+      result.projectedRevenueNextYear ??
+        result.hypotheticalMaxRevenuePerYear ??
+        null,
+    );
+    series.projectedProfitNextYear.push(
+      result.projectedProfitNextYear ??
+        result.hypotheticalMaxProfitPerYear ??
+        null,
+    );
   });
 
   return NextResponse.json({ series }, { status: 200 });

@@ -1,5 +1,4 @@
 import {
-  annualizedProfit,
   annualizedRevenue,
   arpc,
   averageActiveCustomers,
@@ -9,6 +8,7 @@ import {
   ltgpPerCustomer,
   ltvSubscription,
   ratioLtgpToCac,
+  periodsPerYear,
 } from "./formulas";
 import type { KPIResult, OfferInput, SubscriptionOfferInput } from "./types";
 
@@ -23,6 +23,77 @@ export interface OfferEvaluator<TInput extends OfferInput> {
   offerType: TInput["offerType"];
   evaluate: (input: TInput) => OfferEvaluation;
 }
+
+type ProjectionTotals = {
+  revenue: number | null;
+  profit: number | null;
+};
+
+const projectSubscriptionYear = ({
+  period,
+  activeCustomersStart,
+  newCustomersPerPeriod,
+  churnRatePerPeriod,
+  arpcValue,
+  derivedMarketingSpend,
+  grossProfitInputMode,
+  grossMargin,
+  deliveryCostPerCustomerPerPeriod,
+  fixedDeliveryCostPerPeriod,
+}: {
+  period: SubscriptionOfferInput["analysisPeriod"];
+  activeCustomersStart?: number;
+  newCustomersPerPeriod: number;
+  churnRatePerPeriod: number | null;
+  arpcValue: number | null;
+  derivedMarketingSpend: number;
+  grossProfitInputMode: SubscriptionOfferInput["grossProfitInputMode"];
+  grossMargin?: number;
+  deliveryCostPerCustomerPerPeriod?: number;
+  fixedDeliveryCostPerPeriod?: number;
+}): ProjectionTotals => {
+  if (arpcValue == null || churnRatePerPeriod == null) {
+    return { revenue: null, profit: null };
+  }
+
+  const totalPeriods = periodsPerYear(period);
+  let activeCustomers = activeCustomersStart ?? 0;
+  let projectedRevenue = 0;
+  let projectedProfit = 0;
+
+  for (let periodIndex = 0; periodIndex < totalPeriods; periodIndex += 1) {
+    const churnedCustomers = activeCustomers * churnRatePerPeriod;
+    const endCustomers = activeCustomers + newCustomersPerPeriod - churnedCustomers;
+    const avgCustomers = averageActiveCustomers(activeCustomers, endCustomers);
+    const periodRevenue = arpcValue * avgCustomers;
+
+    projectedRevenue += periodRevenue;
+
+    const periodGrossProfit =
+      grossProfitInputMode === "costs"
+        ? periodRevenue -
+          (deliveryCostPerCustomerPerPeriod ?? 0) * avgCustomers -
+          (fixedDeliveryCostPerPeriod ?? 0)
+        : grossMargin != null
+          ? periodRevenue * grossMargin
+          : null;
+
+    if (periodGrossProfit == null) {
+      return {
+        revenue: projectedRevenue,
+        profit: null,
+      };
+    }
+
+    projectedProfit += periodGrossProfit - derivedMarketingSpend;
+    activeCustomers = endCustomers;
+  }
+
+  return {
+    revenue: projectedRevenue,
+    profit: projectedProfit,
+  };
+};
 
 export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> = {
   offerType: "subscription",
@@ -175,6 +246,51 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
           : null;
     const ltgpValue = ltgpPerCustomer(ltv);
     const ratio = ratioLtgpToCac(ltgpValue, cacValue);
+    const projectedAnnualTotals = projectSubscriptionYear({
+      period: input.analysisPeriod,
+      activeCustomersStart: input.activeCustomersStart,
+      newCustomersPerPeriod: input.newCustomersPerPeriod,
+      churnRatePerPeriod: churnValue,
+      arpcValue,
+      derivedMarketingSpend,
+      grossProfitInputMode,
+      grossMargin: effectiveGrossMargin ?? undefined,
+      deliveryCostPerCustomerPerPeriod: input.deliveryCostPerCustomerPerPeriod,
+      fixedDeliveryCostPerPeriod: input.fixedDeliveryCostPerPeriod,
+    });
+
+    if (
+      projectedAnnualTotals.revenue != null ||
+      projectedAnnualTotals.profit != null
+    ) {
+      assumptionsApplied.push(
+        "Projected annual revenue and profit from direct price, churn rate, and sales velocity.",
+      );
+      if (input.activeCustomersStart == null) {
+        assumptionsApplied.push(
+          "Assumed zero starting active customers for annual projection.",
+        );
+      }
+    }
+
+    const hypotheticalMaxCustomers =
+      churnValue != null && churnValue > 0
+        ? input.newCustomersPerPeriod / churnValue
+        : null;
+    const hypotheticalMaxRevenuePerPeriod =
+      hypotheticalMaxCustomers != null && arpcValue != null
+        ? hypotheticalMaxCustomers * arpcValue
+        : null;
+    const hypotheticalMaxProfitPerPeriod =
+      hypotheticalMaxCustomers != null && grossProfitPerCustomer != null
+        ? hypotheticalMaxCustomers * grossProfitPerCustomer
+        : null;
+
+    if (hypotheticalMaxCustomers != null) {
+      assumptionsApplied.push(
+        "Derived steady-state max customers as sales velocity divided by churn.",
+      );
+    }
 
     const results: KPIResult = {
       cac: cacValue,
@@ -185,19 +301,23 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       ltgpPerCustomer: ltgpValue,
       ltgpToCacRatio: ratio,
       cacPaybackPeriods,
+      hypotheticalMaxCustomers,
       hypotheticalMaxRevenuePerYear:
-        input.revenuePerPeriod != null
-          ? annualizedRevenue(input.revenuePerPeriod, input.analysisPeriod)
-          : null,
-      hypotheticalMaxProfitPerYear:
-        input.revenuePerPeriod != null
-          ? annualizedProfit(
-              input.revenuePerPeriod,
-              effectiveGrossMargin ?? 0,
-              derivedMarketingSpend,
+        hypotheticalMaxRevenuePerPeriod != null
+          ? annualizedRevenue(
+              hypotheticalMaxRevenuePerPeriod,
               input.analysisPeriod,
             )
           : null,
+      hypotheticalMaxProfitPerYear:
+        hypotheticalMaxProfitPerPeriod != null
+          ? annualizedRevenue(
+              hypotheticalMaxProfitPerPeriod,
+              input.analysisPeriod,
+            )
+          : null,
+      projectedRevenueNextYear: projectedAnnualTotals.revenue,
+      projectedProfitNextYear: projectedAnnualTotals.profit,
       car: input.newCustomersPerPeriod,
     };
 

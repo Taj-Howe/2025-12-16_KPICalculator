@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { OfferInput, KPIResult } from "@/features/kpi/types";
 import type { KpiInputPanelProps } from "./types";
+import { parsePercentInput, percentInputValue, percentText } from "./percent";
 
 const offerTypeOptions = [
   { value: "subscription", label: "Subscription Offer", enabled: true },
@@ -12,10 +13,7 @@ const offerTypeOptions = [
   { value: "service_retainer", label: "Service Retainer", enabled: false },
 ] as const;
 
-type NumericFieldName =
-  | "revenuePerPeriod"
-  | "newCustomersPerPeriod"
-  | "activeCustomersStart";
+type NumericFieldName = "newCustomersPerPeriod";
 type NumericField = {
   label: string;
   name: NumericFieldName;
@@ -32,16 +30,13 @@ const KpiInputPanel = ({
   warnings,
   children,
 }: KpiInputPanelProps) => {
+  const calculatorMode = value.calculatorMode ?? "business_metrics";
   const churnInputMode =
     value.churnedCustomersPerPeriod != null && value.retainedCustomersFromStartAtEnd == null
       ? "churned"
       : "retained";
-  const revenueInputMode = value.revenueInputMode ?? "total_revenue";
   const grossProfitInputMode = value.grossProfitInputMode ?? "margin";
-  const cacInputMode = value.cacInputMode ?? "derived";
-  const retentionInputMode = value.retentionInputMode ?? "counts";
-  const showActiveCustomersStart =
-    retentionInputMode === "counts" || revenueInputMode === "total_revenue";
+  const showActiveCustomersStart = calculatorMode === "business_metrics";
 
   const periodLabel = `${value.analysisPeriod} period`;
 
@@ -57,10 +52,6 @@ const KpiInputPanel = ({
     [],
   );
 
-  const percentInputValue = (val?: number) =>
-    val == null ? "" : Number((val * 100).toFixed(2));
-  const percentText = (val?: number) =>
-    val == null ? "-" : `${Number((val * 100).toFixed(2))}%`;
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
   const displayInt = (val?: number) => (val == null ? "-" : intFormatter.format(val));
 
@@ -74,7 +65,8 @@ const KpiInputPanel = ({
         name === "offerType" ||
         name === "offerName" ||
         name === "offerId" ||
-        name === "revenueInputMode"
+        name === "revenueInputMode" ||
+        name === "calculatorMode"
       ) {
         return nextValue;
       }
@@ -85,8 +77,8 @@ const KpiInputPanel = ({
       if (Number.isNaN(numeric)) {
         return undefined;
       }
-      if (name === "grossMargin") {
-        return numeric / 100;
+      if (name === "grossMargin" || name === "directChurnRatePerPeriod") {
+        return parsePercentInput(nextValue);
       }
       return numeric;
     };
@@ -97,12 +89,24 @@ const KpiInputPanel = ({
     });
   };
 
-  const setRevenueMode = (mode: "total_revenue" | "direct_arpc") => {
+  const setCalculatorMode = (mode: "unit_economics" | "business_metrics") => {
+    if (mode === "unit_economics") {
+      onChange({
+        ...value,
+        calculatorMode: mode,
+        revenueInputMode: "direct_arpc",
+        cacInputMode: "direct",
+        retentionInputMode: "rate",
+      });
+      return;
+    }
+
     onChange({
       ...value,
-      revenueInputMode: mode,
-      revenuePerPeriod: mode === "total_revenue" ? value.revenuePerPeriod : undefined,
-      directArpc: mode === "direct_arpc" ? value.directArpc : undefined,
+      calculatorMode: mode,
+      revenueInputMode: "total_revenue",
+      cacInputMode: "derived",
+      retentionInputMode: "counts",
     });
   };
 
@@ -121,19 +125,6 @@ const KpiInputPanel = ({
     });
   };
 
-  const setRetentionMode = (mode: "counts" | "rate") => {
-    onChange({
-      ...value,
-      retentionInputMode: mode,
-      directChurnRatePerPeriod:
-        mode === "rate" ? value.directChurnRatePerPeriod : undefined,
-      churnedCustomersPerPeriod:
-        mode === "counts" ? value.churnedCustomersPerPeriod : undefined,
-      retainedCustomersFromStartAtEnd:
-        mode === "counts" ? value.retainedCustomersFromStartAtEnd : undefined,
-    });
-  };
-
   const setGrossProfitMode = (mode: "margin" | "costs") => {
     onChange({
       ...value,
@@ -143,16 +134,6 @@ const KpiInputPanel = ({
         mode === "costs" ? value.deliveryCostPerCustomerPerPeriod : undefined,
       fixedDeliveryCostPerPeriod:
         mode === "costs" ? value.fixedDeliveryCostPerPeriod : undefined,
-    });
-  };
-
-  const setCacMode = (mode: "derived" | "direct") => {
-    onChange({
-      ...value,
-      cacInputMode: mode,
-      marketingSpendPerPeriod:
-        mode === "derived" ? value.marketingSpendPerPeriod : undefined,
-      directCac: mode === "direct" ? value.directCac : undefined,
     });
   };
 
@@ -174,18 +155,13 @@ const KpiInputPanel = ({
   const numericFields: NumericField[] = [
     {
       label:
-        retentionInputMode === "rate"
+        calculatorMode === "unit_economics"
           ? `Sales Velocity / New Customers (per ${periodLabel})`
           : `New Customers (per ${periodLabel})`,
       name: "newCustomersPerPeriod" as const,
       formatted: displayInt(value.newCustomersPerPeriod),
     },
-    {
-      label: "Active Customers Start",
-      name: "activeCustomersStart" as const,
-      formatted: displayInt(value.activeCustomersStart),
-    },
-  ].filter((field) => field.name !== "activeCustomersStart");
+  ];
 
   return (
     <section className="rounded border border-white/30 bg-black p-4 text-white">
@@ -259,35 +235,35 @@ const KpiInputPanel = ({
         </label>
 
         <div className="rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to input revenue?</p>
+          <p className="font-medium">Calculator mode</p>
           <p className="mt-1 text-sm text-white/70">
-            Use total revenue if you want company-level scaling. Use direct subscription price / ARPC for pure unit economics.
+            `Unit economics` is for modeling one offer from price, churn, CAC, and delivery cost. `Business metrics` is for modeling the business from revenue, spend, and customer counts.
           </p>
           <div className="mt-3 space-y-2">
             <label className="flex items-center gap-2">
               <input
                 type="radio"
-                name="revenueInputMode"
-                value="total_revenue"
-                checked={revenueInputMode === "total_revenue"}
-                onChange={() => setRevenueMode("total_revenue")}
+                name="calculatorMode"
+                value="unit_economics"
+                checked={calculatorMode === "unit_economics"}
+                onChange={() => setCalculatorMode("unit_economics")}
               />
-              <span>Use total revenue</span>
+              <span>Unit economics</span>
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="radio"
-                name="revenueInputMode"
-                value="direct_arpc"
-                checked={revenueInputMode === "direct_arpc"}
-                onChange={() => setRevenueMode("direct_arpc")}
+                name="calculatorMode"
+                value="business_metrics"
+                checked={calculatorMode === "business_metrics"}
+                onChange={() => setCalculatorMode("business_metrics")}
               />
-              <span>Use subscription price / ARPC directly</span>
+              <span>Business metrics</span>
             </label>
           </div>
         </div>
 
-        {revenueInputMode === "total_revenue" ? (
+        {calculatorMode === "business_metrics" ? (
           <label className="flex flex-col gap-1">
             Revenue (per {periodLabel})
             <input
@@ -321,9 +297,9 @@ const KpiInputPanel = ({
         )}
 
         <div className="rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to model gross profit?</p>
+          <p className="font-medium">Gross profit input</p>
           <p className="mt-1 text-sm text-white/70">
-            Choose margin if you know the overall gross margin. Choose delivery costs if you know the per-customer cost to serve the subscription.
+            Use gross margin if you know the margin percentage. Use delivery costs if you know the cost to serve each subscription.
           </p>
           <div className="mt-3 space-y-2">
             <label className="flex items-center gap-2">
@@ -344,36 +320,7 @@ const KpiInputPanel = ({
                 checked={grossProfitInputMode === "costs"}
                 onChange={() => setGrossProfitMode("costs")}
               />
-              <span>Use delivery costs per customer</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to input CAC?</p>
-          <p className="mt-1 text-sm text-white/70">
-            Derive CAC from marketing spend and new customers, or enter CAC directly if you already know it.
-          </p>
-          <div className="mt-3 space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="cacInputMode"
-                value="derived"
-                checked={cacInputMode === "derived"}
-                onChange={() => setCacMode("derived")}
-              />
-              <span>Derive CAC from spend</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="cacInputMode"
-                value="direct"
-                checked={cacInputMode === "direct"}
-                onChange={() => setCacMode("direct")}
-              />
-              <span>Enter CAC directly</span>
+              <span>Use delivery costs</span>
             </label>
           </div>
         </div>
@@ -471,7 +418,7 @@ const KpiInputPanel = ({
           </div>
         )}
 
-        {cacInputMode === "derived" ? (
+        {calculatorMode === "business_metrics" ? (
           <label className="flex flex-col gap-1">
             Marketing Spend (per {periodLabel})
             <input
@@ -504,36 +451,7 @@ const KpiInputPanel = ({
           </label>
         )}
 
-        <div className="rounded border border-white/30 p-3">
-          <p className="font-medium">How do you want to model churn?</p>
-          <p className="mt-1 text-sm text-white/70">
-            Use direct churn rate if you know the percentage already. Use cohort counts if you track retained or churned customers directly.
-          </p>
-          <div className="mt-3 space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="retentionInputMode"
-                value="counts"
-                checked={retentionInputMode === "counts"}
-                onChange={() => setRetentionMode("counts")}
-              />
-              <span>Use cohort counts</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="retentionInputMode"
-                value="rate"
-                checked={retentionInputMode === "rate"}
-                onChange={() => setRetentionMode("rate")}
-              />
-              <span>Use churn rate directly</span>
-            </label>
-          </div>
-        </div>
-
-        {retentionInputMode === "counts" && (
+        {calculatorMode === "business_metrics" && (
           <div className="space-y-3 rounded border border-white/30 p-3">
             <p className="font-medium">How do you want to input churn counts?</p>
             <label className="flex items-center gap-2">
@@ -559,7 +477,7 @@ const KpiInputPanel = ({
           </div>
         )}
 
-        {retentionInputMode === "rate" ? (
+        {calculatorMode === "unit_economics" ? (
           <label className="flex flex-col gap-1">
             Churn rate per {periodLabel} (%)
             <input
@@ -687,8 +605,11 @@ const ResultsPanel = ({
     | "ltv"
     | "ltgpPerCustomer"
     | "ltgpToCacRatio"
+    | "hypotheticalMaxCustomers"
     | "hypotheticalMaxRevenuePerYear"
     | "hypotheticalMaxProfitPerYear"
+    | "projectedRevenueNextYear"
+    | "projectedProfitNextYear"
     | "car"
     | "cacPaybackPeriods";
 
@@ -704,10 +625,15 @@ const ResultsPanel = ({
       results.cacPaybackPeriods == null
         ? "-"
         : `${results.cacPaybackPeriods.toFixed(2)} periods`,
+    hypotheticalMaxCustomers: () => formatInt(results.hypotheticalMaxCustomers),
     hypotheticalMaxRevenuePerYear: () =>
       formatMoney(results.hypotheticalMaxRevenuePerYear),
     hypotheticalMaxProfitPerYear: () =>
       formatMoney(results.hypotheticalMaxProfitPerYear),
+    projectedRevenueNextYear: () =>
+      formatMoney(results.projectedRevenueNextYear),
+    projectedProfitNextYear: () =>
+      formatMoney(results.projectedProfitNextYear),
     car: () => `${formatInt(results.car)} per period`,
   };
 
@@ -720,9 +646,12 @@ const ResultsPanel = ({
     ltgpPerCustomer: "Lifetime gross profit per customer (LTGP)",
     ltgpToCacRatio: "LTGP:CAC",
     cacPaybackPeriods: "CAC payback (periods)",
+    hypotheticalMaxCustomers: "Hypothetical max customers",
     hypotheticalMaxRevenuePerYear: "Hypothetical max revenue per year",
     hypotheticalMaxProfitPerYear: "Hypothetical max profit per year",
-    car: "New customers per period",
+    projectedRevenueNextYear: "Projected revenue over next year",
+    projectedProfitNextYear: "Projected profit over next year",
+    car: "Sales velocity / new customers per period",
   };
 
   const orderedKeys: ResultKey[] = [
@@ -734,8 +663,11 @@ const ResultsPanel = ({
     "ltgpPerCustomer",
     "ltgpToCacRatio",
     "cacPaybackPeriods",
+    "hypotheticalMaxCustomers",
     "hypotheticalMaxRevenuePerYear",
     "hypotheticalMaxProfitPerYear",
+    "projectedRevenueNextYear",
+    "projectedProfitNextYear",
     "car",
   ];
 

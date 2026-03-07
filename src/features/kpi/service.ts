@@ -187,11 +187,22 @@ const evaluateLegacyKpis = (
     ltgpPerCustomer: modelMetrics.ltgpPerCustomer,
     ltgpToCacRatio: ratio,
     cacPaybackPeriods,
+    hypotheticalMaxCustomers: null,
     hypotheticalMaxRevenuePerYear: annualizedRevenue(
       parsed.revenuePerPeriod,
       parsed.period,
     ),
     hypotheticalMaxProfitPerYear: annualizedProfit(
+      parsed.revenuePerPeriod,
+      parsed.grossMargin,
+      parsed.marketingSpendPerPeriod,
+      parsed.period,
+    ),
+    projectedRevenueNextYear: annualizedRevenue(
+      parsed.revenuePerPeriod,
+      parsed.period,
+    ),
+    projectedProfitNextYear: annualizedProfit(
       parsed.revenuePerPeriod,
       parsed.grossMargin,
       parsed.marketingSpendPerPeriod,

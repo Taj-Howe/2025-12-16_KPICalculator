@@ -17,6 +17,7 @@ export type CacInputMode = "derived" | "direct";
 export type GrossProfitInputMode = "margin" | "costs";
 export type RetentionInputMode = "counts" | "rate";
 export type RevenueInputMode = "total_revenue" | "direct_arpc";
+export type CalculatorMode = "unit_economics" | "business_metrics";
 
 export type KPIInput = {
   period: KpiPeriod;
@@ -37,6 +38,7 @@ export type SubscriptionOfferInput = {
   offerName: string;
   offerType: "subscription";
   analysisPeriod: KpiPeriod;
+  calculatorMode?: CalculatorMode;
   revenueInputMode?: RevenueInputMode;
   revenuePerPeriod?: number;
   directArpc?: number;
@@ -67,8 +69,11 @@ export type KPIResult = {
   ltgpPerCustomer: number | null;
   ltgpToCacRatio: number | null;
   cacPaybackPeriods: number | null;
+  hypotheticalMaxCustomers: number | null;
   hypotheticalMaxRevenuePerYear: number | null;
   hypotheticalMaxProfitPerYear: number | null;
+  projectedRevenueNextYear: number | null;
+  projectedProfitNextYear: number | null;
   car: number | null;
 };
 

@@ -30,3 +30,38 @@
 
 ## Future Exploration
 - [ ] Figure out how to expose this as an API/integration surface so CRMs can plug in and generate reports automatically.
+- [ ] Make API/payment integration a one-click setup so the app can automatically analyze Stripe or another payments dashboard.
+- [ ] Redesign the UI with Radix Themes so it feels like a sophisticated modern fintech app in dark mode.
+- [ ] Add a beautiful minimal hero graph that visualizes projected growth in hypothetical max revenue.
+
+## Current Bug Fix
+- [x] Fix unit-economics churn rate percent entry so the input stores decimals correctly.
+- [x] Add regression coverage for percent parse/display helpers used by churn and margin fields.
+- [x] Verify with `npm test`, `npm run lint`, and targeted build/test coverage.
+
+## Review
+- Fixed the unit-economics churn input so percent-form values are stored as decimals instead of being multiplied again on re-render.
+- Added shared percent helpers for parsing and display to keep churn and gross-margin inputs consistent.
+- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
+
+## Current Projection Fix
+- [x] Use unit-economics inputs to project annual revenue/profit instead of returning `-`.
+- [x] Add regression tests for annual projection with direct ARPC, churn rate, and sales velocity.
+- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
+
+## Review
+- Unit-economics mode now projects annual revenue and profit from direct ARPC, churn rate, sales velocity, and optional starting customers.
+- The projection simulates each period in the analysis year instead of requiring `revenuePerPeriod`.
+- Verification completed with `npm test`, `npm run lint`, and `npm run build`.
+
+## Current Metric Split
+- [x] Split steady-state hypothetical-max metrics from 12-month projection metrics.
+- [x] Implement transcript-aligned hypothetical-max customers/revenue/profit formulas for subscription offers.
+- [x] Update UI, reports, and comparison views to use honest labels for projection vs steady-state outputs.
+- [x] Add regression coverage and verify with `npm test`, `npm run lint`, and `npm run build`.
+
+## Review
+- Subscription offers now report steady-state hypothetical max separately from next-year projected revenue/profit.
+- Added `hypotheticalMaxCustomers`, `projectedRevenueNextYear`, and `projectedProfitNextYear` to the shared KPI result envelope.
+- Updated result panels, report comparison, and trends/report series to surface the split cleanly while preserving legacy lock behavior.
+- Verification completed with `npm test`, `npm run lint`, and `npm run build`.

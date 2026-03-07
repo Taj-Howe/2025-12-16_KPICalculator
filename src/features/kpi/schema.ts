@@ -85,6 +85,7 @@ const subscriptionOfferSchemaBase = z.object({
   offerName: z.string().trim().min(1).max(120),
   offerType: z.literal("subscription"),
   analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+  calculatorMode: z.enum(["unit_economics", "business_metrics"]).optional(),
   revenueInputMode: z.enum(["total_revenue", "direct_arpc"]).optional(),
   revenuePerPeriod: z.number().nonnegative().optional(),
   directArpc: z.number().nonnegative().optional(),

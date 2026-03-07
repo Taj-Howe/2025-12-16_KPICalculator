@@ -23,8 +23,11 @@ const resultsSchema: z.ZodType<KPIResult> = z.object({
   ltgpPerCustomer: numberOrNull,
   ltgpToCacRatio: numberOrNull,
   cacPaybackPeriods: numberOrNull,
+  hypotheticalMaxCustomers: numberOrNull,
   hypotheticalMaxRevenuePerYear: numberOrNull,
   hypotheticalMaxProfitPerYear: numberOrNull,
+  projectedRevenueNextYear: numberOrNull,
+  projectedProfitNextYear: numberOrNull,
   car: numberOrNull,
 });
 

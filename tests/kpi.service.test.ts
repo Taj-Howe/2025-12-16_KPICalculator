@@ -231,6 +231,29 @@ test("subscription offer v2 supports direct churn rate and sales velocity", () =
   assert.equal(evaluation.results.cac, 2_000);
   assert.equal(evaluation.results.arpc, 2727.2727272727275);
   assert.equal(evaluation.results.ltv, 21818.18181818182);
+  assert.equal(evaluation.results.hypotheticalMaxCustomers, 30);
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxRevenuePerYear ?? 0) -
+        981_818.1818181818,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxProfitPerYear ?? 0) -
+        785_454.5454545455,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedRevenueNextYear ?? 0) - 609_986.2143583364,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedProfitNextYear ?? 0) - 415_988.9714866691,
+    ) < 1e-9,
+  );
   assert.ok(
     evaluation.assumptionsApplied.includes(
       "Used direct churn rate for subscription retention.",
@@ -266,9 +289,92 @@ test("subscription offer v2 supports direct price without a starting customer ba
   assert.equal(evaluation.results.cac, 1_200);
   assert.equal(evaluation.results.ltgpPerCustomer, 26_000);
   assert.equal(evaluation.results.cacPaybackPeriods, 0.46153846153846156);
-  assert.equal(evaluation.results.hypotheticalMaxRevenuePerYear, null);
-  assert.equal(evaluation.results.hypotheticalMaxProfitPerYear, null);
+  assert.equal(evaluation.results.hypotheticalMaxCustomers, 10);
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxRevenuePerYear ?? 0) - 360_000,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxProfitPerYear ?? 0) - 312_000,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedRevenueNextYear ?? 0) - 155_492.417897085,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedProfitNextYear ?? 0) - 120_360.095510807,
+    ) < 1e-9,
+  );
   assert.ok(
     evaluation.assumptionsApplied.includes("Used direct subscription price / ARPC."),
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Projected annual revenue and profit from direct price, churn rate, and sales velocity.",
+    ),
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Assumed zero starting active customers for annual projection.",
+    ),
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Derived steady-state max customers as sales velocity divided by churn.",
+    ),
+  );
+});
+
+test("subscription offer v2 separates steady-state max from next-year projection", () => {
+  const payload: SubscriptionOfferInput = {
+    offerId: "growth-subscription",
+    offerName: "Growth Subscription",
+    offerType: "subscription",
+    analysisPeriod: "monthly",
+    revenueInputMode: "direct_arpc",
+    directArpc: 3_000,
+    grossProfitInputMode: "margin",
+    grossMargin: 0.8,
+    cacInputMode: "derived",
+    marketingSpendPerPeriod: 6_000,
+    retentionInputMode: "rate",
+    directChurnRatePerPeriod: 0.1,
+    newCustomersPerPeriod: 3,
+    activeCustomersStart: 10,
+  };
+
+  const evaluation = evaluateKpis(payload);
+
+  assert.equal(evaluation.results.hypotheticalMaxCustomers, 30);
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxRevenuePerYear ?? 0) -
+        1_080_000,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.hypotheticalMaxProfitPerYear ?? 0) - 864_000,
+    ) < 1e-9,
+  );
+  assert.ok(
+    evaluation.assumptionsApplied.includes(
+      "Projected annual revenue and profit from direct price, churn rate, and sales velocity.",
+    ),
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedRevenueNextYear ?? 0) - 670_984.8357941699,
+    ) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(
+      (evaluation.results.projectedProfitNextYear ?? 0) - 464_787.86863533605,
+    ) < 1e-9,
   );
 });
