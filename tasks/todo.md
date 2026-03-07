@@ -20,3 +20,48 @@
 - Persisted `offerId`, `offerName`, `offerType`, and `calculationVersion` metadata for new reports.
 - Reworked the home input flow to model one subscription offer at a time.
 - Verification completed with `npm test`, `npm run lint`, and `npm run build`.
+
+## Next Phase Plan
+- [ ] Specialize the offer system for software/tech monetization models instead of generic business categories.
+- [ ] Define a staged software/tech taxonomy:
+  - `subscription_seat_based`
+  - `subscription_usage_based`
+  - `subscription_hybrid`
+  - `pilot_paid`
+  - `pilot_to_subscription`
+  - `token_pricing`
+  - `token_plus_platform_fee`
+  - `implementation_plus_subscription`
+  - `transaction_fee`
+- [ ] Design a shared revenue-engine model that can express:
+  - recurring platform fees
+  - seat counts and seat price
+  - usage volume and unit price
+  - token cost and token sell-through price
+  - pilot fees and conversion into live contracts
+  - onboarding / implementation fees
+  - transaction-based monetization
+- [ ] Decide which outputs are universal across software/tech offers and which are offer-type-specific.
+- [ ] Build the first software/tech offer set in this order:
+  - paid pilot
+  - subscription SaaS
+  - token-priced AI product
+  - hybrid platform + usage
+- [ ] Add software-specific input language:
+  - seats
+  - active accounts
+  - workspace/org count
+  - pilot conversion rate
+  - token usage and token gross margin
+  - onboarding / implementation effort
+- [ ] Separate core metrics into:
+  - unit economics
+  - steady-state max
+  - next-year projection
+  - offer conversion funnel where relevant
+- [ ] Rework the home experience around a software/tech offer picker before the broader UI redesign.
+- [ ] Implement the larger UI refresh after the offer taxonomy is stable:
+  - Radix Themes
+  - dark-mode fintech visual system
+  - hero graph for projected revenue growth
+  - cleaner results hierarchy for projection vs steady-state outputs
