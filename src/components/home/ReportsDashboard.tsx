@@ -26,8 +26,11 @@ const ReportsDashboard = ({
   seriesError,
   signInCta,
   onSeedSampleYear,
+  onSeedSampleStripeImport,
   isSeeding,
+  isSeedingImportedData,
   seedStatus,
+  importedSeedStatus,
   onDeleteReport,
 }: ReportsPanelProps) => {
   const hasReports = reports.length > 0;
@@ -111,10 +114,23 @@ const ReportsDashboard = ({
             >
               {isSeeding ? "Loading sample year..." : "Load sample year"}
             </button>
+            <button
+              type="button"
+              onClick={onSeedSampleStripeImport}
+              disabled={!isSignedIn || isSeedingImportedData}
+              className={`${pillClassName} disabled:opacity-50 disabled:hover:border-white/16 disabled:hover:bg-white/[0.018] disabled:hover:text-white`}
+            >
+              {isSeedingImportedData
+                ? "Loading sample import..."
+                : "Load sample Stripe data"}
+            </button>
           </div>
         </div>
 
         {seedStatus && <p className="mt-3 text-sm text-white/56">{seedStatus}</p>}
+        {importedSeedStatus && (
+          <p className="mt-2 text-sm text-white/56">{importedSeedStatus}</p>
+        )}
         {reportsError && <p className="mt-3 text-sm text-white/56">{reportsError}</p>}
         {seriesError && <p className="mt-2 text-sm text-white/56">{seriesError}</p>}
 

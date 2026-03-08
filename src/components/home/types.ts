@@ -76,8 +76,11 @@ export type ReportsPanelProps = {
   seriesError?: string | null;
   signInCta?: React.ReactNode;
   onSeedSampleYear: () => void;
+  onSeedSampleStripeImport: () => void;
   isSeeding: boolean;
+  isSeedingImportedData: boolean;
   seedStatus: string | null;
+  importedSeedStatus: string | null;
   onDeleteReport: (id: number) => void;
 };
 

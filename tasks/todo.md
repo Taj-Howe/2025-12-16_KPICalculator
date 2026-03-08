@@ -5,6 +5,14 @@
 - Core math is locked with regression coverage and legacy compatibility.
 - Current UI is a dashboard-first dark-mode workflow with live forecast, grouped results, and saved reports.
 
+## Industry Rollout
+- [x] Write the phased industry rollout plan in `docs/specs/industry-rollout-plan.md`.
+- [ ] Finish the software / tech path first with onboarding, health grading, imported snapshot inference, and in-product recommendations.
+- [ ] Ship the first e-commerce path after software is mature, starting with one-time, repeat-purchase, subscription/replenishment, and bundle-oriented offer templates.
+- [ ] Ship online education after e-commerce, starting with course, cohort, membership, and upsell-ladder templates.
+- [ ] Ship service businesses last, only after labor-heavy delivery-cost modeling and onboarding are honest enough to avoid misleading margin outputs.
+- [ ] Keep every staged industry visibly non-actionable until it has at least one real offer template, onboarding, health thresholds, and imported-data support.
+
 ## Next Build
 - [x] Rework the home experience around a clearer software/tech offer picker.
 - [x] Introduce a normalized internal software monetization layer from `docs/specs/software-tech-monetization-engine.md`.
@@ -19,6 +27,7 @@
 - [ ] Add an onboarding flow that helps a new user set up one product first: select business type, answer the key questions one by one, then land on results with auto-generated recommendations.
 - [ ] Define basic business health thresholds for onboarding and recommendations, weighted heavily toward `LTGP:CAC`, with clear outcomes like `healthy`, `needs work`, or `at risk`.
 - [ ] Use the deterministic analysis engine plus AI summary layer to generate the onboarding recommendation output: call out what is working, what is weak, and the best next course of action.
+- [ ] Write a concrete AI implementation plan that sequences health scoring, onboarding recommendations, imported-data inference, assistant UX, and safety boundaries.
 - [ ] Add AI that analyzes the current offer data, runs improvement scenarios against the existing math, and identifies the single highest-ROI move so the app can surface the lowest-hanging-fruit metric to improve first.
 - [ ] Add scenario and sensitivity analysis that shows what happens if the operator increases sales velocity, lowers CAC, lowers churn, improves gross margin, or changes price, so the app can quantify which lever creates the biggest upside before AI summarizes it.
 - [ ] Make the scenario/sensitivity layer exportable with a comprehensive dataset, including baseline inputs, baseline outputs, each lever tested, percent and absolute change assumptions, resulting KPI deltas, ranked upside opportunities, AI recommendation summary, and enough structured fields for CSV/API/report consumption.
@@ -37,6 +46,11 @@
 ## Integrations
 - [ ] Expose this as an API/integration surface so external systems can generate reports automatically.
 - [ ] Make payments/accounting integration a one-click setup so the app can automatically analyze Stripe or another payments/accounting source.
+- [ ] Add an immediate imported business snapshot that shows rough health across all revenue items from payments/accounting data before full offer mapping is complete.
+- [ ] Add an offer-structure inference layer that suggests likely product lines and monetization models from imported Stripe/accounting patterns.
+- [ ] Generate draft calculator-ready offers from imported data, with confidence levels, supporting evidence, and explicit user confirmation before treating them as real offers.
+- [ ] Surface automatic insights from imported data and inferred offer structures so the app can show useful recommendations immediately after connect/sync.
+- [x] Add a sample Stripe-style import path that seeds normalized snapshots through the real integrations pipeline for local/demo dashboard use.
 - [x] Write the payments/accounting integrations spec in `docs/specs/payments-accounting-integrations.md`.
 - [x] Add normalized imported-data types for sources, revenue events, refund events, expense events, subscription state, and offer period snapshots.
 - [x] Add explicit offer/product/account mapping types so imported data can be tied to one calculator offer at a time.
@@ -50,6 +64,7 @@
 - [x] Make `Offer Inputs` a wide workspace and keep decision output under `Reports` so the tab structure matches the user workflow more cleanly.
 - [ ] Continue polishing the dashboard after the offer taxonomy stabilizes, especially around deeper analytics views and imported-data workflows.
 - [x] Add a restrained imported-data analytics panel in `Reports` with decision-first views for revenue, profit, churn/retention, payback, margin drift, and scenario upside.
+- [ ] Write a spec for a denser, more layered dashboard with overlay displays driven by live inputs, imported snapshots, trends, and ranked opportunities.
 - [x] Fix software offer-model switching so it does not jump the scroll position.
 - [x] Replace the software offer-model header with a larger heading and an industry dropdown that stages e-commerce, online education, and service businesses.
 
@@ -77,4 +92,6 @@
 - The internal integrations surface now exists with normalized import types, deterministic offer-period snapshot derivation, calculator-input adapters, and authenticated routes for sources, mappings, sync runs, snapshots, and calculator suggestions.
 - The first real provider connector is now in place for Stripe using explicit API-key connection plus invoice/refund/subscription normalization, while OAuth, webhook sync, and durable connector persistence remain deferred.
 - The reports dashboard now includes a compact imported-data analytics surface built on normalized offer snapshots plus deterministic scenario ranking, so operators can inspect revenue, profit, churn/retention, payback, margin drift, and upside without leaving the main workflow.
+- The industry rollout is now sequenced explicitly: software first, then e-commerce, then online education, then services, with onboarding, health scoring, and imported-data support treated as release gates instead of optional polish.
+- A sample Stripe-style import path now exists for local/demo use, so the imported analytics dashboard can be populated through the real integrations pipeline without live credentials.
 - Verification baseline for the current MVP remains `npm test`, `npm run lint`, and `npm run build`.

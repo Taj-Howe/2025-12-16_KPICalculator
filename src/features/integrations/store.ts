@@ -105,3 +105,33 @@ export const listSnapshots = (userKey: string) => [
 
 export const getSnapshot = (userKey: string, snapshotId: string) =>
   getUserState(userKey).snapshots.get(snapshotId) ?? null;
+
+export const clearSourceData = (userKey: string, sourceId: string) => {
+  const state = getUserState(userKey);
+  const removedOfferKeys = new Set(
+    state.offerMappings
+      .filter((mapping) => mapping.sourceId === sourceId)
+      .map((mapping) => mapping.offerKey),
+  );
+
+  state.sources = state.sources.filter((source) => source.sourceId !== sourceId);
+  state.offerMappings = state.offerMappings.filter(
+    (mapping) => mapping.sourceId !== sourceId,
+  );
+  state.accountMappings = state.accountMappings.filter(
+    (mapping) => mapping.sourceId !== sourceId,
+  );
+  state.stripeConfigs.delete(sourceId);
+
+  for (const [snapshotId, snapshot] of state.snapshots.entries()) {
+    if (removedOfferKeys.has(snapshot.offerKey)) {
+      state.snapshots.delete(snapshotId);
+    }
+  }
+
+  for (const [syncId, sync] of state.syncs.entries()) {
+    if (sync.snapshots.some((snapshot) => removedOfferKeys.has(snapshot.offerKey))) {
+      state.syncs.delete(syncId);
+    }
+  }
+};

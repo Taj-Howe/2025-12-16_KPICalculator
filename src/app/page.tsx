@@ -60,6 +60,8 @@ export default function Home() {
   const [snapshotsError, setSnapshotsError] = useState<string | null>(null);
   const [seedStatus, setSeedStatus] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [importedSeedStatus, setImportedSeedStatus] = useState<string | null>(null);
+  const [isSeedingImportedData, setIsSeedingImportedData] = useState(false);
   const [activeWorkspaceView, setActiveWorkspaceView] =
     useState<WorkspaceView>("offer_inputs");
 
@@ -290,6 +292,50 @@ export default function Home() {
     setIsSeeding(false);
   };
 
+  const handleSeedSampleStripeImport = async () => {
+    if (!sessionEmail) {
+      setImportedSeedStatus("Sign in required.");
+      return;
+    }
+    if (isSeedingImportedData) {
+      return;
+    }
+
+    setIsSeedingImportedData(true);
+    setImportedSeedStatus("Loading sample Stripe-style import...");
+
+    try {
+      const response = await fetch("/api/integrations/stripe/sample", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error ?? "Unable to load sample Stripe import.");
+      }
+
+      const data = (await response.json()) as {
+        createdYear: number;
+        summary: {
+          syncCount: number;
+          snapshotCount: number;
+          offerCount: number;
+        };
+      };
+
+      setImportedSeedStatus(
+        `Loaded sample Stripe-style data for ${data.createdYear}: ${data.summary.snapshotCount} snapshots across ${data.summary.offerCount} offers.`,
+      );
+      await refreshReports();
+    } catch (err) {
+      setImportedSeedStatus(
+        err instanceof Error ? err.message : "Unable to load sample Stripe import.",
+      );
+    } finally {
+      setIsSeedingImportedData(false);
+    }
+  };
+
   const handleDeleteReport = async (id: number) => {
     const confirmed = window.confirm(
       "Delete this report? This cannot be undone.",
@@ -434,8 +480,11 @@ export default function Home() {
               seriesError={seriesError}
               signInCta={<GitHubSignInButton callbackUrl="/" />}
               onSeedSampleYear={handleLoadSampleYear}
+              onSeedSampleStripeImport={handleSeedSampleStripeImport}
               isSeeding={isSeeding}
+              isSeedingImportedData={isSeedingImportedData}
               seedStatus={seedStatus}
+              importedSeedStatus={importedSeedStatus}
               onDeleteReport={handleDeleteReport}
             />
           </section>
