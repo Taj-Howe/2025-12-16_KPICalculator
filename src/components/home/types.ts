@@ -54,7 +54,7 @@ export type AppHeaderProps = {
 export type KpiInputPanelProps = {
   value: KPIInputState;
   onChange: (next: KPIInputState) => void;
-  onCalculate: () => Promise<void>;
+  onCalculate: () => Promise<boolean>;
   isCalculating: boolean;
 };
 

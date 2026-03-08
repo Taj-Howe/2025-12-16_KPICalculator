@@ -21,3 +21,4 @@
 - For mixed one-time plus recurring offers, keep `ARPC` and churn tied only to the recurring side. Blend the one-time economics into `LTV`, `LTGP`, payback, and annual totals, or the labels will become misleading.
 - When swapping large input surfaces in place, preserve scroll position and clear focus before replacing the active control. Otherwise the browser can jump the viewport as the focused element disappears.
 - When future industries are not implemented yet, stage them in the selector without pretending they are actionable. Keep the active industry explicit and the available path obvious.
+- Keep planning artifacts scoped to the current repo. If the user references a different project, do not add roadmap items or specs here until the target project is explicitly confirmed.

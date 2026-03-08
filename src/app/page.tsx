@@ -5,6 +5,7 @@ import { signIn, signOut } from "next-auth/react";
 
 import AppHeader from "@/components/home/AppHeader";
 import DecisionCards from "@/components/home/DecisionCards";
+import HealthSummaryCard from "@/components/home/HealthSummaryCard";
 import HeroSection from "@/components/home/HeroSection";
 import OfferWorkspace from "@/components/home/OfferWorkspace";
 import ReportsDashboard from "@/components/home/ReportsDashboard";
@@ -14,7 +15,7 @@ import SampleDataControls from "@/components/home/SampleDataControls";
 import WorkspaceViewSelector from "@/components/home/WorkspaceViewSelector";
 import GitHubSignInButton from "@/components/GitHubSignInButton";
 import type { ReportSummary } from "@/components/report-comparison";
-import type { CalculationVersion, KPIResult } from "@/features/kpi/types";
+import type { KpiEvaluation } from "@/features/kpi/types";
 import type { NormalizedOfferPeriodSnapshot } from "@/features/integrations/types";
 import {
   createDefaultOfferInput,
@@ -25,12 +26,7 @@ import {
 import { generateSampleYearReports } from "@/lib/sampleReports";
 
 type FormState = KPIInputState;
-type Evaluation = {
-  inputs: KPIInputState;
-  results: KPIResult;
-  calculationVersion: CalculationVersion;
-  assumptionsApplied: string[];
-};
+type Evaluation = KpiEvaluation<KPIInputState>;
 
 type SessionSnapshot = {
   user?: {
@@ -193,7 +189,7 @@ export default function Home() {
         : null;
     if (grossMarginError) {
       setError(grossMarginError);
-      return;
+      return false;
     }
 
     setSubmitting(true);
@@ -211,19 +207,16 @@ export default function Home() {
       if (!response.ok) {
         const data = await response.json();
         setError(data.error ?? "Unable to calculate KPIs.");
-        return;
+        return false;
       }
 
-      const data = await response.json();
-      setEvaluation({
-        inputs: data.inputs,
-        results: data.results,
-        calculationVersion: data.calculationVersion,
-        assumptionsApplied: data.assumptionsApplied ?? [],
-      });
+      const data = (await response.json()) as Evaluation;
+      setEvaluation(data);
       setWarnings(data.warnings ?? []);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -417,6 +410,8 @@ export default function Home() {
               onChange={setForm}
               onCalculate={handleCalculate}
               isCalculating={isSubmitting}
+              error={error}
+              onGuidedComplete={() => setActiveWorkspaceView("reports")}
               headerActions={
                 <SampleDataControls
                   onLoadSample={handleLoadSample}
@@ -450,6 +445,7 @@ export default function Home() {
               {evaluation ? (
                 <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
                   <div className="space-y-5">
+                    <HealthSummaryCard evaluation={evaluation} />
                     <DecisionCards results={evaluation.results} />
                     <ResultsSections
                       results={evaluation.results}

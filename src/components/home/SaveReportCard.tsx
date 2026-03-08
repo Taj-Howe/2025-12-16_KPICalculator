@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CalculationVersion, KPIResult, KpiPeriod } from "@/features/kpi/types";
+import type { KpiEvaluation, KpiPeriod } from "@/features/kpi/types";
 import type { KPIInputState } from "./types";
 import { FieldBlock, SelectField, fieldClassName, pillClassName } from "./form-primitives";
 
-type Evaluation = {
-  inputs: KPIInputState;
-  results: KPIResult;
-  calculationVersion: CalculationVersion;
-  assumptionsApplied: string[];
-};
+type Evaluation = KpiEvaluation<KPIInputState>;
 
 const pad = (value: number) => String(value).padStart(2, "0");
 

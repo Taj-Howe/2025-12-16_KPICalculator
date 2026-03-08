@@ -25,9 +25,15 @@
 
 ## Intelligence Layer
 - [ ] Add an onboarding flow that helps a new user set up one product first: select business type, answer the key questions one by one, then land on results with auto-generated recommendations.
-- [ ] Define basic business health thresholds for onboarding and recommendations, weighted heavily toward `LTGP:CAC`, with clear outcomes like `healthy`, `needs work`, or `at risk`.
+- [x] Add a guided/manual mode switch to the offer workspace so onboarding can coexist with the full operator form.
+- [x] Implement a software-first onboarding wizard that reuses the current offer state, asks one focused question per step, and routes completion into the existing results flow.
+- [x] Auto-route guided onboarding completion into the `Reports` result view instead of leaving users in the input workspace after the first run.
+- [x] Define basic business health thresholds for onboarding and recommendations, weighted heavily toward `LTGP:CAC`, with clear outcomes like `healthy`, `needs work`, or `at risk`.
 - [ ] Use the deterministic analysis engine plus AI summary layer to generate the onboarding recommendation output: call out what is working, what is weak, and the best next course of action.
 - [ ] Write a concrete AI implementation plan that sequences health scoring, onboarding recommendations, imported-data inference, assistant UX, and safety boundaries.
+- [x] Write the software-first onboarding and health scoring spec.
+- [x] Implement deterministic health scoring for the current software offer path, weighted heavily to `LTGP:CAC`.
+- [x] Surface a health summary and best-next-move recommendation in the current scenario output before the full guided onboarding flow ships.
 - [ ] Add AI that analyzes the current offer data, runs improvement scenarios against the existing math, and identifies the single highest-ROI move so the app can surface the lowest-hanging-fruit metric to improve first.
 - [ ] Add scenario and sensitivity analysis that shows what happens if the operator increases sales velocity, lowers CAC, lowers churn, improves gross margin, or changes price, so the app can quantify which lever creates the biggest upside before AI summarizes it.
 - [ ] Make the scenario/sensitivity layer exportable with a comprehensive dataset, including baseline inputs, baseline outputs, each lever tested, percent and absolute change assumptions, resulting KPI deltas, ranked upside opportunities, AI recommendation summary, and enough structured fields for CSV/API/report consumption.
@@ -94,4 +100,6 @@
 - The reports dashboard now includes a compact imported-data analytics surface built on normalized offer snapshots plus deterministic scenario ranking, so operators can inspect revenue, profit, churn/retention, payback, margin drift, and upside without leaving the main workflow.
 - The industry rollout is now sequenced explicitly: software first, then e-commerce, then online education, then services, with onboarding, health scoring, and imported-data support treated as release gates instead of optional polish.
 - A sample Stripe-style import path now exists for local/demo use, so the imported analytics dashboard can be populated through the real integrations pipeline without live credentials.
+- Software-first health scoring is now implemented with explicit weighted signals for `LTGP:CAC`, payback, churn, and margin quality, and the current scenario output now surfaces health status plus a deterministic best-next-move summary ahead of the full onboarding wizard.
+- The offer workspace now supports a software-first guided onboarding flow with a guided/manual mode switch, stepwise setup, and automatic routing into `Reports` after a successful guided run.
 - Verification baseline for the current MVP remains `npm test`, `npm run lint`, and `npm run build`.
