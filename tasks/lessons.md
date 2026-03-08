@@ -24,3 +24,5 @@
 - Forecast gating should follow the economics, not a hardcoded offer-type allowlist. If the current result has recurring signals like churn, sales velocity, and per-customer economics, the dashboard should project a curve even when the offer is expressed as a mixed or derived model.
 - When future industries are not implemented yet, stage them in the selector without pretending they are actionable. Keep the active industry explicit and the available path obvious.
 - Keep planning artifacts scoped to the current repo. If the user references a different project, do not add roadmap items or specs here until the target project is explicitly confirmed.
+
+- When Next/Turbopack reports a local module as missing after branch switches or merges, verify the file and import path first; if build passes, treat it as a stale dev cache/server state before changing code.

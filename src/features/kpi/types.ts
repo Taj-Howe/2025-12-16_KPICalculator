@@ -1,4 +1,8 @@
 import type {
+  EcommerceConfig,
+  EcommerceOfferType,
+} from "./ecommerce";
+import type {
   SoftwareTechConfig,
   SoftwareTechOfferType,
 } from "./software-tech";
@@ -14,7 +18,10 @@ export type LegacyOfferType =
   | "usage_based"
   | "service_retainer";
 
-export type OfferType = LegacyOfferType | SoftwareTechOfferType;
+export type OfferType =
+  | LegacyOfferType
+  | SoftwareTechOfferType
+  | EcommerceOfferType;
 
 export type CalculationVersion =
   | "kpi-v1-legacy-model"
@@ -75,6 +82,51 @@ export type SoftwareOfferInputBase = {
   cacInputMode?: CacInputMode;
   marketingSpendPerPeriod?: number;
   directCac?: number;
+};
+
+export type EcommerceOfferInputBase = {
+  offerId: string;
+  offerName: string;
+  analysisPeriod: KpiPeriod;
+  ecommerceConfig: EcommerceConfig;
+  newCustomersPerPeriod: number;
+  cacInputMode?: CacInputMode;
+  marketingSpendPerPeriod?: number;
+  directCac?: number;
+};
+
+export type EcommerceOneTimeProductInput = EcommerceOfferInputBase & {
+  offerType: "ecommerce_one_time_product";
+  averageOrderValue: number;
+  grossProfitPerOrder?: number;
+  grossMargin?: number;
+  refundsRatePerOrder?: number;
+};
+
+export type EcommerceRepeatPurchaseProductInput = EcommerceOfferInputBase & {
+  offerType: "ecommerce_repeat_purchase_product";
+  averageOrderValue: number;
+  grossProfitPerOrder?: number;
+  grossMargin?: number;
+  refundsRatePerOrder?: number;
+  repeatInputMode?: "orders_per_customer" | "repurchase_rate";
+  expectedOrdersPerCustomer?: number;
+  repurchaseRatePerPeriod?: number;
+  analysisHorizonPeriods?: number;
+};
+
+export type EcommerceSubscriptionReplenishmentInput = EcommerceOfferInputBase & {
+  offerType: "ecommerce_subscription_replenishment";
+  averageOrderValue: number;
+  ordersPerSubscriberPerPeriod?: number;
+  grossProfitPerSubscriberPerPeriod?: number;
+  grossMargin?: number;
+  refundsRatePerPeriod?: number;
+  activeCustomersStart: number;
+  retentionInputMode?: RetentionInputMode;
+  directChurnRatePerPeriod?: number;
+  churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
 };
 
 export type SoftwarePaidPilotInput = SoftwareOfferInputBase & {
@@ -144,12 +196,29 @@ export type UnsupportedSoftwareTechOfferInput = {
   softwareConfig: SoftwareTechConfig;
 };
 
+export type UnsupportedEcommerceOfferInput = {
+  offerId: string;
+  offerName: string;
+  offerType: Exclude<
+    EcommerceOfferType,
+    | "ecommerce_one_time_product"
+    | "ecommerce_repeat_purchase_product"
+    | "ecommerce_subscription_replenishment"
+  >;
+  analysisPeriod: KpiPeriod;
+  ecommerceConfig: EcommerceConfig;
+};
+
 export type OfferInput =
   | SubscriptionOfferInput
   | SoftwarePaidPilotInput
   | SoftwareTokenPricingInput
   | SoftwareHybridPlatformUsageInput
   | SoftwareImplementationPlusSubscriptionInput
+  | EcommerceOneTimeProductInput
+  | EcommerceRepeatPurchaseProductInput
+  | EcommerceSubscriptionReplenishmentInput
+  | UnsupportedEcommerceOfferInput
   | UnsupportedSoftwareTechOfferInput;
 export type AnyKpiInput = KPIInput | OfferInput;
 

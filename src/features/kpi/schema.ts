@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BusinessModel, KpiPeriod } from "./types";
+import { ecommerceMonetizationModels, ecommerceOfferTypes } from "./ecommerce";
 import {
   softwareSubscriptionModels,
   softwareTechMonetizationModels,
@@ -73,6 +74,16 @@ const softwareTechConfigSchema = z.object({
       "enterprise",
       "channel_partner",
     ])
+    .optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+const ecommerceConfigSchema = z.object({
+  industryPreset: z.literal("ecommerce"),
+  monetizationModel: z.enum(ecommerceMonetizationModels),
+  merchandisingModel: z.enum(["single_sku", "catalog", "bundle"]).optional(),
+  fulfillmentModel: z
+    .enum(["in_house", "3pl", "dropship", "digital_goods"])
     .optional(),
   notes: z.string().trim().max(500).optional(),
 });
@@ -369,6 +380,244 @@ const softwarePaidPilotInputSchema = z
         message:
           "Provide either pilot gross margin or pilot delivery cost per new customer.",
         path: ["pilotGrossMargin"],
+      });
+    }
+  });
+
+const ecommerceOneTimeProductInputSchema = z
+  .object({
+    offerId: z.string().trim().min(1).max(120),
+    offerName: z.string().trim().min(1).max(120),
+    offerType: z.literal("ecommerce_one_time_product"),
+    analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+    ecommerceConfig: ecommerceConfigSchema,
+    newCustomersPerPeriod: z.number().nonnegative(),
+    cacInputMode: z.enum(["derived", "direct"]).optional(),
+    marketingSpendPerPeriod: z.number().nonnegative().optional(),
+    directCac: z.number().nonnegative().optional(),
+    averageOrderValue: z.number().nonnegative(),
+    grossProfitPerOrder: z.number().optional(),
+    grossMargin: z.number().min(0).max(1).optional(),
+    refundsRatePerOrder: z.number().min(0).max(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const cacInputMode = value.cacInputMode ?? "derived";
+
+    if (value.ecommerceConfig.monetizationModel !== "one_time_product") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "E-commerce one-time product offers must use the one_time_product monetization model.",
+        path: ["ecommerceConfig", "monetizationModel"],
+      });
+    }
+
+    if (cacInputMode === "derived" && value.marketingSpendPerPeriod == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Marketing spend is required when CAC mode is derived.",
+        path: ["marketingSpendPerPeriod"],
+      });
+    }
+
+    if (cacInputMode === "direct" && value.directCac == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Direct CAC is required when CAC mode is direct.",
+        path: ["directCac"],
+      });
+    }
+
+    if (value.grossProfitPerOrder == null && value.grossMargin == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Provide either gross profit per order or gross margin for a one-time product.",
+        path: ["grossProfitPerOrder"],
+      });
+    }
+  });
+
+const ecommerceRepeatPurchaseProductInputSchema = z
+  .object({
+    offerId: z.string().trim().min(1).max(120),
+    offerName: z.string().trim().min(1).max(120),
+    offerType: z.literal("ecommerce_repeat_purchase_product"),
+    analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+    ecommerceConfig: ecommerceConfigSchema,
+    newCustomersPerPeriod: z.number().nonnegative(),
+    cacInputMode: z.enum(["derived", "direct"]).optional(),
+    marketingSpendPerPeriod: z.number().nonnegative().optional(),
+    directCac: z.number().nonnegative().optional(),
+    averageOrderValue: z.number().nonnegative(),
+    grossProfitPerOrder: z.number().optional(),
+    grossMargin: z.number().min(0).max(1).optional(),
+    refundsRatePerOrder: z.number().min(0).max(1).optional(),
+    repeatInputMode: z.enum(["orders_per_customer", "repurchase_rate"]).optional(),
+    expectedOrdersPerCustomer: z.number().min(1).optional(),
+    repurchaseRatePerPeriod: z.number().min(0).max(1).optional(),
+    analysisHorizonPeriods: z.number().int().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const cacInputMode = value.cacInputMode ?? "derived";
+    const repeatInputMode = value.repeatInputMode ?? "orders_per_customer";
+
+    if (value.ecommerceConfig.monetizationModel !== "repeat_purchase") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "E-commerce repeat-purchase offers must use the repeat_purchase monetization model.",
+        path: ["ecommerceConfig", "monetizationModel"],
+      });
+    }
+
+    if (cacInputMode === "derived" && value.marketingSpendPerPeriod == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Marketing spend is required when CAC mode is derived.",
+        path: ["marketingSpendPerPeriod"],
+      });
+    }
+
+    if (cacInputMode === "direct" && value.directCac == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Direct CAC is required when CAC mode is direct.",
+        path: ["directCac"],
+      });
+    }
+
+    if (value.grossProfitPerOrder == null && value.grossMargin == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Provide either gross profit per order or gross margin for a repeat-purchase product.",
+        path: ["grossProfitPerOrder"],
+      });
+    }
+
+    if (repeatInputMode === "orders_per_customer") {
+      if (value.expectedOrdersPerCustomer == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Expected orders per customer is required for the first repeat-purchase implementation.",
+          path: ["expectedOrdersPerCustomer"],
+        });
+      }
+    } else {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Repurchase-rate mode is defined but not implemented yet; use expected orders per customer.",
+        path: ["repeatInputMode"],
+      });
+    }
+  });
+
+const ecommerceSubscriptionReplenishmentInputSchema = z
+  .object({
+    offerId: z.string().trim().min(1).max(120),
+    offerName: z.string().trim().min(1).max(120),
+    offerType: z.literal("ecommerce_subscription_replenishment"),
+    analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+    ecommerceConfig: ecommerceConfigSchema,
+    newCustomersPerPeriod: z.number().nonnegative(),
+    cacInputMode: z.enum(["derived", "direct"]).optional(),
+    marketingSpendPerPeriod: z.number().nonnegative().optional(),
+    directCac: z.number().nonnegative().optional(),
+    averageOrderValue: z.number().nonnegative(),
+    ordersPerSubscriberPerPeriod: z.number().positive().optional(),
+    grossProfitPerSubscriberPerPeriod: z.number().optional(),
+    grossMargin: z.number().min(0).max(1).optional(),
+    refundsRatePerPeriod: z.number().min(0).max(1).optional(),
+    activeCustomersStart: z.number().nonnegative(),
+    retentionInputMode: z.enum(["counts", "rate"]).optional(),
+    directChurnRatePerPeriod: z.number().min(0).max(1).optional(),
+    churnedCustomersPerPeriod: z.number().nonnegative().optional(),
+    retainedCustomersFromStartAtEnd: z.number().nonnegative().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const cacInputMode = value.cacInputMode ?? "derived";
+    const retentionInputMode = value.retentionInputMode ?? "counts";
+    const hasRetained = value.retainedCustomersFromStartAtEnd != null;
+    const hasChurned = value.churnedCustomersPerPeriod != null;
+
+    if (value.ecommerceConfig.monetizationModel !== "subscription_replenishment") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "E-commerce replenishment offers must use the subscription_replenishment monetization model.",
+        path: ["ecommerceConfig", "monetizationModel"],
+      });
+    }
+
+    if (cacInputMode === "derived" && value.marketingSpendPerPeriod == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Marketing spend is required when CAC mode is derived.",
+        path: ["marketingSpendPerPeriod"],
+      });
+    }
+
+    if (cacInputMode === "direct" && value.directCac == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Direct CAC is required when CAC mode is direct.",
+        path: ["directCac"],
+      });
+    }
+
+    if (
+      value.grossProfitPerSubscriberPerPeriod == null &&
+      value.grossMargin == null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Provide either gross profit per subscriber per period or gross margin for a replenishment offer.",
+        path: ["grossProfitPerSubscriberPerPeriod"],
+      });
+    }
+
+    if (retentionInputMode === "counts" && !hasRetained && !hasChurned) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide either churned customers or retained-from-start count.",
+        path: ["retainedCustomersFromStartAtEnd"],
+      });
+    }
+
+    if (
+      retentionInputMode === "counts" &&
+      hasRetained &&
+      (value.retainedCustomersFromStartAtEnd ?? 0) > value.activeCustomersStart
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Customers still active from the starting cohort cannot exceed the number of starting active customers.",
+        path: ["retainedCustomersFromStartAtEnd"],
+      });
+    }
+
+    if (
+      retentionInputMode === "counts" &&
+      hasChurned &&
+      (value.churnedCustomersPerPeriod ?? 0) > value.activeCustomersStart
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Churned customers cannot exceed active customers at start.",
+        path: ["churnedCustomersPerPeriod"],
+      });
+    }
+
+    if (retentionInputMode === "rate" && value.directChurnRatePerPeriod == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Direct churn rate is required when retention mode is rate.",
+        path: ["directChurnRatePerPeriod"],
       });
     }
   });
@@ -739,6 +988,42 @@ const unsupportedSoftwareOfferInputSchema = z
     });
   });
 
+const unsupportedEcommerceOfferInputSchema = z
+  .object({
+    offerId: z.string().trim().min(1).max(120),
+    offerName: z.string().trim().min(1).max(120),
+    offerType: z.enum(
+      ecommerceOfferTypes.filter(
+        (type) =>
+          type !== "ecommerce_one_time_product" &&
+          type !== "ecommerce_repeat_purchase_product" &&
+          type !== "ecommerce_subscription_replenishment",
+      ) as [
+        Exclude<
+          (typeof ecommerceOfferTypes)[number],
+          | "ecommerce_one_time_product"
+          | "ecommerce_repeat_purchase_product"
+          | "ecommerce_subscription_replenishment"
+        >,
+        ...Exclude<
+          (typeof ecommerceOfferTypes)[number],
+          | "ecommerce_one_time_product"
+          | "ecommerce_repeat_purchase_product"
+          | "ecommerce_subscription_replenishment"
+        >[],
+      ],
+    ),
+    analysisPeriod: z.enum(periods as [KpiPeriod, ...KpiPeriod[]]),
+    ecommerceConfig: ecommerceConfigSchema,
+  })
+  .superRefine((value, ctx) => {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["offerType"],
+      message: `E-commerce offer type '${value.offerType}' is defined but not implemented yet.`,
+    });
+  });
+
 const unsupportedOfferInputSchema = z
   .object({
     offerId: z.string().trim().min(1).max(120),
@@ -762,9 +1047,13 @@ const unsupportedOfferInputSchema = z
 export const offerInputSchema = z.union([
   subscriptionOfferInputSchema,
   softwarePaidPilotInputSchema,
+  ecommerceOneTimeProductInputSchema,
+  ecommerceRepeatPurchaseProductInputSchema,
+  ecommerceSubscriptionReplenishmentInputSchema,
   softwareTokenPricingInputSchema,
   softwareHybridPlatformUsageInputSchema,
   softwareImplementationPlusSubscriptionInputSchema,
+  unsupportedEcommerceOfferInputSchema,
   unsupportedSoftwareOfferInputSchema,
   unsupportedOfferInputSchema,
 ]);

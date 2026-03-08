@@ -48,6 +48,14 @@ export const getInputModelLabel = (input: AnyKpiInput): string => {
     return input.softwareConfig.monetizationModel;
   }
 
+  if (
+    isOfferInput(input) &&
+    "ecommerceConfig" in input &&
+    input.ecommerceConfig?.industryPreset === "ecommerce"
+  ) {
+    return input.ecommerceConfig.monetizationModel;
+  }
+
   return input.offerType;
 };
 

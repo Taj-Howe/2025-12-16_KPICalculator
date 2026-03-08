@@ -1,5 +1,10 @@
 import { ltgpPerCustomer, ltvSubscription, ratioLtgpToCac } from "./formulas";
 import {
+  buildEcommerceOneTimeProductEvaluation,
+  buildEcommerceRepeatPurchaseProductEvaluation,
+  buildEcommerceSubscriptionReplenishmentEvaluation,
+} from "./ecommerce-monetization";
+import {
   buildSubscriptionForecast,
   deriveSubscriptionMetrics,
 } from "./subscription-forecast";
@@ -12,6 +17,9 @@ import {
 } from "./software-tech-monetization";
 import type {
   KPIResult,
+  EcommerceOneTimeProductInput,
+  EcommerceRepeatPurchaseProductInput,
+  EcommerceSubscriptionReplenishmentInput,
   OfferInput,
   SoftwareHybridPlatformUsageInput,
   SoftwareImplementationPlusSubscriptionInput,
@@ -190,6 +198,25 @@ export const softwarePaidPilotEvaluator: OfferEvaluator<SoftwarePaidPilotInput> 
   evaluate: (input) => buildSoftwarePaidPilotEvaluation(input),
 };
 
+export const ecommerceOneTimeProductEvaluator: OfferEvaluator<EcommerceOneTimeProductInput> =
+  {
+    offerType: "ecommerce_one_time_product",
+    evaluate: (input) => buildEcommerceOneTimeProductEvaluation(input),
+  };
+
+export const ecommerceRepeatPurchaseProductEvaluator: OfferEvaluator<EcommerceRepeatPurchaseProductInput> =
+  {
+    offerType: "ecommerce_repeat_purchase_product",
+    evaluate: (input) => buildEcommerceRepeatPurchaseProductEvaluation(input),
+  };
+
+export const ecommerceSubscriptionReplenishmentEvaluator: OfferEvaluator<EcommerceSubscriptionReplenishmentInput> =
+  {
+    offerType: "ecommerce_subscription_replenishment",
+    evaluate: (input) =>
+      buildEcommerceSubscriptionReplenishmentEvaluation(input),
+  };
+
 export const softwareTokenPricingEvaluator: OfferEvaluator<SoftwareTokenPricingInput> = {
   offerType: "software_token_pricing",
   evaluate: (input) => buildSoftwareTokenPricingEvaluation(input),
@@ -217,6 +244,15 @@ export const evaluateOffer = (input: OfferInput): OfferEvaluation => {
   }
   if (input.offerType === "software_paid_pilot") {
     return softwarePaidPilotEvaluator.evaluate(input);
+  }
+  if (input.offerType === "ecommerce_one_time_product") {
+    return ecommerceOneTimeProductEvaluator.evaluate(input);
+  }
+  if (input.offerType === "ecommerce_repeat_purchase_product") {
+    return ecommerceRepeatPurchaseProductEvaluator.evaluate(input);
+  }
+  if (input.offerType === "ecommerce_subscription_replenishment") {
+    return ecommerceSubscriptionReplenishmentEvaluator.evaluate(input);
   }
   if (input.offerType === "software_token_pricing") {
     return softwareTokenPricingEvaluator.evaluate(input);
