@@ -7,7 +7,7 @@ import {
   churnedFromStart,
   periodsPerYear,
 } from "./formulas";
-import type { KpiPeriod, SubscriptionOfferInput } from "./types";
+import type { KPIResult, KpiPeriod, SubscriptionOfferInput } from "./types";
 
 export type SubscriptionDerivedMetrics = {
   activeCustomersStart: number | null;
@@ -50,6 +50,16 @@ export type SubscriptionForecast = {
     revenuePerYear: number | null;
     profitPerYear: number | null;
   };
+};
+
+export type RecurringForecastSeed = {
+  analysisPeriod: KpiPeriod;
+  activeCustomersStart?: number | null;
+  newCustomersPerPeriod: number;
+  arpcPerCustomerPerPeriod: number;
+  churnRatePerPeriod: number;
+  ltgpPerCustomer: number | null;
+  cacPerNewCustomer: number | null;
 };
 
 const deriveCurrentRevenuePerPeriod = (
@@ -342,6 +352,102 @@ export const buildSubscriptionForecast = (
       profitPerYear:
         steadyStateProfitPerPeriod != null
           ? annualizedRevenue(steadyStateProfitPerPeriod, input.analysisPeriod)
+          : null,
+    },
+  };
+};
+
+export const canBuildRecurringForecastFromResults = (
+  results: KPIResult | null | undefined,
+) =>
+  results?.arpc != null &&
+  results.churnRate != null &&
+  results.churnRate > 0 &&
+  results.car != null;
+
+export const buildRecurringForecastFromSeed = (
+  seed: RecurringForecastSeed,
+): SubscriptionForecast => {
+  const currentCustomers = Math.max(seed.activeCustomersStart ?? 0, 0);
+  const grossProfitPerCustomerPerPeriod =
+    seed.ltgpPerCustomer != null
+      ? seed.ltgpPerCustomer * seed.churnRatePerPeriod
+      : null;
+  const acquisitionSpendPerPeriod =
+    seed.cacPerNewCustomer != null
+      ? seed.cacPerNewCustomer * seed.newCustomersPerPeriod
+      : null;
+  const currentRevenuePerPeriod =
+    seed.arpcPerCustomerPerPeriod * currentCustomers;
+  const currentProfitPerPeriod =
+    grossProfitPerCustomerPerPeriod != null && acquisitionSpendPerPeriod != null
+      ? grossProfitPerCustomerPerPeriod * currentCustomers - acquisitionSpendPerPeriod
+      : null;
+  const steadyStateCustomers =
+    seed.churnRatePerPeriod > 0
+      ? seed.newCustomersPerPeriod / seed.churnRatePerPeriod
+      : null;
+  const steadyStateRevenuePerPeriod =
+    steadyStateCustomers != null
+      ? steadyStateCustomers * seed.arpcPerCustomerPerPeriod
+      : null;
+  const steadyStateProfitPerPeriod =
+    steadyStateCustomers != null && grossProfitPerCustomerPerPeriod != null
+      ? steadyStateCustomers * grossProfitPerCustomerPerPeriod
+      : null;
+
+  const totalSteps = periodsPerYear(seed.analysisPeriod);
+  const points: SubscriptionForecastPoint[] = [];
+  let activeCustomers = currentCustomers;
+  let totalRevenue = 0;
+  let totalProfit: number | null = 0;
+
+  for (let step = 1; step <= totalSteps; step += 1) {
+    const churnedCustomers = activeCustomers * seed.churnRatePerPeriod;
+    const endCustomers = activeCustomers + seed.newCustomersPerPeriod - churnedCustomers;
+    const averageCustomers = averageActiveCustomers(activeCustomers, endCustomers);
+    const revenue = seed.arpcPerCustomerPerPeriod * averageCustomers;
+    const profit =
+      grossProfitPerCustomerPerPeriod != null && acquisitionSpendPerPeriod != null
+        ? grossProfitPerCustomerPerPeriod * averageCustomers - acquisitionSpendPerPeriod
+        : null;
+
+    totalRevenue += revenue;
+    totalProfit = totalProfit == null || profit == null ? null : totalProfit + profit;
+
+    points.push({
+      step,
+      endCustomers,
+      averageCustomers,
+      revenue,
+      profit,
+    });
+
+    activeCustomers = endCustomers;
+  }
+
+  return {
+    current: {
+      revenue: currentRevenuePerPeriod,
+      profit: currentProfitPerPeriod,
+      customers: currentCustomers,
+    },
+    points,
+    totals: {
+      revenue: totalRevenue,
+      profit: totalProfit,
+    },
+    steadyState: {
+      customers: steadyStateCustomers,
+      revenuePerPeriod: steadyStateRevenuePerPeriod,
+      profitPerPeriod: steadyStateProfitPerPeriod,
+      revenuePerYear:
+        steadyStateRevenuePerPeriod != null
+          ? annualizedRevenue(steadyStateRevenuePerPeriod, seed.analysisPeriod)
+          : null,
+      profitPerYear:
+        steadyStateProfitPerPeriod != null
+          ? annualizedRevenue(steadyStateProfitPerPeriod, seed.analysisPeriod)
           : null,
     },
   };

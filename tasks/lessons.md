@@ -21,5 +21,6 @@
 - For mixed one-time plus recurring offers, keep `ARPC` and churn tied only to the recurring side. Blend the one-time economics into `LTV`, `LTGP`, payback, and annual totals, or the labels will become misleading.
 - When swapping large input surfaces in place, preserve scroll position and clear focus before replacing the active control. Otherwise the browser can jump the viewport as the focused element disappears.
 - Apply scroll-preservation consistently across all button-driven state swaps in the same surface. Fixing only one selector path is not enough if step pills, mode switches, or choice cards still replace content and steal focus.
+- Forecast gating should follow the economics, not a hardcoded offer-type allowlist. If the current result has recurring signals like churn, sales velocity, and per-customer economics, the dashboard should project a curve even when the offer is expressed as a mixed or derived model.
 - When future industries are not implemented yet, stage them in the selector without pretending they are actionable. Keep the active industry explicit and the available path obvious.
 - Keep planning artifacts scoped to the current repo. If the user references a different project, do not add roadmap items or specs here until the target project is explicitly confirmed.

@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildRecurringForecastFromSeed,
   buildSubscriptionForecast,
+  canBuildRecurringForecastFromResults,
   deriveSubscriptionMetrics,
   forecastStepLabels,
 } from "@/features/kpi/subscription-forecast";
-import type { SubscriptionOfferInput } from "@/features/kpi/types";
+import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
 
 test("buildSubscriptionForecast returns a live monthly series from direct ARPC inputs", () => {
   const input: SubscriptionOfferInput = {
@@ -65,6 +67,42 @@ test("buildSubscriptionForecast preserves current business snapshot when revenue
   assert.equal(forecast.points.length, 12);
   assert.ok(Math.abs((forecast.totals.revenue ?? 0) - 609_986.2143583364) < 1e-9);
   assert.ok(Math.abs((forecast.totals.profit ?? 0) - 415_988.9714866691) < 1e-9);
+});
+
+test("buildRecurringForecastFromSeed supports recurring curves from evaluated results", () => {
+  const results: KPIResult = {
+    cac: 1_200,
+    arpc: 3_000,
+    churnRate: 0.1,
+    retentionRate: 0.9,
+    ltv: 26_000,
+    ltgpPerCustomer: 26_000,
+    ltgpToCacRatio: 21.6666666667,
+    cacPaybackPeriods: 0.46,
+    hypotheticalMaxCustomers: 10,
+    hypotheticalMaxRevenuePerYear: 360_000,
+    hypotheticalMaxProfitPerYear: 312_000,
+    projectedRevenueNextYear: 0,
+    projectedProfitNextYear: 0,
+    car: 1,
+  };
+
+  assert.equal(canBuildRecurringForecastFromResults(results), true);
+
+  const forecast = buildRecurringForecastFromSeed({
+    analysisPeriod: "monthly",
+    activeCustomersStart: 0,
+    newCustomersPerPeriod: results.car ?? 0,
+    arpcPerCustomerPerPeriod: results.arpc ?? 0,
+    churnRatePerPeriod: results.churnRate ?? 0,
+    ltgpPerCustomer: results.ltgpPerCustomer,
+    cacPerNewCustomer: results.cac,
+  });
+
+  assert.equal(forecast.points.length, 12);
+  assert.equal(forecast.steadyState.customers, 10);
+  assert.equal(forecast.steadyState.revenuePerPeriod, 30_000);
+  assert.equal(forecast.steadyState.profitPerPeriod, 26_000);
 });
 
 test("forecastStepLabels matches the selected analysis period", () => {

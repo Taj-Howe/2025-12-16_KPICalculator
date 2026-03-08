@@ -2,7 +2,11 @@
 
 import { useMemo } from "react";
 import { evaluateOffer } from "@/features/kpi/offer-evaluator";
-import { buildSubscriptionForecast } from "@/features/kpi/subscription-forecast";
+import {
+  buildRecurringForecastFromSeed,
+  buildSubscriptionForecast,
+  canBuildRecurringForecastFromResults,
+} from "@/features/kpi/subscription-forecast";
 import type {
   KPIResult,
   KpiPeriod,
@@ -126,10 +130,28 @@ const HeroSection = ({
     }
   }, [input, results]);
 
-  const liveForecast = useMemo(
-    () => (forecastInput ? buildSubscriptionForecast(forecastInput) : null),
-    [forecastInput],
-  );
+  const liveForecast = useMemo(() => {
+    if (forecastInput) {
+      return buildSubscriptionForecast(forecastInput);
+    }
+
+    if (liveResults == null || !canBuildRecurringForecastFromResults(liveResults)) {
+      return null;
+    }
+
+    const activeCustomersStart =
+      "activeCustomersStart" in input ? input.activeCustomersStart ?? 0 : 0;
+
+    return buildRecurringForecastFromSeed({
+      analysisPeriod: input.analysisPeriod,
+      activeCustomersStart,
+      newCustomersPerPeriod: liveResults.car ?? 0,
+      arpcPerCustomerPerPeriod: liveResults.arpc ?? 0,
+      churnRatePerPeriod: liveResults.churnRate ?? 0,
+      ltgpPerCustomer: liveResults.ltgpPerCustomer,
+      cacPerNewCustomer: liveResults.cac,
+    });
+  }, [forecastInput, input, liveResults]);
   const heroResults = liveResults ?? results;
 
   return (
