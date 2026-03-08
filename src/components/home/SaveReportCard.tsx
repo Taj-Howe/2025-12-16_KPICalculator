@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CalculationVersion, KPIResult, KpiPeriod, SubscriptionOfferInput } from "@/features/kpi/types";
+import type { CalculationVersion, KPIResult, KpiPeriod } from "@/features/kpi/types";
+import type { KPIInputState } from "./types";
 import { FieldBlock, SelectField, fieldClassName, pillClassName } from "./form-primitives";
 
 type Evaluation = {
-  inputs: SubscriptionOfferInput;
+  inputs: KPIInputState;
   results: KPIResult;
   calculationVersion: CalculationVersion;
   assumptionsApplied: string[];

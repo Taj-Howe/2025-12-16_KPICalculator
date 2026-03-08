@@ -13,12 +13,14 @@ This spec defines the software/tech specialization layer for the KPI calculator.
 Currently executable:
 
 - `software_subscription`
+- `software_paid_pilot`
+- `software_token_pricing`
+- `software_hybrid_platform_usage`
+- `software_implementation_plus_subscription`
 
 Defined for staged implementation:
 
-- `software_paid_pilot`
 - `software_pilot_to_subscription`
-- `software_token_pricing`
 - `software_token_plus_platform`
 - `software_implementation_plus_subscription`
 - `software_transaction_fee`
@@ -49,8 +51,12 @@ Defined for staged implementation:
 ## Current Implementation Rule
 
 - `software_subscription` reuses the existing subscription KPI engine.
-- It requires `softwareConfig` metadata so the calculator knows which software monetization model the offer represents.
-- The other software/tech offer types are intentionally defined in schema/types but rejected as "not implemented yet" until their dedicated math paths exist.
+- `software_paid_pilot` uses the shared software monetization engine in throughput mode.
+- `software_token_pricing` uses the shared software monetization engine in recurring mode, with retention and token-unit economics mapped into the existing KPI envelope.
+- `software_hybrid_platform_usage` uses the shared software monetization engine in recurring mode, with blended platform-fee and usage-fee economics mapped into the existing KPI envelope.
+- `software_implementation_plus_subscription` uses the shared software monetization engine in mixed mode, with recurring subscription economics plus one-time implementation economics mapped into the existing KPI envelope.
+- Executable software offers require `softwareConfig` metadata so the calculator knows which software monetization model the offer represents.
+- The remaining software/tech offer types are intentionally defined in schema/types but rejected as "not implemented yet" until their dedicated math paths exist.
 
 ## Why This Layer Exists
 

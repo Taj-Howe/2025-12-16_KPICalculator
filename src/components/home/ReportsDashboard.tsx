@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import LineChart from "@/components/LineChart";
 import Sparkline from "@/components/Sparkline";
 import type { ReportsPanelProps } from "./types";
+import ImportedAnalyticsPanel from "./ImportedAnalyticsPanel";
 import {
   formatLabel,
   formatMoney,
@@ -19,6 +20,8 @@ const ReportsDashboard = ({
   onSelectReport,
   onRefresh,
   series,
+  importedSnapshots = [],
+  snapshotsError,
   reportsError,
   seriesError,
   signInCta,
@@ -342,6 +345,12 @@ const ReportsDashboard = ({
           </div>
         </section>
       )}
+
+      <ImportedAnalyticsPanel
+        snapshots={importedSnapshots}
+        isSignedIn={isSignedIn}
+        snapshotsError={snapshotsError}
+      />
     </section>
   );
 };

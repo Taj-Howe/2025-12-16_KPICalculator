@@ -14,14 +14,19 @@ import SampleDataControls from "@/components/home/SampleDataControls";
 import WorkspaceViewSelector from "@/components/home/WorkspaceViewSelector";
 import GitHubSignInButton from "@/components/GitHubSignInButton";
 import type { ReportSummary } from "@/components/report-comparison";
-import type { CalculationVersion, KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
-import { sampleKpiInput } from "@/components/home/types";
-import type { ReportSeries } from "@/components/home/types";
+import type { CalculationVersion, KPIResult } from "@/features/kpi/types";
+import type { NormalizedOfferPeriodSnapshot } from "@/features/integrations/types";
+import {
+  createDefaultOfferInput,
+  sampleKpiInput,
+  type KPIInputState,
+  type ReportSeries,
+} from "@/components/home/types";
 import { generateSampleYearReports } from "@/lib/sampleReports";
 
-type FormState = SubscriptionOfferInput;
+type FormState = KPIInputState;
 type Evaluation = {
-  inputs: SubscriptionOfferInput;
+  inputs: KPIInputState;
   results: KPIResult;
   calculationVersion: CalculationVersion;
   assumptionsApplied: string[];
@@ -35,39 +40,7 @@ type SessionSnapshot = {
 
 type WorkspaceView = "offer_inputs" | "reports";
 
-const defaultState: FormState = {
-  offerId: "main-offer",
-  offerName: "Main Software Offer",
-  offerType: "software_subscription",
-  analysisPeriod: "monthly",
-  revenueInputMode: "total_revenue",
-  grossProfitInputMode: "margin",
-  cacInputMode: "derived",
-  retentionInputMode: "counts",
-  revenuePerPeriod: 100000,
-  grossMargin: 0.7,
-  marketingSpendPerPeriod: 20000,
-  newCustomersPerPeriod: 20,
-  activeCustomersStart: 100,
-  retainedCustomersFromStartAtEnd: 90,
-  softwareConfig: {
-    industryPreset: "software_tech",
-    monetizationModel: "subscription_seat_based",
-    revenueComponents: [
-      {
-        componentType: "platform_subscription",
-        label: "Core platform subscription",
-        pricingMetric: "workspace",
-      },
-      {
-        componentType: "seat_subscription",
-        label: "Per-seat subscription",
-        pricingMetric: "seat",
-      },
-    ],
-    goToMarketMotion: "sales_led",
-  },
-};
+const defaultState: FormState = createDefaultOfferInput("software_subscription");
 
 export default function Home() {
   const [form, setForm] = useState<FormState>(defaultState);
@@ -81,6 +54,10 @@ export default function Home() {
   const [series, setSeries] = useState<ReportSeries | null>(null);
   const [reportsError, setReportsError] = useState<string | null>(null);
   const [seriesError, setSeriesError] = useState<string | null>(null);
+  const [importedSnapshots, setImportedSnapshots] = useState<
+    NormalizedOfferPeriodSnapshot[]
+  >([]);
+  const [snapshotsError, setSnapshotsError] = useState<string | null>(null);
   const [seedStatus, setSeedStatus] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [activeWorkspaceView, setActiveWorkspaceView] =
@@ -162,6 +139,31 @@ export default function Home() {
     }
   }, [form.analysisPeriod, sessionEmail]);
 
+  const loadImportedSnapshots = useCallback(async () => {
+    if (!sessionEmail) {
+      setImportedSnapshots([]);
+      setSnapshotsError(null);
+      return;
+    }
+    try {
+      const response = await fetch("/api/integrations/snapshots");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error ?? "Unable to load imported snapshots.");
+      }
+      const data = (await response.json()) as {
+        snapshots: NormalizedOfferPeriodSnapshot[];
+      };
+      setImportedSnapshots(data.snapshots ?? []);
+      setSnapshotsError(null);
+    } catch (err) {
+      setSnapshotsError(
+        err instanceof Error ? err.message : "Unknown snapshot error.",
+      );
+      setImportedSnapshots([]);
+    }
+  }, [sessionEmail]);
+
   useEffect(() => {
     void loadReports();
   }, [loadReports]);
@@ -170,14 +172,21 @@ export default function Home() {
     void loadSeries();
   }, [loadSeries]);
 
+  useEffect(() => {
+    void loadImportedSnapshots();
+  }, [loadImportedSnapshots]);
+
   const refreshReports = async () => {
-    await Promise.all([loadReports(), loadSeries()]);
+    await Promise.all([loadReports(), loadSeries(), loadImportedSnapshots()]);
   };
 
   const handleCalculate = async () => {
     const grossMarginError =
+      "grossProfitInputMode" in form &&
       (form.grossProfitInputMode ?? "margin") === "margin" &&
-      form.grossMargin != null && form.grossMargin > 1
+      "grossMargin" in form &&
+      form.grossMargin != null &&
+      form.grossMargin > 1
         ? "Gross margin cannot exceed 1.0 (100%)."
         : null;
     if (grossMarginError) {
@@ -226,42 +235,9 @@ export default function Home() {
   };
 
   const handleClear = () => {
-    setForm({
-      offerId: form.offerId,
-      offerName: form.offerName,
-      offerType: form.offerType,
-      analysisPeriod: form.analysisPeriod,
-      revenueInputMode: form.revenueInputMode ?? "total_revenue",
-      grossProfitInputMode: form.grossProfitInputMode ?? "margin",
-      cacInputMode: form.cacInputMode ?? "derived",
-      retentionInputMode: form.retentionInputMode ?? "counts",
-      revenuePerPeriod:
-        (form.revenueInputMode ?? "total_revenue") === "total_revenue"
-          ? 0
-          : undefined,
-      directArpc:
-        (form.revenueInputMode ?? "total_revenue") === "direct_arpc"
-          ? 0
-          : undefined,
-      grossMargin:
-        (form.grossProfitInputMode ?? "margin") === "margin" ? 0 : undefined,
-      deliveryCostPerCustomerPerPeriod:
-        (form.grossProfitInputMode ?? "margin") === "costs" ? 0 : undefined,
-      fixedDeliveryCostPerPeriod:
-        (form.grossProfitInputMode ?? "margin") === "costs" ? 0 : undefined,
-      marketingSpendPerPeriod:
-        (form.cacInputMode ?? "derived") === "derived" ? 0 : undefined,
-      directCac:
-        (form.cacInputMode ?? "derived") === "direct" ? 0 : undefined,
-      newCustomersPerPeriod: 0,
-      activeCustomersStart:
-        (form.retentionInputMode ?? "counts") === "counts" ||
-        (form.revenueInputMode ?? "total_revenue") === "total_revenue"
-          ? 0
-          : undefined,
-      directChurnRatePerPeriod:
-        (form.retentionInputMode ?? "counts") === "rate" ? 0 : undefined,
-    });
+    const reset = createDefaultOfferInput(form.offerType);
+    reset.analysisPeriod = form.analysisPeriod;
+    setForm(reset);
     setEvaluation(null);
     setWarnings([]);
     setError(null);
@@ -452,6 +428,8 @@ export default function Home() {
               onSelectReport={(id) => setSelectedReportId(id)}
               onRefresh={refreshReports}
               series={series}
+              importedSnapshots={importedSnapshots}
+              snapshotsError={snapshotsError}
               reportsError={reportsError}
               seriesError={seriesError}
               signInCta={<GitHubSignInButton callbackUrl="/" />}

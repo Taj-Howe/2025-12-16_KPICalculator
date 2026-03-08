@@ -66,16 +66,90 @@ export type SubscriptionOfferInput = {
   softwareConfig?: SoftwareTechConfig;
 };
 
+export type SoftwareOfferInputBase = {
+  offerId: string;
+  offerName: string;
+  analysisPeriod: KpiPeriod;
+  softwareConfig: SoftwareTechConfig;
+  newCustomersPerPeriod: number;
+  cacInputMode?: CacInputMode;
+  marketingSpendPerPeriod?: number;
+  directCac?: number;
+};
+
+export type SoftwarePaidPilotInput = SoftwareOfferInputBase & {
+  offerType: "software_paid_pilot";
+  pilotFeePerNewCustomer: number;
+  pilotDeliveryCostPerNewCustomer?: number;
+  pilotGrossMargin?: number;
+};
+
+export type SoftwareTokenPricingInput = SoftwareOfferInputBase & {
+  offerType: "software_token_pricing";
+  activeCustomersStart: number;
+  retentionInputMode?: RetentionInputMode;
+  directChurnRatePerPeriod?: number;
+  churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
+  usageUnitsPerCustomerPerPeriod: number;
+  pricePerUsageUnit: number;
+  costPerUsageUnit: number;
+  fixedDeliveryCostPerPeriod?: number;
+};
+
+export type SoftwareHybridPlatformUsageInput = SoftwareOfferInputBase & {
+  offerType: "software_hybrid_platform_usage";
+  activeCustomersStart: number;
+  retentionInputMode?: RetentionInputMode;
+  directChurnRatePerPeriod?: number;
+  churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
+  platformFeePerCustomerPerPeriod: number;
+  usageUnitsPerCustomerPerPeriod: number;
+  pricePerUsageUnit: number;
+  platformDeliveryCostPerCustomerPerPeriod?: number;
+  costPerUsageUnit?: number;
+  fixedDeliveryCostPerPeriod?: number;
+};
+
+export type SoftwareImplementationPlusSubscriptionInput = SoftwareOfferInputBase & {
+  offerType: "software_implementation_plus_subscription";
+  activeCustomersStart: number;
+  retentionInputMode?: RetentionInputMode;
+  directChurnRatePerPeriod?: number;
+  churnedCustomersPerPeriod?: number;
+  retainedCustomersFromStartAtEnd?: number;
+  directArpc: number;
+  grossProfitInputMode?: GrossProfitInputMode;
+  grossMargin?: number;
+  deliveryCostPerCustomerPerPeriod?: number;
+  fixedDeliveryCostPerPeriod?: number;
+  implementationFeePerNewCustomer: number;
+  implementationDeliveryCostPerNewCustomer?: number;
+  implementationGrossMargin?: number;
+};
+
 export type UnsupportedSoftwareTechOfferInput = {
   offerId: string;
   offerName: string;
-  offerType: Exclude<SoftwareTechOfferType, "software_subscription">;
+  offerType: Exclude<
+    SoftwareTechOfferType,
+    | "software_subscription"
+    | "software_paid_pilot"
+    | "software_token_pricing"
+    | "software_hybrid_platform_usage"
+    | "software_implementation_plus_subscription"
+  >;
   analysisPeriod: KpiPeriod;
   softwareConfig: SoftwareTechConfig;
 };
 
 export type OfferInput =
   | SubscriptionOfferInput
+  | SoftwarePaidPilotInput
+  | SoftwareTokenPricingInput
+  | SoftwareHybridPlatformUsageInput
+  | SoftwareImplementationPlusSubscriptionInput
   | UnsupportedSoftwareTechOfferInput;
 export type AnyKpiInput = KPIInput | OfferInput;
 

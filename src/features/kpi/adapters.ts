@@ -3,6 +3,7 @@ import type {
   KPIInput,
   KpiPeriod,
   OfferInput,
+  SoftwarePaidPilotInput,
   SubscriptionOfferInput,
 } from "./types";
 
@@ -24,6 +25,12 @@ export const isSubscriptionOfferInput = (
   );
 };
 
+export const isSoftwarePaidPilotInput = (
+  input: AnyKpiInput,
+): input is SoftwarePaidPilotInput => {
+  return isOfferInput(input) && input.offerType === "software_paid_pilot";
+};
+
 export const getInputPeriod = (input: AnyKpiInput): KpiPeriod => {
   return isLegacyKpiInput(input) ? input.period : input.analysisPeriod;
 };
@@ -33,7 +40,11 @@ export const getInputModelLabel = (input: AnyKpiInput): string => {
     return input.businessModel;
   }
 
-  if (isSubscriptionOfferInput(input) && input.softwareConfig?.industryPreset === "software_tech") {
+  if (
+    isOfferInput(input) &&
+    "softwareConfig" in input &&
+    input.softwareConfig?.industryPreset === "software_tech"
+  ) {
     return input.softwareConfig.monetizationModel;
   }
 

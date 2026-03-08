@@ -14,7 +14,7 @@ import {
   transactionalChurnRate,
 } from "./formulas";
 import { evaluateOffer } from "./offer-evaluator";
-import { isLegacyKpiInput, isSubscriptionOfferInput } from "./adapters";
+import { isLegacyKpiInput, isOfferInput } from "./adapters";
 import type {
   AnyKpiInput,
   CalculationVersion,
@@ -225,7 +225,7 @@ const evaluateLegacyKpis = (
 export const evaluateKpis = (payload: unknown): KpiEvaluation => {
   const parsed = kpiInputSchema.parse(payload) as AnyKpiInput;
 
-  if (isSubscriptionOfferInput(parsed)) {
+  if (isOfferInput(parsed)) {
     const offerEvaluation = evaluateOffer(parsed);
     return {
       inputs: parsed,

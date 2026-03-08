@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { KPIResult, SubscriptionOfferInput } from "@/features/kpi/types";
+import type { KPIResult } from "@/features/kpi/types";
+import type { KPIInputState } from "./types";
 import { formatMoney, formatPercent, formatRatio } from "./formatters";
 import { panelClassName } from "./form-primitives";
 
@@ -51,8 +52,11 @@ const MetricRow = ({
 const CustomerBridge = ({
   inputs,
 }: {
-  inputs: SubscriptionOfferInput;
+  inputs: KPIInputState;
 }) => {
+  if (!("activeCustomersStart" in inputs)) {
+    return null;
+  }
   const start = inputs.activeCustomersStart ?? null;
   const newCustomers = inputs.newCustomersPerPeriod ?? null;
   const derivedChurned =
@@ -105,7 +109,7 @@ const ResultsSections = ({
 }: {
   results: KPIResult | null;
   warnings: string[];
-  inputs: SubscriptionOfferInput;
+  inputs: KPIInputState;
 }) => {
   return (
     <div className="space-y-4">

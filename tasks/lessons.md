@@ -17,3 +17,7 @@
 - Make tab boundaries match the job-to-be-done. Keep `Offer Inputs` focused on entering and running the scenario, and put decision output alongside reports/history instead of splitting one workflow across two tabs.
 - When planning analysis features, specify the export surface up front. If the product will generate recommendations or sensitivity runs, define the structured data users should be able to export for CSV/API/reporting instead of treating export as an afterthought.
 - Dashboard charts need real axes, not just decorative lines. Add Y-axis units and anchor the first/last X-axis labels to the edges so the chart reads like an analytical tool instead of a loose visual.
+- When expanding monetization models, normalize acquisition, recurring economics, and one-time economics first. Do not branch raw KPI formulas directly on every new offer type or the evaluator will become untestable.
+- For mixed one-time plus recurring offers, keep `ARPC` and churn tied only to the recurring side. Blend the one-time economics into `LTV`, `LTGP`, payback, and annual totals, or the labels will become misleading.
+- When swapping large input surfaces in place, preserve scroll position and clear focus before replacing the active control. Otherwise the browser can jump the viewport as the focused element disappears.
+- When future industries are not implemented yet, stage them in the selector without pretending they are actionable. Keep the active industry explicit and the available path obvious.

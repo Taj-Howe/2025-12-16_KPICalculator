@@ -2,11 +2,16 @@
 
 import { useMemo } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import type { SubscriptionOfferInput } from "@/features/kpi/types";
-import type { KpiInputPanelProps } from "./types";
-import { parsePercentInput, percentInputValue, percentText } from "./percent";
-import OfferModeSwitch from "./OfferModeSwitch";
-import OfferTypePills from "./OfferTypePills";
+import type {
+  GrossProfitInputMode,
+  RetentionInputMode,
+  SoftwareHybridPlatformUsageInput,
+  SoftwareImplementationPlusSubscriptionInput,
+  SoftwarePaidPilotInput,
+  SoftwareTokenPricingInput,
+  SubscriptionOfferInput,
+} from "@/features/kpi/types";
+import type { KpiInputPanelProps, KPIInputState, SupportedSoftwareOfferType } from "./types";
 import {
   ChoiceCard,
   FieldBlock,
@@ -15,27 +20,10 @@ import {
   panelClassName,
   pillClassName,
 } from "./form-primitives";
-
-const defaultSoftwareConfig = {
-  industryPreset: "software_tech" as const,
-  monetizationModel: "subscription_seat_based" as const,
-  revenueComponents: [
-    {
-      componentType: "platform_subscription" as const,
-      label: "Core platform subscription",
-      pricingMetric: "workspace" as const,
-    },
-  ],
-  goToMarketMotion: "sales_led" as const,
-};
-
-type NumericFieldName = "newCustomersPerPeriod";
-type NumericField = {
-  label: string;
-  name: NumericFieldName;
-  formatted: string;
-  step?: string;
-};
+import { parsePercentInput, percentInputValue, percentText } from "./percent";
+import OfferModeSwitch from "./OfferModeSwitch";
+import OfferTypePills from "./OfferTypePills";
+import { createDefaultOfferInput } from "./types";
 
 const KpiInputPanel = ({
   value,
@@ -43,80 +31,98 @@ const KpiInputPanel = ({
   onCalculate,
   isCalculating,
 }: KpiInputPanelProps) => {
-  const calculatorMode = value.calculatorMode ?? "business_metrics";
-  const churnInputMode =
-    value.churnedCustomersPerPeriod != null &&
-    value.retainedCustomersFromStartAtEnd == null
-      ? "churned"
-      : "retained";
-  const grossProfitInputMode = value.grossProfitInputMode ?? "margin";
-  const showActiveCustomersStart = calculatorMode === "business_metrics";
-
+  const fieldClass = fieldClassName;
+  const panelClass = panelClassName;
   const periodLabel = `${value.analysisPeriod} period`;
-
+  const isSubscription = value.offerType === "software_subscription";
+  const isPaidPilot = value.offerType === "software_paid_pilot";
+  const isTokenPricing = value.offerType === "software_token_pricing";
+  const isHybrid = value.offerType === "software_hybrid_platform_usage";
+  const isImplementation =
+    value.offerType === "software_implementation_plus_subscription";
+  const calculatorMode =
+    isSubscription ? value.calculatorMode ?? "business_metrics" : null;
+  const cacInputMode = value.cacInputMode ?? "derived";
   const usd = useMemo(
     () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
     [],
   );
   const intFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        maximumFractionDigits: 0,
-      }),
+    () => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }),
     [],
   );
 
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
-  const displayInt = (val?: number) =>
-    val == null ? "-" : intFormatter.format(val);
-  const fieldClass = fieldClassName;
-  const panelClass = panelClassName;
+  const displayInt = (val?: number) => (val == null ? "-" : intFormatter.format(val));
+
+  const setValue = (patch: Partial<KPIInputState>) => {
+    onChange({ ...value, ...patch } as KPIInputState);
+  };
+
+  const preserveScrollDuring = (work: () => void) => {
+    if (typeof window === "undefined") {
+      work();
+      return;
+    }
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+
+    work();
+
+    requestAnimationFrame(() => {
+      window.scrollTo(scrollX, scrollY);
+      requestAnimationFrame(() => {
+        window.scrollTo(scrollX, scrollY);
+      });
+    });
+  };
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
-    const parseValue = () => {
-      if (
-        name === "analysisPeriod" ||
-        name === "offerName" ||
-        name === "offerId" ||
-        name === "revenueInputMode" ||
-        name === "calculatorMode"
-      ) {
-        return nextValue;
-      }
-      if (nextValue === "") {
-        return undefined;
-      }
-      const numeric = Number(nextValue);
-      if (Number.isNaN(numeric)) {
-        return undefined;
-      }
-      if (name === "grossMargin" || name === "directChurnRatePerPeriod") {
-        return parsePercentInput(nextValue);
-      }
-      return numeric;
-    };
-
-    onChange({
-      ...value,
-      [name]: parseValue(),
-    });
+    const stringFields = new Set(["analysisPeriod", "offerName", "offerId", "calculatorMode"]);
+    if (stringFields.has(name)) {
+      setValue({ [name]: nextValue } as Partial<KPIInputState>);
+      return;
+    }
+    if (nextValue === "") {
+      setValue({ [name]: undefined } as Partial<KPIInputState>);
+      return;
+    }
+    if (
+      name === "grossMargin" ||
+      name === "directChurnRatePerPeriod" ||
+      name === "pilotGrossMargin" ||
+      name === "implementationGrossMargin"
+    ) {
+      setValue({ [name]: parsePercentInput(nextValue) } as Partial<KPIInputState>);
+      return;
+    }
+    const numeric = Number(nextValue);
+    if (!Number.isNaN(numeric)) {
+      setValue({ [name]: numeric } as Partial<KPIInputState>);
+    }
   };
 
-  const setOfferType = (offerType: SubscriptionOfferInput["offerType"]) => {
-    onChange({
-      ...value,
-      offerType,
-      softwareConfig:
-        offerType === "software_subscription"
-          ? value.softwareConfig ?? defaultSoftwareConfig
-          : value.softwareConfig,
+  const setOfferType = (offerType: SupportedSoftwareOfferType) => {
+    const next = createDefaultOfferInput(offerType);
+    next.analysisPeriod = value.analysisPeriod;
+    preserveScrollDuring(() => {
+      onChange(next);
     });
   };
 
   const setCalculatorMode = (mode: "unit_economics" | "business_metrics") => {
+    if (!isSubscription) {
+      return;
+    }
     if (mode === "unit_economics") {
       onChange({
         ...value,
@@ -137,7 +143,10 @@ const KpiInputPanel = ({
     });
   };
 
-  const setChurnMode = (mode: "retained" | "churned") => {
+  const setSubscriptionChurnMode = (mode: "retained" | "churned") => {
+    if (!isSubscription) {
+      return;
+    }
     if (mode === "retained") {
       onChange({
         ...value,
@@ -145,275 +154,132 @@ const KpiInputPanel = ({
       });
       return;
     }
-
     onChange({
       ...value,
       retainedCustomersFromStartAtEnd: undefined,
     });
   };
 
-  const setGrossProfitMode = (mode: "margin" | "costs") => {
-    onChange({
-      ...value,
+  const setRecurringGrossProfitMode = (mode: GrossProfitInputMode) => {
+    if (!isSubscription && !isImplementation) {
+      return;
+    }
+    setValue({
       grossProfitInputMode: mode,
-      grossMargin: mode === "margin" ? value.grossMargin : undefined,
+      grossMargin:
+        mode === "margin" && "grossMargin" in value ? value.grossMargin : undefined,
       deliveryCostPerCustomerPerPeriod:
-        mode === "costs" ? value.deliveryCostPerCustomerPerPeriod : undefined,
+        mode === "costs" && "deliveryCostPerCustomerPerPeriod" in value
+          ? value.deliveryCostPerCustomerPerPeriod
+          : undefined,
       fixedDeliveryCostPerPeriod:
-        mode === "costs" ? value.fixedDeliveryCostPerPeriod : undefined,
+        mode === "costs" && "fixedDeliveryCostPerPeriod" in value
+          ? value.fixedDeliveryCostPerPeriod
+          : undefined,
     });
   };
 
-  const grossMarginError =
-    grossProfitInputMode === "margin" &&
-    value.grossMargin != null &&
-    value.grossMargin > 1
-      ? "Gross margin cannot exceed 100%."
-      : null;
+  const setCacMode = (mode: "derived" | "direct") => {
+    setValue({
+      cacInputMode: mode,
+      marketingSpendPerPeriod:
+        mode === "derived" && "marketingSpendPerPeriod" in value
+          ? value.marketingSpendPerPeriod
+          : undefined,
+      directCac:
+        mode === "direct" && "directCac" in value ? value.directCac : undefined,
+    });
+  };
+
+  const setRecurringRetentionMode = (mode: RetentionInputMode) => {
+    if (!isTokenPricing && !isHybrid && !isImplementation) {
+      return;
+    }
+    setValue({
+      retentionInputMode: mode,
+      directChurnRatePerPeriod:
+        mode === "rate" && "directChurnRatePerPeriod" in value
+          ? value.directChurnRatePerPeriod
+          : undefined,
+      retainedCustomersFromStartAtEnd:
+        mode === "counts" && "retainedCustomersFromStartAtEnd" in value
+          ? value.retainedCustomersFromStartAtEnd
+          : undefined,
+      churnedCustomersPerPeriod:
+        mode === "counts" && "churnedCustomersPerPeriod" in value
+          ? value.churnedCustomersPerPeriod
+          : undefined,
+    });
+  };
+
+  const setImplementationProfitMode = (mode: "margin" | "costs") => {
+    if (!isImplementation) {
+      return;
+    }
+    if (mode === "margin") {
+      onChange({
+        ...value,
+        implementationDeliveryCostPerNewCustomer: undefined,
+      });
+      return;
+    }
+    onChange({
+      ...value,
+      implementationGrossMargin: undefined,
+    });
+  };
+
+  const setPilotProfitMode = (mode: "margin" | "costs") => {
+    if (!isPaidPilot) {
+      return;
+    }
+    if (mode === "margin") {
+      onChange({
+        ...value,
+        pilotDeliveryCostPerNewCustomer: undefined,
+      });
+      return;
+    }
+    onChange({
+      ...value,
+      pilotGrossMargin: undefined,
+    });
+  };
+
+  const subscriptionChurnMode =
+    isSubscription &&
+    value.churnedCustomersPerPeriod != null &&
+    value.retainedCustomersFromStartAtEnd == null
+      ? "churned"
+      : "retained";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (grossMarginError) {
-      return;
-    }
     void onCalculate();
   };
 
-  const numericFields: NumericField[] = [
-    {
-      label:
-        calculatorMode === "unit_economics"
-          ? `Sales Velocity / New Customers (per ${periodLabel})`
-          : `New Customers (per ${periodLabel})`,
-      name: "newCustomersPerPeriod",
-      formatted: displayInt(value.newCustomersPerPeriod),
-    },
-  ];
+  const renderCacSection = () => (
+    <div className={panelClass}>
+      <p className="font-medium">Customer acquisition input</p>
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <ChoiceCard
+          checked={cacInputMode === "derived"}
+          title="Derive from spend"
+          description="Enter acquisition spend for the period and let the app derive CAC."
+          onSelect={() => setCacMode("derived")}
+        />
+        <ChoiceCard
+          checked={cacInputMode === "direct"}
+          title="Use direct CAC"
+          description="Best when you already know cost to acquire each new customer."
+          onSelect={() => setCacMode("direct")}
+        />
+      </div>
 
-  return (
-      <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <FieldBlock label="Offer name">
-            <input
-              type="text"
-              name="offerName"
-              value={value.offerName}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-
+      <div className="mt-4">
+        {cacInputMode === "derived" ? (
           <FieldBlock
-            label="Offer ID"
-            helper="Stable key for this offer in saved reports."
-          >
-            <input
-              type="text"
-              name="offerId"
-              value={value.offerId}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        </div>
-
-        <OfferTypePills value={value.offerType} onChange={setOfferType} />
-
-        <FieldBlock label="Analysis period">
-          <SelectField
-            name="analysisPeriod"
-            value={value.analysisPeriod}
-            onChange={handleChange}
-          >
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="yearly">Yearly</option>
-          </SelectField>
-        </FieldBlock>
-
-        <div className={`${panelClass} text-sm text-white/74`}>
-          <p className="font-medium">Start With Four Core Levers</p>
-          <p className="mt-1">
-            Keep this simple: sales velocity, churn, gross profit per customer,
-            and acquisition cost.
-          </p>
-        </div>
-
-        <OfferModeSwitch value={calculatorMode} onChange={setCalculatorMode} />
-
-        {calculatorMode === "business_metrics" ? (
-          <FieldBlock
-            label={`Current Revenue Run Rate (per ${periodLabel})`}
-            helper={`Formatted: ${displayMoney(value.revenuePerPeriod)}`}
-          >
-            <input
-              type="number"
-              name="revenuePerPeriod"
-              value={value.revenuePerPeriod ?? ""}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        ) : (
-          <FieldBlock
-            label={`Subscription price / ARPC (per ${periodLabel})`}
-            helper={
-              <>
-                <span>Example: enter 3000 for one $3,000/month subscription.</span>
-                <br />
-                <span>Formatted: {displayMoney(value.directArpc)}</span>
-              </>
-            }
-          >
-            <input
-              type="number"
-              name="directArpc"
-              value={value.directArpc ?? ""}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        )}
-
-        {numericFields.map((field) => (
-          <FieldBlock
-            key={field.name}
-            label={field.label}
-            helper={`Formatted: ${field.formatted}`}
-          >
-            <input
-              type="number"
-              name={field.name}
-              value={value[field.name] ?? ""}
-              step={field.step}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        ))}
-
-        {showActiveCustomersStart && (
-          <FieldBlock
-            label="Starting Customer Base"
-            helper={
-              <>
-                <span>
-                  Required for cohort-count churn and for deriving ARPC from total
-                  revenue.
-                </span>
-                <br />
-                <span>Formatted: {displayInt(value.activeCustomersStart)}</span>
-              </>
-            }
-          >
-            <input
-              type="number"
-              name="activeCustomersStart"
-              value={value.activeCustomersStart ?? ""}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        )}
-
-        <div className={panelClass}>
-          <p className="font-medium">Gross profit input</p>
-          <p className="mt-1 text-sm text-white/58">
-            Use gross margin if you know the margin percentage. Use delivery
-            costs if you know the cost to serve each subscription.
-          </p>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            <ChoiceCard
-              checked={grossProfitInputMode === "margin"}
-              title="Use gross margin %"
-              description="Best when you already know the gross margin profile."
-              onSelect={() => setGrossProfitMode("margin")}
-            />
-            <ChoiceCard
-              checked={grossProfitInputMode === "costs"}
-              title="Use delivery costs"
-              description="Best when cost to serve is easier than margin %."
-              onSelect={() => setGrossProfitMode("costs")}
-            />
-          </div>
-        </div>
-
-        {grossProfitInputMode === "margin" ? (
-          <FieldBlock
-            label="Gross Margin (%)"
-            helper={
-              <>
-                <span>Before acquisition cost. Example: 70 = 70%.</span>
-                <br />
-                <span>Formatted: {percentText(value.grossMargin)}</span>
-              </>
-            }
-          >
-            <input
-              type="number"
-              name="grossMargin"
-              value={percentInputValue(value.grossMargin)}
-              step="0.1"
-              onChange={handleChange}
-              className={fieldClass}
-            />
-            {grossMarginError && (
-              <span className="text-sm text-white/66">{grossMarginError}</span>
-            )}
-          </FieldBlock>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <FieldBlock
-              label={`Delivery cost per active customer (per ${periodLabel})`}
-              helper={
-                <>
-                  <span>
-                    Example: monthly AI token cost, fulfillment, or support cost per
-                    active subscription.
-                  </span>
-                  <br />
-                  <span>
-                    Formatted: {displayMoney(value.deliveryCostPerCustomerPerPeriod)}
-                  </span>
-                </>
-              }
-            >
-              <input
-                type="number"
-                name="deliveryCostPerCustomerPerPeriod"
-                value={value.deliveryCostPerCustomerPerPeriod ?? ""}
-                onChange={handleChange}
-                className={fieldClass}
-              />
-            </FieldBlock>
-
-            <FieldBlock
-              label={`Fixed delivery cost (optional, per ${periodLabel})`}
-              helper={
-                <>
-                  <span>
-                    Shared infrastructure or software cost allocated across active
-                    customers.
-                  </span>
-                  <br />
-                  <span>Formatted: {displayMoney(value.fixedDeliveryCostPerPeriod)}</span>
-                </>
-              }
-            >
-              <input
-                type="number"
-                name="fixedDeliveryCostPerPeriod"
-                value={value.fixedDeliveryCostPerPeriod ?? ""}
-                onChange={handleChange}
-                className={fieldClass}
-              />
-            </FieldBlock>
-          </div>
-        )}
-
-        {calculatorMode === "business_metrics" ? (
-          <FieldBlock
-            label={`Customer Acquisition Spend (per ${periodLabel})`}
+            label={`Customer acquisition spend (per ${periodLabel})`}
             helper={`Formatted: ${displayMoney(value.marketingSpendPerPeriod)}`}
           >
             <input
@@ -427,16 +293,7 @@ const KpiInputPanel = ({
         ) : (
           <FieldBlock
             label="Direct CAC"
-            helper={
-              <>
-                <span>
-                  Use this if you already know customer acquisition cost and do not
-                  want to back it out from spend.
-                </span>
-                <br />
-                <span>Formatted: {displayMoney(value.directCac)}</span>
-              </>
-            }
+            helper={`Formatted: ${displayMoney(value.directCac)}`}
           >
             <input
               type="number"
@@ -447,117 +304,807 @@ const KpiInputPanel = ({
             />
           </FieldBlock>
         )}
+      </div>
+    </div>
+  );
 
-        {calculatorMode === "business_metrics" && (
-          <div className={`${panelClass} space-y-3`}>
-            <p className="font-medium">
-              How do you want to input churn from the starting cohort?
-            </p>
-            <div className="grid gap-2 md:grid-cols-2">
-              <ChoiceCard
-                checked={churnInputMode === "retained"}
-                title="I know how many starting customers remained"
-                description="Use retained cohort counts from the opening customer base."
-                onSelect={() => setChurnMode("retained")}
-              />
-              <ChoiceCard
-                checked={churnInputMode === "churned"}
-                title="I know how many starting customers churned"
-                description="Use direct churn counts for the same cohort."
-                onSelect={() => setChurnMode("churned")}
-              />
-            </div>
-          </div>
-        )}
+  const renderRetentionSection = (
+    current:
+      | SoftwareTokenPricingInput
+      | SoftwareHybridPlatformUsageInput
+      | SoftwareImplementationPlusSubscriptionInput,
+  ) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">Retention input</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <ChoiceCard
+            checked={(current.retentionInputMode ?? "counts") === "counts"}
+            title="Use cohort counts"
+            description="Start customers plus retained or churned cohort counts."
+            onSelect={() => setRecurringRetentionMode("counts")}
+          />
+          <ChoiceCard
+            checked={(current.retentionInputMode ?? "counts") === "rate"}
+            title="Use direct churn rate"
+            description="Enter churn directly when that is easier than tracking counts."
+            onSelect={() => setRecurringRetentionMode("rate")}
+          />
+        </div>
+      </div>
 
-        {calculatorMode === "unit_economics" ? (
-          <FieldBlock
-            label={`Churn rate per ${periodLabel} (%)`}
-            helper={
-              <>
-                <span>Example: enter 10 for a 10% monthly churn rate.</span>
-                <br />
-                <span>Formatted: {percentText(value.directChurnRatePerPeriod)}</span>
-              </>
-            }
-          >
-            <input
-              type="number"
-              name="directChurnRatePerPeriod"
-              value={percentInputValue(value.directChurnRatePerPeriod)}
-              step="0.1"
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </FieldBlock>
-        ) : churnInputMode === "retained" ? (
+      <FieldBlock
+        label="Starting customer base"
+        helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
+      >
+        <input
+          type="number"
+          name="activeCustomersStart"
+          value={current.activeCustomersStart ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      {(current.retentionInputMode ?? "counts") === "rate" ? (
+        <FieldBlock
+          label={`Churn rate per ${periodLabel} (%)`}
+          helper={`Formatted: ${percentText(current.directChurnRatePerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="directChurnRatePerPeriod"
+            value={percentInputValue(current.directChurnRatePerPeriod)}
+            step="0.1"
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
           <FieldBlock
             label="Customers from start still active at end"
-            helper={
-              <>
-                <span>
-                  Cohort retention only for the customers you had at the start of
-                  the period.
-                </span>
-                <br />
-                <span>Formatted: {displayInt(value.retainedCustomersFromStartAtEnd)}</span>
-              </>
-            }
+            helper={`Formatted: ${displayInt(current.retainedCustomersFromStartAtEnd)}`}
           >
             <input
               type="number"
               name="retainedCustomersFromStartAtEnd"
-              value={value.retainedCustomersFromStartAtEnd ?? ""}
+              value={current.retainedCustomersFromStartAtEnd ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+
+          <FieldBlock
+            label="Churned customers per period (optional)"
+            helper={`Formatted: ${displayInt(current.churnedCustomersPerPeriod)}`}
+          >
+            <input
+              type="number"
+              name="churnedCustomersPerPeriod"
+              value={current.churnedCustomersPerPeriod ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        </div>
+      )}
+    </>
+  );
+
+  const renderSubscriptionFields = (current: SubscriptionOfferInput) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">Subscription model</p>
+        <p className="mt-1 text-sm text-white/58">
+          Keep this simple: sales velocity, churn, gross profit per customer, and
+          acquisition cost.
+        </p>
+      </div>
+
+      <OfferModeSwitch
+        value={calculatorMode ?? "business_metrics"}
+        onChange={setCalculatorMode}
+      />
+
+      {calculatorMode === "business_metrics" ? (
+        <FieldBlock
+          label={`Current revenue run rate (per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.revenuePerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="revenuePerPeriod"
+            value={current.revenuePerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      ) : (
+        <FieldBlock
+          label={`Subscription price / ARPC (per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.directArpc)}`}
+        >
+          <input
+            type="number"
+            name="directArpc"
+            value={current.directArpc ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      )}
+
+      <FieldBlock
+        label={
+          calculatorMode === "unit_economics"
+            ? `Sales velocity / new customers (per ${periodLabel})`
+            : `New customers (per ${periodLabel})`
+        }
+        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="newCustomersPerPeriod"
+          value={current.newCustomersPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      {calculatorMode === "business_metrics" && (
+        <FieldBlock
+          label="Starting customer base"
+          helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
+        >
+          <input
+            type="number"
+            name="activeCustomersStart"
+            value={current.activeCustomersStart ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      )}
+
+      <div className={panelClass}>
+        <p className="font-medium">Gross profit input</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <ChoiceCard
+            checked={(current.grossProfitInputMode ?? "margin") === "margin"}
+            title="Use gross margin %"
+            description="Best when you already know the recurring margin profile."
+            onSelect={() => setRecurringGrossProfitMode("margin")}
+          />
+          <ChoiceCard
+            checked={(current.grossProfitInputMode ?? "margin") === "costs"}
+            title="Use delivery costs"
+            description="Best when service cost is easier than margin %."
+            onSelect={() => setRecurringGrossProfitMode("costs")}
+          />
+        </div>
+      </div>
+
+      {(current.grossProfitInputMode ?? "margin") === "margin" ? (
+        <FieldBlock
+          label="Gross margin (%)"
+          helper={`Formatted: ${percentText(current.grossMargin)}`}
+        >
+          <input
+            type="number"
+            name="grossMargin"
+            value={percentInputValue(current.grossMargin)}
+            step="0.1"
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          <FieldBlock
+            label={`Delivery cost per active customer (per ${periodLabel})`}
+            helper={`Formatted: ${displayMoney(current.deliveryCostPerCustomerPerPeriod)}`}
+          >
+            <input
+              type="number"
+              name="deliveryCostPerCustomerPerPeriod"
+              value={current.deliveryCostPerCustomerPerPeriod ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+          <FieldBlock
+            label={`Fixed delivery cost (optional, per ${periodLabel})`}
+            helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+          >
+            <input
+              type="number"
+              name="fixedDeliveryCostPerPeriod"
+              value={current.fixedDeliveryCostPerPeriod ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        </div>
+      )}
+
+      {renderCacSection()}
+
+      {calculatorMode === "unit_economics" ? (
+        <FieldBlock
+          label={`Churn rate per ${periodLabel} (%)`}
+          helper={`Formatted: ${percentText(current.directChurnRatePerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="directChurnRatePerPeriod"
+            value={percentInputValue(current.directChurnRatePerPeriod)}
+            step="0.1"
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      ) : (
+        <>
+          <div className={panelClass}>
+            <p className="font-medium">Cohort churn input</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              <ChoiceCard
+                checked={subscriptionChurnMode === "retained"}
+                title="Use retained customers"
+                description="Track how many starting customers are still active."
+                onSelect={() => setSubscriptionChurnMode("retained")}
+              />
+              <ChoiceCard
+                checked={subscriptionChurnMode === "churned"}
+                title="Use churned customers"
+                description="Track how many starting customers left in the period."
+                onSelect={() => setSubscriptionChurnMode("churned")}
+              />
+            </div>
+          </div>
+
+          {subscriptionChurnMode === "retained" ? (
+            <FieldBlock
+              label="Customers from start still active at end"
+              helper={`Formatted: ${displayInt(current.retainedCustomersFromStartAtEnd)}`}
+            >
+              <input
+                type="number"
+                name="retainedCustomersFromStartAtEnd"
+                value={current.retainedCustomersFromStartAtEnd ?? ""}
+                onChange={handleChange}
+                className={fieldClass}
+              />
+            </FieldBlock>
+          ) : (
+            <FieldBlock
+              label="Churned customers per period"
+              helper={`Formatted: ${displayInt(current.churnedCustomersPerPeriod)}`}
+            >
+              <input
+                type="number"
+                name="churnedCustomersPerPeriod"
+                value={current.churnedCustomersPerPeriod ?? ""}
+                onChange={handleChange}
+                className={fieldClass}
+              />
+            </FieldBlock>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  const renderPaidPilotFields = (current: SoftwarePaidPilotInput) => {
+    const pilotProfitMode =
+      current.pilotGrossMargin != null || current.pilotDeliveryCostPerNewCustomer == null
+        ? "margin"
+        : "costs";
+    return (
+      <>
+        <div className={panelClass}>
+          <p className="font-medium">Paid pilot model</p>
+          <p className="mt-1 text-sm text-white/58">
+            Use this for a one-time pilot or proof of concept before the recurring
+            contract starts.
+          </p>
+        </div>
+
+        <FieldBlock
+          label={`New pilots sold (per ${periodLabel})`}
+          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="newCustomersPerPeriod"
+            value={current.newCustomersPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <FieldBlock
+          label="Pilot fee per new customer"
+          helper={`Formatted: ${displayMoney(current.pilotFeePerNewCustomer)}`}
+        >
+          <input
+            type="number"
+            name="pilotFeePerNewCustomer"
+            value={current.pilotFeePerNewCustomer ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <div className={panelClass}>
+          <p className="font-medium">Pilot gross profit input</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={pilotProfitMode === "margin"}
+              title="Use pilot gross margin %"
+              description="Best when you know the pilot margin profile."
+              onSelect={() => setPilotProfitMode("margin")}
+            />
+            <ChoiceCard
+              checked={pilotProfitMode === "costs"}
+              title="Use pilot delivery cost"
+              description="Best when you know the cost to deliver each pilot."
+              onSelect={() => setPilotProfitMode("costs")}
+            />
+          </div>
+        </div>
+
+        {pilotProfitMode === "margin" ? (
+          <FieldBlock
+            label="Pilot gross margin (%)"
+            helper={`Formatted: ${percentText(current.pilotGrossMargin)}`}
+          >
+            <input
+              type="number"
+              name="pilotGrossMargin"
+              value={percentInputValue(current.pilotGrossMargin)}
+              step="0.1"
               onChange={handleChange}
               className={fieldClass}
             />
           </FieldBlock>
         ) : (
           <FieldBlock
-            label="Churned customers per period"
-            helper={
-              <>
-                <span>
-                  Use this if you track churn directly instead of retained cohort
-                  counts.
-                </span>
-                <br />
-                <span>Formatted: {displayInt(value.churnedCustomersPerPeriod)}</span>
-              </>
-            }
+            label="Pilot delivery cost per new customer"
+            helper={`Formatted: ${displayMoney(current.pilotDeliveryCostPerNewCustomer)}`}
           >
             <input
               type="number"
-              name="churnedCustomersPerPeriod"
-              value={value.churnedCustomersPerPeriod ?? ""}
+              name="pilotDeliveryCostPerNewCustomer"
+              value={current.pilotDeliveryCostPerNewCustomer ?? ""}
               onChange={handleChange}
               className={fieldClass}
             />
           </FieldBlock>
         )}
 
-        <p className="text-sm text-white/58">
-          Subscription end customers are derived as start customers + new
-          customers - churned customers when a starting customer base is
-          provided.
-        </p>
-        <p className="text-sm text-white/58">
-          For single-unit economics, set revenue to the subscription price, use
-          sales velocity for subscriptions sold in the period, and use direct
-          CAC, delivery costs, or direct churn rate if those are easier to
-          estimate than top-down totals.
-        </p>
+        {renderCacSection()}
+      </>
+    );
+  };
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className={`${pillClassName} px-4 py-2 disabled:opacity-50 disabled:hover:border-white/15 disabled:hover:bg-white/[0.018] disabled:hover:text-white`}
-            disabled={isCalculating}
-          >
-            {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
-          </button>
+  const renderTokenFields = (current: SoftwareTokenPricingInput) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">Token usage model</p>
+        <p className="mt-1 text-sm text-white/58">
+          Revenue and gross profit are derived from usage per customer and token
+          unit economics.
+        </p>
+      </div>
+
+      <FieldBlock
+        label={`New customers (per ${periodLabel})`}
+        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="newCustomersPerPeriod"
+          value={current.newCustomersPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      {renderCacSection()}
+      {renderRetentionSection(current)}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock
+          label={`Usage units per customer (per ${periodLabel})`}
+          helper={`Formatted: ${displayInt(current.usageUnitsPerCustomerPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="usageUnitsPerCustomerPerPeriod"
+            value={current.usageUnitsPerCustomerPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label="Price per usage unit"
+          helper={`Formatted: ${displayMoney(current.pricePerUsageUnit)}`}
+        >
+          <input
+            type="number"
+            name="pricePerUsageUnit"
+            value={current.pricePerUsageUnit ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock
+          label="Cost per usage unit"
+          helper={`Formatted: ${displayMoney(current.costPerUsageUnit)}`}
+        >
+          <input
+            type="number"
+            name="costPerUsageUnit"
+            value={current.costPerUsageUnit ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label={`Fixed delivery cost (optional, per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="fixedDeliveryCostPerPeriod"
+            value={current.fixedDeliveryCostPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+    </>
+  );
+
+  const renderHybridFields = (current: SoftwareHybridPlatformUsageInput) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">Platform + usage model</p>
+        <p className="mt-1 text-sm text-white/58">
+          Blend a base platform fee with usage-based revenue for each active customer.
+        </p>
+      </div>
+
+      <FieldBlock
+        label={`New customers (per ${periodLabel})`}
+        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="newCustomersPerPeriod"
+          value={current.newCustomersPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      {renderCacSection()}
+      {renderRetentionSection(current)}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock
+          label={`Platform fee per customer (per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.platformFeePerCustomerPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="platformFeePerCustomerPerPeriod"
+            value={current.platformFeePerCustomerPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label={`Platform delivery cost per customer (optional, per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.platformDeliveryCostPerCustomerPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="platformDeliveryCostPerCustomerPerPeriod"
+            value={current.platformDeliveryCostPerCustomerPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <FieldBlock
+          label={`Usage units per customer (per ${periodLabel})`}
+          helper={`Formatted: ${displayInt(current.usageUnitsPerCustomerPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="usageUnitsPerCustomerPerPeriod"
+            value={current.usageUnitsPerCustomerPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label="Price per usage unit"
+          helper={`Formatted: ${displayMoney(current.pricePerUsageUnit)}`}
+        >
+          <input
+            type="number"
+            name="pricePerUsageUnit"
+            value={current.pricePerUsageUnit ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label="Cost per usage unit (optional)"
+          helper={`Formatted: ${displayMoney(current.costPerUsageUnit)}`}
+        >
+          <input
+            type="number"
+            name="costPerUsageUnit"
+            value={current.costPerUsageUnit ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      <FieldBlock
+        label={`Fixed delivery cost (optional, per ${periodLabel})`}
+        helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="fixedDeliveryCostPerPeriod"
+          value={current.fixedDeliveryCostPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+    </>
+  );
+
+  const renderImplementationFields = (
+    current: SoftwareImplementationPlusSubscriptionInput,
+  ) => {
+    const implementationProfitMode =
+      current.implementationGrossMargin != null ||
+      current.implementationDeliveryCostPerNewCustomer == null
+        ? "margin"
+        : "costs";
+    return (
+      <>
+        <div className={panelClass}>
+          <p className="font-medium">Implementation + recurring model</p>
+          <p className="mt-1 text-sm text-white/58">
+            Keep recurring subscription economics separate from the upfront
+            implementation project.
+          </p>
         </div>
-      </form>
+
+        <FieldBlock
+          label={`New customers (per ${periodLabel})`}
+          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="newCustomersPerPeriod"
+            value={current.newCustomersPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        {renderCacSection()}
+        {renderRetentionSection(current)}
+
+        <FieldBlock
+          label={`Recurring subscription ARPC (per ${periodLabel})`}
+          helper={`Formatted: ${displayMoney(current.directArpc)}`}
+        >
+          <input
+            type="number"
+            name="directArpc"
+            value={current.directArpc ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <div className={panelClass}>
+          <p className="font-medium">Recurring subscription gross profit input</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={(current.grossProfitInputMode ?? "margin") === "margin"}
+              title="Use recurring gross margin %"
+              description="Best when you already know the recurring margin profile."
+              onSelect={() => setRecurringGrossProfitMode("margin")}
+            />
+            <ChoiceCard
+              checked={(current.grossProfitInputMode ?? "margin") === "costs"}
+              title="Use recurring delivery costs"
+              description="Best when you know the cost to serve each active account."
+              onSelect={() => setRecurringGrossProfitMode("costs")}
+            />
+          </div>
+        </div>
+
+        {(current.grossProfitInputMode ?? "margin") === "margin" ? (
+          <FieldBlock
+            label="Recurring gross margin (%)"
+            helper={`Formatted: ${percentText(current.grossMargin)}`}
+          >
+            <input
+              type="number"
+              name="grossMargin"
+              value={percentInputValue(current.grossMargin)}
+              step="0.1"
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <FieldBlock
+              label={`Recurring delivery cost per active customer (per ${periodLabel})`}
+              helper={`Formatted: ${displayMoney(current.deliveryCostPerCustomerPerPeriod)}`}
+            >
+              <input
+                type="number"
+                name="deliveryCostPerCustomerPerPeriod"
+                value={current.deliveryCostPerCustomerPerPeriod ?? ""}
+                onChange={handleChange}
+                className={fieldClass}
+              />
+            </FieldBlock>
+            <FieldBlock
+              label={`Fixed delivery cost (optional, per ${periodLabel})`}
+              helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+            >
+              <input
+                type="number"
+                name="fixedDeliveryCostPerPeriod"
+                value={current.fixedDeliveryCostPerPeriod ?? ""}
+                onChange={handleChange}
+                className={fieldClass}
+              />
+            </FieldBlock>
+          </div>
+        )}
+
+        <FieldBlock
+          label="Implementation fee per new customer"
+          helper={`Formatted: ${displayMoney(current.implementationFeePerNewCustomer)}`}
+        >
+          <input
+            type="number"
+            name="implementationFeePerNewCustomer"
+            value={current.implementationFeePerNewCustomer ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <div className={panelClass}>
+          <p className="font-medium">Implementation gross profit input</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={implementationProfitMode === "margin"}
+              title="Use implementation gross margin %"
+              description="Best when the onboarding project has a known margin profile."
+              onSelect={() => setImplementationProfitMode("margin")}
+            />
+            <ChoiceCard
+              checked={implementationProfitMode === "costs"}
+              title="Use implementation delivery cost"
+              description="Best when you know the cost to deliver each implementation."
+              onSelect={() => setImplementationProfitMode("costs")}
+            />
+          </div>
+        </div>
+
+        {implementationProfitMode === "margin" ? (
+          <FieldBlock
+            label="Implementation gross margin (%)"
+            helper={`Formatted: ${percentText(current.implementationGrossMargin)}`}
+          >
+            <input
+              type="number"
+              name="implementationGrossMargin"
+              value={percentInputValue(current.implementationGrossMargin)}
+              step="0.1"
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        ) : (
+          <FieldBlock
+            label="Implementation delivery cost per new customer"
+            helper={`Formatted: ${displayMoney(current.implementationDeliveryCostPerNewCustomer)}`}
+          >
+            <input
+              type="number"
+              name="implementationDeliveryCostPerNewCustomer"
+              value={current.implementationDeliveryCostPerNewCustomer ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock label="Offer name">
+          <input
+            type="text"
+            name="offerName"
+            value={value.offerName}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <FieldBlock
+          label="Offer ID"
+          helper="Stable key for this offer in saved reports."
+        >
+          <input
+            type="text"
+            name="offerId"
+            value={value.offerId}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      <OfferTypePills value={value.offerType} onChange={setOfferType} />
+
+      <FieldBlock label="Analysis period">
+        <SelectField
+          name="analysisPeriod"
+          value={value.analysisPeriod}
+          onChange={handleChange}
+        >
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="yearly">Yearly</option>
+        </SelectField>
+      </FieldBlock>
+
+      {isSubscription && renderSubscriptionFields(value)}
+      {isPaidPilot && renderPaidPilotFields(value)}
+      {isTokenPricing && renderTokenFields(value)}
+      {isHybrid && renderHybridFields(value)}
+      {isImplementation && renderImplementationFields(value)}
+
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          className={`${pillClassName} px-4 py-2 disabled:opacity-50 disabled:hover:border-white/15 disabled:hover:bg-white/[0.018] disabled:hover:text-white`}
+          disabled={isCalculating}
+        >
+          {isCalculating ? "Calculating..." : "Calculate Offer KPIs"}
+        </button>
+      </div>
+    </form>
   );
 };
 

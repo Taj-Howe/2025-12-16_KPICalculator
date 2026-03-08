@@ -3,7 +3,22 @@ import {
   buildSubscriptionForecast,
   deriveSubscriptionMetrics,
 } from "./subscription-forecast";
-import type { KPIResult, OfferInput, SubscriptionOfferInput } from "./types";
+import {
+  buildSoftwareHybridPlatformUsageEvaluation,
+  buildSoftwareImplementationPlusSubscriptionEvaluation,
+  buildSoftwarePaidPilotEvaluation,
+  buildSoftwareSubscriptionEvaluation,
+  buildSoftwareTokenPricingEvaluation,
+} from "./software-tech-monetization";
+import type {
+  KPIResult,
+  OfferInput,
+  SoftwareHybridPlatformUsageInput,
+  SoftwareImplementationPlusSubscriptionInput,
+  SoftwarePaidPilotInput,
+  SoftwareTokenPricingInput,
+  SubscriptionOfferInput,
+} from "./types";
 
 export type OfferEvaluation = {
   results: KPIResult;
@@ -170,9 +185,47 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
   },
 };
 
+export const softwarePaidPilotEvaluator: OfferEvaluator<SoftwarePaidPilotInput> = {
+  offerType: "software_paid_pilot",
+  evaluate: (input) => buildSoftwarePaidPilotEvaluation(input),
+};
+
+export const softwareTokenPricingEvaluator: OfferEvaluator<SoftwareTokenPricingInput> = {
+  offerType: "software_token_pricing",
+  evaluate: (input) => buildSoftwareTokenPricingEvaluation(input),
+};
+
+export const softwareHybridPlatformUsageEvaluator: OfferEvaluator<SoftwareHybridPlatformUsageInput> =
+  {
+    offerType: "software_hybrid_platform_usage",
+    evaluate: (input) => buildSoftwareHybridPlatformUsageEvaluation(input),
+  };
+
+export const softwareImplementationPlusSubscriptionEvaluator: OfferEvaluator<SoftwareImplementationPlusSubscriptionInput> =
+  {
+    offerType: "software_implementation_plus_subscription",
+    evaluate: (input) =>
+      buildSoftwareImplementationPlusSubscriptionEvaluation(input),
+  };
+
 export const evaluateOffer = (input: OfferInput): OfferEvaluation => {
-  if (input.offerType === "subscription" || input.offerType === "software_subscription") {
+  if (input.offerType === "subscription") {
     return subscriptionOfferEvaluator.evaluate(input);
+  }
+  if (input.offerType === "software_subscription") {
+    return buildSoftwareSubscriptionEvaluation(input);
+  }
+  if (input.offerType === "software_paid_pilot") {
+    return softwarePaidPilotEvaluator.evaluate(input);
+  }
+  if (input.offerType === "software_token_pricing") {
+    return softwareTokenPricingEvaluator.evaluate(input);
+  }
+  if (input.offerType === "software_hybrid_platform_usage") {
+    return softwareHybridPlatformUsageEvaluator.evaluate(input);
+  }
+  if (input.offerType === "software_implementation_plus_subscription") {
+    return softwareImplementationPlusSubscriptionEvaluator.evaluate(input);
   }
   throw new Error(`Unsupported offer type '${input.offerType}'.`);
 };

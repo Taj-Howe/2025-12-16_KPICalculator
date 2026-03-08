@@ -7,7 +7,7 @@ import type { KpiPeriod } from "@/features/kpi/types";
 import { formatMoney } from "./formatters";
 
 type ProjectionHeroChartProps = {
-  forecast: SubscriptionForecast;
+  forecast: SubscriptionForecast | null;
   periodLabel: KpiPeriod;
 };
 
@@ -144,9 +144,25 @@ const ProjectionHeroChart = ({
 }: ProjectionHeroChartProps) => {
   const [metric, setMetric] = useState<HeroMetric>("revenue");
   const series = useMemo(
-    () => seriesForMetric(forecast, metric, periodLabel),
+    () => (forecast ? seriesForMetric(forecast, metric, periodLabel) : null),
     [forecast, metric, periodLabel],
   );
+
+  if (forecast == null) {
+    return (
+      <div className="rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+        <div>
+          <p className="font-medium uppercase tracking-[0.24em] text-white/42">
+            Live forecast
+          </p>
+          <p className="mt-1 text-sm text-white/58">
+            This offer is modeled primarily as throughput or blended economics, so
+            the live curve is reserved for recurring customer-base paths.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (series == null) {
     return (

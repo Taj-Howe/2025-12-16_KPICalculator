@@ -2,6 +2,7 @@ type ChartSeries = {
   name: string;
   values: Array<number | null>;
   color?: string;
+  formatValue?: (value: number) => string;
 };
 
 type LineChartProps = {
@@ -145,7 +146,7 @@ const LineChart = ({
               const x = xForIndex(index);
               const y = yForValue(value);
               const label = labels[index] ?? "";
-              const title = `${label}${label ? ": " : ""}${s.name}: ${formatValue(value)}`;
+              const title = `${label}${label ? ": " : ""}${s.name}: ${(s.formatValue ?? formatValue)(value)}`;
               return (
                 <circle
                   key={`${seriesKey}-pt-${index}`}
