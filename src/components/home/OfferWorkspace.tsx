@@ -20,6 +20,30 @@ const OfferWorkspace = ({
 }: OfferWorkspaceProps) => {
   const [mode, setMode] = useState<"guided" | "manual">("guided");
 
+  const preserveScrollDuring = (work: () => void) => {
+    if (typeof window === "undefined") {
+      work();
+      return;
+    }
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+
+    work();
+
+    requestAnimationFrame(() => {
+      window.scrollTo(scrollX, scrollY);
+      requestAnimationFrame(() => {
+        window.scrollTo(scrollX, scrollY);
+      });
+    });
+  };
+
   return (
     <section className="panel-shell rounded-[28px] p-5 text-white">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-4">
@@ -37,7 +61,14 @@ const OfferWorkspace = ({
       </div>
 
       <div className="mt-5 space-y-5">
-        <OnboardingModeSwitch value={mode} onChange={setMode} />
+        <OnboardingModeSwitch
+          value={mode}
+          onChange={(nextMode) =>
+            preserveScrollDuring(() => {
+              setMode(nextMode);
+            })
+          }
+        />
 
         {error ? (
           <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">

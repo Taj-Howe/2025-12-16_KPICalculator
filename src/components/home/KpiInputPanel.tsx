@@ -124,22 +124,26 @@ const KpiInputPanel = ({
       return;
     }
     if (mode === "unit_economics") {
-      onChange({
-        ...value,
-        calculatorMode: mode,
-        revenueInputMode: "direct_arpc",
-        cacInputMode: "direct",
-        retentionInputMode: "rate",
+      preserveScrollDuring(() => {
+        onChange({
+          ...value,
+          calculatorMode: mode,
+          revenueInputMode: "direct_arpc",
+          cacInputMode: "direct",
+          retentionInputMode: "rate",
+        });
       });
       return;
     }
 
-    onChange({
-      ...value,
-      calculatorMode: mode,
-      revenueInputMode: "total_revenue",
-      cacInputMode: "derived",
-      retentionInputMode: "counts",
+    preserveScrollDuring(() => {
+      onChange({
+        ...value,
+        calculatorMode: mode,
+        revenueInputMode: "total_revenue",
+        cacInputMode: "derived",
+        retentionInputMode: "counts",
+      });
     });
   };
 
@@ -148,15 +152,19 @@ const KpiInputPanel = ({
       return;
     }
     if (mode === "retained") {
-      onChange({
-        ...value,
-        churnedCustomersPerPeriod: undefined,
+      preserveScrollDuring(() => {
+        onChange({
+          ...value,
+          churnedCustomersPerPeriod: undefined,
+        });
       });
       return;
     }
-    onChange({
-      ...value,
-      retainedCustomersFromStartAtEnd: undefined,
+    preserveScrollDuring(() => {
+      onChange({
+        ...value,
+        retainedCustomersFromStartAtEnd: undefined,
+      });
     });
   };
 
@@ -164,30 +172,34 @@ const KpiInputPanel = ({
     if (!isSubscription && !isImplementation) {
       return;
     }
-    setValue({
-      grossProfitInputMode: mode,
-      grossMargin:
-        mode === "margin" && "grossMargin" in value ? value.grossMargin : undefined,
-      deliveryCostPerCustomerPerPeriod:
-        mode === "costs" && "deliveryCostPerCustomerPerPeriod" in value
-          ? value.deliveryCostPerCustomerPerPeriod
-          : undefined,
-      fixedDeliveryCostPerPeriod:
-        mode === "costs" && "fixedDeliveryCostPerPeriod" in value
-          ? value.fixedDeliveryCostPerPeriod
-          : undefined,
+    preserveScrollDuring(() => {
+      setValue({
+        grossProfitInputMode: mode,
+        grossMargin:
+          mode === "margin" && "grossMargin" in value ? value.grossMargin : undefined,
+        deliveryCostPerCustomerPerPeriod:
+          mode === "costs" && "deliveryCostPerCustomerPerPeriod" in value
+            ? value.deliveryCostPerCustomerPerPeriod
+            : undefined,
+        fixedDeliveryCostPerPeriod:
+          mode === "costs" && "fixedDeliveryCostPerPeriod" in value
+            ? value.fixedDeliveryCostPerPeriod
+            : undefined,
+      });
     });
   };
 
   const setCacMode = (mode: "derived" | "direct") => {
-    setValue({
-      cacInputMode: mode,
-      marketingSpendPerPeriod:
-        mode === "derived" && "marketingSpendPerPeriod" in value
-          ? value.marketingSpendPerPeriod
-          : undefined,
-      directCac:
-        mode === "direct" && "directCac" in value ? value.directCac : undefined,
+    preserveScrollDuring(() => {
+      setValue({
+        cacInputMode: mode,
+        marketingSpendPerPeriod:
+          mode === "derived" && "marketingSpendPerPeriod" in value
+            ? value.marketingSpendPerPeriod
+            : undefined,
+        directCac:
+          mode === "direct" && "directCac" in value ? value.directCac : undefined,
+      });
     });
   };
 
@@ -195,20 +207,22 @@ const KpiInputPanel = ({
     if (!isTokenPricing && !isHybrid && !isImplementation) {
       return;
     }
-    setValue({
-      retentionInputMode: mode,
-      directChurnRatePerPeriod:
-        mode === "rate" && "directChurnRatePerPeriod" in value
-          ? value.directChurnRatePerPeriod
-          : undefined,
-      retainedCustomersFromStartAtEnd:
-        mode === "counts" && "retainedCustomersFromStartAtEnd" in value
-          ? value.retainedCustomersFromStartAtEnd
-          : undefined,
-      churnedCustomersPerPeriod:
-        mode === "counts" && "churnedCustomersPerPeriod" in value
-          ? value.churnedCustomersPerPeriod
-          : undefined,
+    preserveScrollDuring(() => {
+      setValue({
+        retentionInputMode: mode,
+        directChurnRatePerPeriod:
+          mode === "rate" && "directChurnRatePerPeriod" in value
+            ? value.directChurnRatePerPeriod
+            : undefined,
+        retainedCustomersFromStartAtEnd:
+          mode === "counts" && "retainedCustomersFromStartAtEnd" in value
+            ? value.retainedCustomersFromStartAtEnd
+            : undefined,
+        churnedCustomersPerPeriod:
+          mode === "counts" && "churnedCustomersPerPeriod" in value
+            ? value.churnedCustomersPerPeriod
+            : undefined,
+      });
     });
   };
 
@@ -217,15 +231,19 @@ const KpiInputPanel = ({
       return;
     }
     if (mode === "margin") {
-      onChange({
-        ...value,
-        implementationDeliveryCostPerNewCustomer: undefined,
+      preserveScrollDuring(() => {
+        onChange({
+          ...value,
+          implementationDeliveryCostPerNewCustomer: undefined,
+        });
       });
       return;
     }
-    onChange({
-      ...value,
-      implementationGrossMargin: undefined,
+    preserveScrollDuring(() => {
+      onChange({
+        ...value,
+        implementationGrossMargin: undefined,
+      });
     });
   };
 
@@ -234,15 +252,19 @@ const KpiInputPanel = ({
       return;
     }
     if (mode === "margin") {
-      onChange({
-        ...value,
-        pilotDeliveryCostPerNewCustomer: undefined,
+      preserveScrollDuring(() => {
+        onChange({
+          ...value,
+          pilotDeliveryCostPerNewCustomer: undefined,
+        });
       });
       return;
     }
-    onChange({
-      ...value,
-      pilotGrossMargin: undefined,
+    preserveScrollDuring(() => {
+      onChange({
+        ...value,
+        pilotGrossMargin: undefined,
+      });
     });
   };
 

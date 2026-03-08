@@ -263,8 +263,38 @@ const SoftwareOnboardingFlow = ({
   const fieldClass = fieldClassName;
   const panelClass = panelClassName;
 
+  const preserveScrollDuring = (work: () => void) => {
+    if (typeof window === "undefined") {
+      work();
+      return;
+    }
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const activeElement = document.activeElement;
+
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur();
+    }
+
+    work();
+
+    requestAnimationFrame(() => {
+      window.scrollTo(scrollX, scrollY);
+      requestAnimationFrame(() => {
+        window.scrollTo(scrollX, scrollY);
+      });
+    });
+  };
+
   const setValue = (patch: Partial<KPIInputState>) => {
     onChange({ ...value, ...patch } as KPIInputState);
+  };
+
+  const setChoiceValue = (patch: Partial<KPIInputState>) => {
+    preserveScrollDuring(() => {
+      onChange({ ...value, ...patch } as KPIInputState);
+    });
   };
 
   const handleChange = (
@@ -299,8 +329,10 @@ const SoftwareOnboardingFlow = ({
   const setOfferType = (offerType: SupportedSoftwareOfferType) => {
     const next = createDefaultOfferInput(offerType);
     next.analysisPeriod = value.analysisPeriod;
-    onChange(next);
-    setStepIndex(0);
+    preserveScrollDuring(() => {
+      onChange(next);
+      setStepIndex(0);
+    });
   };
 
   const formatMoney = (input?: number) => (input == null ? "—" : money.format(input));
@@ -310,11 +342,15 @@ const SoftwareOnboardingFlow = ({
     if (!isStepComplete(currentStep.id, value)) {
       return;
     }
-    setStepIndex(Math.min(boundedStepIndex + 1, steps.length - 1));
+    preserveScrollDuring(() => {
+      setStepIndex(Math.min(boundedStepIndex + 1, steps.length - 1));
+    });
   };
 
   const goBack = () => {
-    setStepIndex(Math.max(boundedStepIndex - 1, 0));
+    preserveScrollDuring(() => {
+      setStepIndex(Math.max(boundedStepIndex - 1, 0));
+    });
   };
 
   const handleRunScenario = async () => {
@@ -380,7 +416,7 @@ const SoftwareOnboardingFlow = ({
                 title="Unit economics"
                 description="Start from price, churn, CAC, and gross profit."
                 onSelect={() =>
-                  onChange({
+                  setChoiceValue({
                     ...value,
                     calculatorMode: "unit_economics",
                     revenueInputMode: "direct_arpc",
@@ -394,7 +430,7 @@ const SoftwareOnboardingFlow = ({
                 title="Business metrics"
                 description="Start from revenue, customer counts, and spend."
                 onSelect={() =>
-                  onChange({
+                  setChoiceValue({
                     ...value,
                     calculatorMode: "business_metrics",
                     revenueInputMode: "total_revenue",
@@ -649,7 +685,7 @@ const SoftwareOnboardingFlow = ({
                 title="Use cohort counts"
                 description="Track retained or churned customers from the starting cohort."
                 onSelect={() =>
-                  setValue({ retentionInputMode: "counts" } as Partial<KPIInputState>)
+                  setChoiceValue({ retentionInputMode: "counts" } as Partial<KPIInputState>)
                 }
               />
               <ChoiceCard
@@ -657,7 +693,7 @@ const SoftwareOnboardingFlow = ({
                 title="Use direct churn rate"
                 description="Use a direct churn percentage when that is easier."
                 onSelect={() =>
-                  setValue({ retentionInputMode: "rate" } as Partial<KPIInputState>)
+                  setChoiceValue({ retentionInputMode: "rate" } as Partial<KPIInputState>)
                 }
               />
             </div>
@@ -744,13 +780,13 @@ const SoftwareOnboardingFlow = ({
               checked={cacInputMode === "derived"}
               title="Derive from spend"
               description="Enter acquisition spend for the selected period."
-              onSelect={() => setValue({ cacInputMode: "derived" })}
+              onSelect={() => setChoiceValue({ cacInputMode: "derived" })}
             />
             <ChoiceCard
               checked={cacInputMode === "direct"}
               title="Use direct CAC"
               description="Use this when you already trust cost per acquisition."
-              onSelect={() => setValue({ cacInputMode: "direct" })}
+              onSelect={() => setChoiceValue({ cacInputMode: "direct" })}
             />
           </div>
         </div>
@@ -798,13 +834,13 @@ const SoftwareOnboardingFlow = ({
                 checked={mode === "margin"}
                 title="Use gross margin"
                 description="Use a margin percentage when you trust the margin profile."
-                onSelect={() => setValue({ grossProfitInputMode: "margin" })}
+                onSelect={() => setChoiceValue({ grossProfitInputMode: "margin" })}
               />
               <ChoiceCard
                 checked={mode === "costs"}
                 title="Use delivery costs"
                 description="Use cost inputs when service cost is easier than margin."
-                onSelect={() => setValue({ grossProfitInputMode: "costs" })}
+                onSelect={() => setChoiceValue({ grossProfitInputMode: "costs" })}
               />
             </div>
           </div>
@@ -872,7 +908,7 @@ const SoftwareOnboardingFlow = ({
                 title="Use pilot gross margin"
                 description="Use a margin percentage for the pilot delivery model."
                 onSelect={() =>
-                  onChange({
+                  setChoiceValue({
                     ...value,
                     pilotDeliveryCostPerNewCustomer: undefined,
                   })
@@ -883,7 +919,7 @@ const SoftwareOnboardingFlow = ({
                 title="Use pilot delivery cost"
                 description="Use direct cost to deliver each pilot."
                 onSelect={() =>
-                  onChange({
+                  setChoiceValue({
                     ...value,
                     pilotGrossMargin: undefined,
                   })
@@ -1016,13 +1052,13 @@ const SoftwareOnboardingFlow = ({
               checked={recurringMode === "margin"}
               title="Use recurring gross margin"
               description="Use a margin percentage for the recurring offer."
-              onSelect={() => setValue({ grossProfitInputMode: "margin" })}
+              onSelect={() => setChoiceValue({ grossProfitInputMode: "margin" })}
             />
             <ChoiceCard
               checked={recurringMode === "costs"}
               title="Use recurring delivery costs"
               description="Use recurring service costs instead of a margin."
-              onSelect={() => setValue({ grossProfitInputMode: "costs" })}
+              onSelect={() => setChoiceValue({ grossProfitInputMode: "costs" })}
             />
           </div>
         </div>
@@ -1080,7 +1116,7 @@ const SoftwareOnboardingFlow = ({
               title="Use implementation gross margin"
               description="Use an expected margin for the onboarding project."
               onSelect={() =>
-                onChange({
+                setChoiceValue({
                   ...value,
                   implementationDeliveryCostPerNewCustomer: undefined,
                 })
@@ -1091,7 +1127,7 @@ const SoftwareOnboardingFlow = ({
               title="Use implementation delivery cost"
               description="Use direct project delivery cost per new customer."
               onSelect={() =>
-                onChange({
+                setChoiceValue({
                   ...value,
                   implementationGrossMargin: undefined,
                 })
@@ -1243,7 +1279,11 @@ const SoftwareOnboardingFlow = ({
               <button
                 key={step.id}
                 type="button"
-                onClick={() => setStepIndex(index)}
+                onClick={() =>
+                  preserveScrollDuring(() => {
+                    setStepIndex(index);
+                  })
+                }
                 className={`rounded-full px-3 py-2 text-left text-xs transition ${
                   state === "active"
                     ? "bg-white text-black"
