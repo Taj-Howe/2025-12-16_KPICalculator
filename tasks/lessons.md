@@ -23,6 +23,8 @@
 - Apply scroll-preservation consistently across all button-driven state swaps in the same surface. Fixing only one selector path is not enough if step pills, mode switches, or choice cards still replace content and steal focus.
 - Forecast gating should follow the economics, not a hardcoded offer-type allowlist. If the current result has recurring signals like churn, sales velocity, and per-customer economics, the dashboard should project a curve even when the offer is expressed as a mixed or derived model.
 - When future industries are not implemented yet, stage them in the selector without pretending they are actionable. Keep the active industry explicit and the available path obvious.
+- When future industries are only roadmap placeholders, keep them in a compact dropdown rather than giving them fixed dashboard real estate. The active industry should own the main surface.
+- Do not mix staged disabled options into the same primary select that users rely on to switch active models. Keep the main dropdown actionable-only, and surface future options in a secondary dropdown/details panel.
 - Keep planning artifacts scoped to the current repo. If the user references a different project, do not add roadmap items or specs here until the target project is explicitly confirmed.
 
 - When Next/Turbopack reports a local module as missing after branch switches or merges, verify the file and import path first; if build passes, treat it as a stale dev cache/server state before changing code.

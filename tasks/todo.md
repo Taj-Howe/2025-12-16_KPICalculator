@@ -28,7 +28,7 @@
 - [x] Implement `software_hybrid_platform_usage` on top of the normalized internal layer.
 - [x] Implement `software_implementation_plus_subscription` on top of the normalized internal layer.
 - [x] Add regression coverage for each step so legacy math and current `software_subscription` behavior do not drift.
-- [ ] Add e-commerce industry types, picker options, and staged UI metadata behind the current software-first selector.
+- [x] Add e-commerce industry types, picker options, and staged UI metadata behind the current software-first selector.
 - [ ] Add e-commerce onboarding question flow for one product first, starting with one-time product and repeat-purchase product.
 - [ ] Define e-commerce health thresholds with `LTGP:CAC` weighted first, plus repeat purchase, refund drag, gross margin, and payback.
 - [ ] Define imported-data heuristics for suggesting e-commerce product lines from Stripe/accounting data before making the industry selectable.
@@ -112,4 +112,5 @@
 - A sample Stripe-style import path now exists for local/demo use, so the imported analytics dashboard can be populated through the real integrations pipeline without live credentials.
 - Software-first health scoring is now implemented with explicit weighted signals for `LTGP:CAC`, payback, churn, and margin quality, and the current scenario output now surfaces health status plus a deterministic best-next-move summary ahead of the full onboarding wizard.
 - The offer workspace now supports a software-first guided onboarding flow with a guided/manual mode switch, stepwise setup, and automatic routing into `Reports` after a successful guided run.
+- E-commerce is now actionable in the industry selector with manual one-time, repeat-purchase, and subscription/replenishment input paths, while future industries stay compactly staged in a dropdown instead of occupying fixed dashboard space.
 - Verification baseline for the current MVP remains `npm test`, `npm run lint`, and `npm run build`.

@@ -9,7 +9,11 @@ import type {
   SoftwareTokenPricingInput,
   SubscriptionOfferInput,
 } from "@/features/kpi/types";
-import type { KPIInputState, SupportedSoftwareOfferType } from "./types";
+import type {
+  SupportedIndustry,
+  SupportedSoftwareOfferType,
+  SupportedSoftwareOfferInput,
+} from "./types";
 import { createDefaultOfferInput } from "./types";
 import OfferTypePills from "./OfferTypePills";
 import {
@@ -36,29 +40,32 @@ type OnboardingStep = {
   description: string;
 };
 
+type SoftwareKPIInputState =
+  SupportedSoftwareOfferInput;
+
 const isSubscription = (
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): value is SubscriptionOfferInput => value.offerType === "software_subscription";
 
 const isPaidPilot = (
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): value is SoftwarePaidPilotInput => value.offerType === "software_paid_pilot";
 
 const isTokenPricing = (
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): value is SoftwareTokenPricingInput => value.offerType === "software_token_pricing";
 
 const isHybrid = (
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): value is SoftwareHybridPlatformUsageInput =>
   value.offerType === "software_hybrid_platform_usage";
 
 const isImplementation = (
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): value is SoftwareImplementationPlusSubscriptionInput =>
   value.offerType === "software_implementation_plus_subscription";
 
-const stepsFor = (value: KPIInputState): OnboardingStep[] => {
+const stepsFor = (value: SoftwareKPIInputState): OnboardingStep[] => {
   const steps: OnboardingStep[] = [
     {
       id: "setup",
@@ -115,7 +122,7 @@ const hasRecurringCostInputs = (
 
 const isStepComplete = (
   stepId: OnboardingStepId,
-  value: KPIInputState,
+  value: SoftwareKPIInputState,
 ): boolean => {
   if (stepId === "setup") {
     return value.offerName.trim().length > 0 && value.offerId.trim().length > 0;
@@ -239,8 +246,8 @@ const SoftwareOnboardingFlow = ({
   error,
   onComplete,
 }: {
-  value: KPIInputState;
-  onChange: (next: KPIInputState) => void;
+  value: SoftwareKPIInputState;
+  onChange: (next: SoftwareKPIInputState) => void;
   onCalculate: () => Promise<boolean>;
   isCalculating: boolean;
   error?: string | null;
@@ -287,13 +294,13 @@ const SoftwareOnboardingFlow = ({
     });
   };
 
-  const setValue = (patch: Partial<KPIInputState>) => {
-    onChange({ ...value, ...patch } as KPIInputState);
+  const setValue = (patch: Partial<SoftwareKPIInputState>) => {
+    onChange({ ...value, ...patch } as SoftwareKPIInputState);
   };
 
-  const setChoiceValue = (patch: Partial<KPIInputState>) => {
+  const setChoiceValue = (patch: Partial<SoftwareKPIInputState>) => {
     preserveScrollDuring(() => {
-      onChange({ ...value, ...patch } as KPIInputState);
+      onChange({ ...value, ...patch } as SoftwareKPIInputState);
     });
   };
 
@@ -302,11 +309,11 @@ const SoftwareOnboardingFlow = ({
   ) => {
     const { name, value: nextValue } = event.target;
     if (["offerName", "offerId", "analysisPeriod"].includes(name)) {
-      setValue({ [name]: nextValue } as Partial<KPIInputState>);
+      setValue({ [name]: nextValue } as Partial<SoftwareKPIInputState>);
       return;
     }
     if (nextValue === "") {
-      setValue({ [name]: undefined } as Partial<KPIInputState>);
+      setValue({ [name]: undefined } as Partial<SoftwareKPIInputState>);
       return;
     }
     if (
@@ -317,17 +324,17 @@ const SoftwareOnboardingFlow = ({
         "directChurnRatePerPeriod",
       ].includes(name)
     ) {
-      setValue({ [name]: parsePercentInput(nextValue) } as Partial<KPIInputState>);
+      setValue({ [name]: parsePercentInput(nextValue) } as Partial<SoftwareKPIInputState>);
       return;
     }
     const numeric = Number(nextValue);
     if (!Number.isNaN(numeric)) {
-      setValue({ [name]: numeric } as Partial<KPIInputState>);
+      setValue({ [name]: numeric } as Partial<SoftwareKPIInputState>);
     }
   };
 
   const setOfferType = (offerType: SupportedSoftwareOfferType) => {
-    const next = createDefaultOfferInput(offerType);
+    const next = createDefaultOfferInput(offerType) as SoftwareKPIInputState;
     next.analysisPeriod = value.analysisPeriod;
     preserveScrollDuring(() => {
       onChange(next);
@@ -362,7 +369,16 @@ const SoftwareOnboardingFlow = ({
 
   const renderSetupStep = () => (
     <div className="space-y-4">
-      <OfferTypePills value={value.offerType} onChange={setOfferType} />
+      <OfferTypePills
+        industry={"software_tech" satisfies SupportedIndustry}
+        value={value.offerType}
+        onIndustryChange={() => {}}
+        onChange={(offerType) => {
+          if (offerType.startsWith("software_")) {
+            setOfferType(offerType as SupportedSoftwareOfferType);
+          }
+        }}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <FieldBlock label="Offer name">
@@ -685,7 +701,9 @@ const SoftwareOnboardingFlow = ({
                 title="Use cohort counts"
                 description="Track retained or churned customers from the starting cohort."
                 onSelect={() =>
-                  setChoiceValue({ retentionInputMode: "counts" } as Partial<KPIInputState>)
+                  setChoiceValue({
+                    retentionInputMode: "counts",
+                  } as Partial<SoftwareKPIInputState>)
                 }
               />
               <ChoiceCard
@@ -693,7 +711,9 @@ const SoftwareOnboardingFlow = ({
                 title="Use direct churn rate"
                 description="Use a direct churn percentage when that is easier."
                 onSelect={() =>
-                  setChoiceValue({ retentionInputMode: "rate" } as Partial<KPIInputState>)
+                  setChoiceValue({
+                    retentionInputMode: "rate",
+                  } as Partial<SoftwareKPIInputState>)
                 }
               />
             </div>

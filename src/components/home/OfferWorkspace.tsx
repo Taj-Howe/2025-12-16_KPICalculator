@@ -5,6 +5,8 @@ import type { ComponentProps, ReactNode } from "react";
 import KpiInputPanel from "./KpiInputPanel";
 import OnboardingModeSwitch from "./OnboardingModeSwitch";
 import SoftwareOnboardingFlow from "./SoftwareOnboardingFlow";
+import type { SupportedSoftwareOfferInput } from "./types";
+import { getIndustryFromOffer } from "./types";
 
 type OfferWorkspaceProps = ComponentProps<typeof KpiInputPanel> & {
   headerActions?: ReactNode;
@@ -19,6 +21,9 @@ const OfferWorkspace = ({
   ...panelProps
 }: OfferWorkspaceProps) => {
   const [mode, setMode] = useState<"guided" | "manual">("guided");
+  const activeIndustry = getIndustryFromOffer(panelProps.value);
+  const guidedAvailable = activeIndustry === "software_tech";
+  const activeMode = guidedAvailable ? mode : "manual";
 
   const preserveScrollDuring = (work: () => void) => {
     if (typeof window === "undefined") {
@@ -61,14 +66,21 @@ const OfferWorkspace = ({
       </div>
 
       <div className="mt-5 space-y-5">
-        <OnboardingModeSwitch
-          value={mode}
-          onChange={(nextMode) =>
-            preserveScrollDuring(() => {
-              setMode(nextMode);
-            })
-          }
-        />
+        {guidedAvailable ? (
+          <OnboardingModeSwitch
+            value={activeMode}
+            onChange={(nextMode) =>
+              preserveScrollDuring(() => {
+                setMode(nextMode);
+              })
+            }
+          />
+        ) : (
+          <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/68">
+            Guided setup is software-first today. Use manual inputs for e-commerce
+            offers until the e-commerce onboarding path is shipped.
+          </div>
+        )}
 
         {error ? (
           <div className="rounded-[22px] border border-amber-300/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
@@ -76,10 +88,10 @@ const OfferWorkspace = ({
           </div>
         ) : null}
 
-        {mode === "guided" ? (
+        {guidedAvailable && activeMode === "guided" ? (
           <SoftwareOnboardingFlow
-            value={panelProps.value}
-            onChange={panelProps.onChange}
+            value={panelProps.value as SupportedSoftwareOfferInput}
+            onChange={panelProps.onChange as (next: SupportedSoftwareOfferInput) => void}
             onCalculate={panelProps.onCalculate}
             isCalculating={panelProps.isCalculating}
             error={error}

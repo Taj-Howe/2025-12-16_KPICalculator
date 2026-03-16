@@ -119,6 +119,38 @@ const HeroSection = ({
       };
     }
 
+    if (input.offerType === "ecommerce_subscription_replenishment") {
+      const ordersPerSubscriber = input.ordersPerSubscriberPerPeriod ?? 1;
+      const netArpc =
+        input.averageOrderValue *
+        ordersPerSubscriber *
+        (1 - (input.refundsRatePerPeriod ?? 0));
+      const derivedGrossMargin =
+        input.grossProfitPerSubscriberPerPeriod != null && netArpc > 0
+          ? input.grossProfitPerSubscriberPerPeriod / netArpc
+          : input.grossMargin;
+
+      return {
+        offerId: input.offerId,
+        offerName: input.offerName,
+        offerType: "software_subscription",
+        analysisPeriod: input.analysisPeriod,
+        revenueInputMode: "direct_arpc",
+        directArpc: netArpc,
+        grossProfitInputMode: "margin",
+        grossMargin: derivedGrossMargin,
+        cacInputMode: input.cacInputMode,
+        marketingSpendPerPeriod: input.marketingSpendPerPeriod,
+        directCac: input.directCac,
+        retentionInputMode: input.retentionInputMode,
+        newCustomersPerPeriod: input.newCustomersPerPeriod,
+        activeCustomersStart: input.activeCustomersStart,
+        directChurnRatePerPeriod: input.directChurnRatePerPeriod,
+        churnedCustomersPerPeriod: input.churnedCustomersPerPeriod,
+        retainedCustomersFromStartAtEnd: input.retainedCustomersFromStartAtEnd,
+      };
+    }
+
     return null;
   }, [input]);
 
