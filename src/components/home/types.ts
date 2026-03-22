@@ -1,4 +1,7 @@
 import type {
+  EcommerceOneTimeProductInput,
+  EcommerceRepeatPurchaseProductInput,
+  EcommerceSubscriptionReplenishmentInput,
   KPIResult,
   KpiPeriod,
   OfferInput,
@@ -18,8 +21,21 @@ export type SupportedSoftwareOfferInput =
   | SoftwareHybridPlatformUsageInput
   | SoftwareImplementationPlusSubscriptionInput;
 
+export type SupportedEcommerceOfferInput =
+  | EcommerceOneTimeProductInput
+  | EcommerceRepeatPurchaseProductInput
+  | EcommerceSubscriptionReplenishmentInput;
+
+export type SupportedOfferInput =
+  | SupportedSoftwareOfferInput
+  | SupportedEcommerceOfferInput;
+
 export type SupportedSoftwareOfferType = SupportedSoftwareOfferInput["offerType"];
-export type KPIInputState = SupportedSoftwareOfferInput;
+export type SupportedEcommerceOfferType = SupportedEcommerceOfferInput["offerType"];
+export type SupportedOfferType = SupportedOfferInput["offerType"];
+export type SupportedIndustry = "software_tech" | "ecommerce";
+export type FutureIndustry = "online_education" | "services";
+export type KPIInputState = SupportedOfferInput;
 export type KPIResults = KPIResult;
 
 export type ReportSeries = {
@@ -85,17 +101,18 @@ export type ReportsPanelProps = {
 };
 
 export type SoftwareOfferPickerOption = {
-  value: SupportedSoftwareOfferType | Exclude<
+  value: SupportedOfferType | Exclude<
     OfferInput["offerType"],
-    SupportedSoftwareOfferType | "subscription"
+    SupportedOfferType | "subscription"
   >;
   label: string;
   summary: string;
   status: "supported" | "staged";
+  industry: SupportedIndustry;
 };
 
 export type IndustryPickerOption = {
-  value: "software_tech" | "ecommerce" | "online_education" | "services";
+  value: SupportedIndustry | FutureIndustry;
   label: string;
   status: "available" | "staged";
 };
@@ -109,7 +126,7 @@ export const industryPickerOptions: IndustryPickerOption[] = [
   {
     value: "ecommerce",
     label: "E-commerce",
-    status: "staged",
+    status: "available",
   },
   {
     value: "online_education",
@@ -129,48 +146,84 @@ export const softwareOfferPickerOptions: SoftwareOfferPickerOption[] = [
     label: "Software Subscription",
     summary: "Recurring subscription revenue with churn, CAC, and gross profit.",
     status: "supported",
+    industry: "software_tech",
   },
   {
     value: "software_paid_pilot",
     label: "Paid Pilot",
     summary: "One-time pilot fee with acquisition economics and annual throughput.",
     status: "supported",
+    industry: "software_tech",
   },
   {
     value: "software_token_pricing",
     label: "Token Pricing",
     summary: "Recurring customers monetized by token or usage-unit consumption.",
     status: "supported",
+    industry: "software_tech",
   },
   {
     value: "software_hybrid_platform_usage",
     label: "Platform + Usage",
     summary: "Base platform fee plus ongoing usage revenue per active customer.",
     status: "supported",
+    industry: "software_tech",
   },
   {
     value: "software_implementation_plus_subscription",
     label: "Implementation + Subscription",
     summary: "Upfront implementation fee plus recurring subscription economics.",
     status: "supported",
+    industry: "software_tech",
+  },
+  {
+    value: "ecommerce_one_time_product",
+    label: "One-Time Product",
+    summary: "Single-order economics with CAC, gross profit, refund drag, and throughput.",
+    status: "supported",
+    industry: "ecommerce",
+  },
+  {
+    value: "ecommerce_repeat_purchase_product",
+    label: "Repeat Purchase Product",
+    summary: "First-order economics plus expected repeat orders per customer over the lifetime.",
+    status: "supported",
+    industry: "ecommerce",
+  },
+  {
+    value: "ecommerce_subscription_replenishment",
+    label: "Subscription / Replenishment",
+    summary: "Recurring replenishment offer with churn, steady-state ceiling, and next-year projection.",
+    status: "supported",
+    industry: "ecommerce",
   },
   {
     value: "software_pilot_to_subscription",
     label: "Pilot to Subscription",
     summary: "Staged next: paid pilot that converts into recurring subscription value.",
     status: "staged",
+    industry: "software_tech",
   },
   {
     value: "software_token_plus_platform",
     label: "Token + Platform Fee",
     summary: "Staged next: token usage plus a fixed platform subscription layer.",
     status: "staged",
+    industry: "software_tech",
   },
   {
     value: "software_transaction_fee",
     label: "Transaction Fee",
     summary: "Staged next: recurring transaction-fee economics on processed volume.",
     status: "staged",
+    industry: "software_tech",
+  },
+  {
+    value: "ecommerce_bundle_offer",
+    label: "Bundle Offer",
+    summary: "Staged next: bundle attribution and AOV grouping once catalog mapping is specified cleanly.",
+    status: "staged",
+    industry: "ecommerce",
   },
 ];
 
@@ -317,9 +370,70 @@ const defaultImplementationInput: SoftwareImplementationPlusSubscriptionInput = 
   },
 };
 
+const defaultEcommerceOneTimeInput: EcommerceOneTimeProductInput = {
+  offerId: "hero-sku",
+  offerName: "Hero SKU",
+  offerType: "ecommerce_one_time_product",
+  analysisPeriod: "monthly",
+  newCustomersPerPeriod: 100,
+  cacInputMode: "derived",
+  marketingSpendPerPeriod: 4_000,
+  averageOrderValue: 80,
+  grossMargin: 0.5,
+  refundsRatePerOrder: 0.03,
+  ecommerceConfig: {
+    industryPreset: "ecommerce",
+    monetizationModel: "one_time_product",
+    merchandisingModel: "single_sku",
+    fulfillmentModel: "3pl",
+  },
+};
+
+const defaultEcommerceRepeatPurchaseInput: EcommerceRepeatPurchaseProductInput = {
+  offerId: "repeat-sku",
+  offerName: "Repeat Purchase SKU",
+  offerType: "ecommerce_repeat_purchase_product",
+  analysisPeriod: "monthly",
+  newCustomersPerPeriod: 50,
+  cacInputMode: "derived",
+  marketingSpendPerPeriod: 2_500,
+  averageOrderValue: 60,
+  grossMargin: 0.4,
+  refundsRatePerOrder: 0.02,
+  expectedOrdersPerCustomer: 3,
+  ecommerceConfig: {
+    industryPreset: "ecommerce",
+    monetizationModel: "repeat_purchase",
+    merchandisingModel: "catalog",
+    fulfillmentModel: "3pl",
+  },
+};
+
+const defaultEcommerceReplenishmentInput: EcommerceSubscriptionReplenishmentInput = {
+  offerId: "replenishment-sku",
+  offerName: "Replenishment SKU",
+  offerType: "ecommerce_subscription_replenishment",
+  analysisPeriod: "monthly",
+  newCustomersPerPeriod: 30,
+  cacInputMode: "derived",
+  marketingSpendPerPeriod: 1_800,
+  averageOrderValue: 40,
+  grossMargin: 0.45,
+  refundsRatePerPeriod: 0.02,
+  activeCustomersStart: 120,
+  retentionInputMode: "counts",
+  retainedCustomersFromStartAtEnd: 108,
+  ecommerceConfig: {
+    industryPreset: "ecommerce",
+    monetizationModel: "subscription_replenishment",
+    merchandisingModel: "single_sku",
+    fulfillmentModel: "3pl",
+  },
+};
+
 export const createDefaultOfferInput = (
-  offerType: SupportedSoftwareOfferType,
-): SupportedSoftwareOfferInput => {
+  offerType: SupportedOfferType,
+): SupportedOfferInput => {
   switch (offerType) {
     case "software_subscription":
       return structuredClone(defaultSubscriptionInput);
@@ -331,9 +445,27 @@ export const createDefaultOfferInput = (
       return structuredClone(defaultHybridInput);
     case "software_implementation_plus_subscription":
       return structuredClone(defaultImplementationInput);
+    case "ecommerce_one_time_product":
+      return structuredClone(defaultEcommerceOneTimeInput);
+    case "ecommerce_repeat_purchase_product":
+      return structuredClone(defaultEcommerceRepeatPurchaseInput);
+    case "ecommerce_subscription_replenishment":
+      return structuredClone(defaultEcommerceReplenishmentInput);
     default:
       return structuredClone(defaultSubscriptionInput);
   }
+};
+
+export const defaultOfferTypeByIndustry: Record<SupportedIndustry, SupportedOfferType> = {
+  software_tech: "software_subscription",
+  ecommerce: "ecommerce_one_time_product",
+};
+
+export const getIndustryFromOffer = (offer: KPIInputState): SupportedIndustry => {
+  if ("ecommerceConfig" in offer && offer.ecommerceConfig?.industryPreset === "ecommerce") {
+    return "ecommerce";
+  }
+  return "software_tech";
 };
 
 export const sampleKpiInput: KPIInputState =

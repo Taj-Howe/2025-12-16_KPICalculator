@@ -1,147 +1,151 @@
 "use client";
 
 import { SelectField } from "./form-primitives";
-import type { SupportedSoftwareOfferType } from "./types";
-import { industryPickerOptions, softwareOfferPickerOptions } from "./types";
+import type { SupportedIndustry, SupportedOfferType } from "./types";
+import {
+  defaultOfferTypeByIndustry,
+  industryPickerOptions,
+  softwareOfferPickerOptions,
+} from "./types";
 
 type OfferTypePillsProps = {
-  value: SupportedSoftwareOfferType;
-  onChange: (offerType: SupportedSoftwareOfferType) => void;
+  industry: SupportedIndustry;
+  value: SupportedOfferType;
+  onIndustryChange: (industry: SupportedIndustry) => void;
+  onChange: (offerType: SupportedOfferType) => void;
 };
 
-const OfferTypePills = ({ value, onChange }: OfferTypePillsProps) => {
-  const supported = softwareOfferPickerOptions.filter(
-    (option) => option.status === "supported",
+const isSupportedOfferType = (
+  value: (typeof softwareOfferPickerOptions)[number]["value"],
+): value is SupportedOfferType =>
+  value === "software_subscription" ||
+  value === "software_paid_pilot" ||
+  value === "software_token_pricing" ||
+  value === "software_hybrid_platform_usage" ||
+  value === "software_implementation_plus_subscription" ||
+  value === "ecommerce_one_time_product" ||
+  value === "ecommerce_repeat_purchase_product" ||
+  value === "ecommerce_subscription_replenishment";
+
+const OfferTypePills = ({
+  industry,
+  value,
+  onIndustryChange,
+  onChange,
+}: OfferTypePillsProps) => {
+  const activeIndustry = industryPickerOptions.find((option) => option.value === industry);
+  const supportedIndustryOptions = industryPickerOptions.filter(
+    (option): option is (typeof industryPickerOptions)[number] & {
+      value: SupportedIndustry;
+      status: "available";
+    } => option.status === "available",
   );
-  const staged = softwareOfferPickerOptions.filter(
+  const stagedIndustryOptions = industryPickerOptions.filter(
     (option) => option.status === "staged",
   );
-  const activeIndustry = industryPickerOptions[0]?.value ?? "software_tech";
+  const supportedOfferOptions = softwareOfferPickerOptions.filter(
+    (option): option is (typeof softwareOfferPickerOptions)[number] & {
+      value: SupportedOfferType;
+      status: "supported";
+      industry: SupportedIndustry;
+    } =>
+      option.status === "supported" &&
+      option.industry === industry &&
+      isSupportedOfferType(option.value),
+  );
+  const stagedOfferOptions = softwareOfferPickerOptions.filter(
+    (option) => option.status === "staged" && option.industry === industry,
+  );
+  const activeOffer = supportedOfferOptions.find((option) => option.value === value);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-end">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.24em] text-white/34">
-            Industry setup
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            Software Offer Model
-          </h3>
-          <p className="mt-2 text-sm text-white/56">
-            Pick the monetization shape first. The inputs below adapt to the offer
-            you actually sell.
-          </p>
-        </div>
+    <div className="space-y-4 rounded-[24px] border border-white/8 bg-white/[0.02] p-4">
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.24em] text-white/34">
+          Industry setup
+        </p>
+        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          {activeIndustry?.label ?? "Offer Model"}
+        </h3>
+        <p className="mt-2 text-sm text-white/56">
+          Choose the industry first, then select the offer model that matches how
+          this product monetizes.
+        </p>
+      </div>
 
+      <div className="grid gap-4 xl:grid-cols-2">
         <div>
           <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/38">
             Industry
           </p>
-          <SelectField value={activeIndustry} onChange={() => undefined}>
-            {industryPickerOptions.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                disabled={option.status === "staged"}
-              >
-                {option.status === "available"
-                  ? option.label
-                  : `${option.label} (next)`}
+          <SelectField
+            value={industry}
+            onChange={(event) =>
+              onIndustryChange(event.target.value as SupportedIndustry)
+            }
+          >
+            {supportedIndustryOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </SelectField>
+
+          {stagedIndustryOptions.length > 0 ? (
+            <details className="mt-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+              <summary className="cursor-pointer list-none text-sm text-white/60">
+                Other industries
+              </summary>
+              <div className="mt-2 space-y-1 text-sm text-white/46">
+                {stagedIndustryOptions.map((option) => (
+                  <p key={option.value}>{option.label} · Coming next</p>
+                ))}
+              </div>
+            </details>
+          ) : null}
         </div>
-      </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {supported.map((option) => {
-          const active = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value as SupportedSoftwareOfferType)}
-              className={`rounded-[22px] border p-4 text-left transition ${
-                active
-                  ? "border-white bg-white text-black"
-                  : "border-white/10 bg-white/[0.03] text-white hover:border-white/22 hover:bg-white/[0.06]"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold">{option.label}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${
-                    active
-                      ? "bg-black/10 text-black/72"
-                      : "border border-white/12 bg-white/[0.03] text-white/46"
-                  }`}
-                >
-                  Ready
-                </span>
-              </div>
-              <p
-                className={`mt-2 text-sm leading-6 ${
-                  active ? "text-black/72" : "text-white/60"
-                }`}
-              >
-                {option.summary}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="rounded-[22px] border border-white/8 bg-white/[0.02] p-4">
-        <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">
-          Staged next
-        </p>
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          {industryPickerOptions
-            .filter((option) => option.status === "staged")
-            .map((option) => (
-              <div
-                key={option.value}
-                className="rounded-[18px] border border-white/8 bg-black/20 p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-white/62">
-                    {option.label}
-                  </span>
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/34">
-                    Industry next
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-white/42">
-                  Industry-specific offer templates and onboarding will be added
-                  after the software path is stable.
-                </p>
-              </div>
+        <div>
+          <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/38">
+            {industry === "software_tech" ? "Software offer model" : "E-commerce offer model"}
+          </p>
+          <SelectField
+            value={value}
+            onChange={(event) => onChange(event.target.value as SupportedOfferType)}
+          >
+            {supportedOfferOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
-        </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          {staged.map((option) => (
-            <div
-              key={option.value}
-              className="rounded-[18px] border border-white/8 bg-black/20 p-3"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-white/62">
-                  {option.label}
-                </span>
-                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/34">
-                  Later
-                </span>
+          </SelectField>
+
+          {stagedOfferOptions.length > 0 ? (
+            <details className="mt-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+              <summary className="cursor-pointer list-none text-sm text-white/60">
+                Other offer models
+              </summary>
+              <div className="mt-2 space-y-1 text-sm text-white/46">
+                {stagedOfferOptions.map((option) => (
+                  <p key={option.value}>{option.label} · Coming later</p>
+                ))}
               </div>
-              <p className="mt-2 text-sm leading-6 text-white/42">
-                {option.summary}
-              </p>
-            </div>
-          ))}
+            </details>
+          ) : null}
         </div>
       </div>
+
+      {activeOffer ? (
+        <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+          <p className="text-sm font-medium text-white">{activeOffer.label}</p>
+          <p className="mt-1 text-sm leading-6 text-white/56">{activeOffer.summary}</p>
+        </div>
+      ) : null}
     </div>
   );
 };
+
+export const getDefaultOfferTypeForIndustry = (industry: SupportedIndustry) =>
+  defaultOfferTypeByIndustry[industry];
 
 export default OfferTypePills;

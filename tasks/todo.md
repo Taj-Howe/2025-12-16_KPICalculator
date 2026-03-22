@@ -8,6 +8,12 @@
 ## Industry Rollout
 - [x] Write the phased industry rollout plan in `docs/specs/industry-rollout-plan.md`.
 - [ ] Finish the software / tech path first with onboarding, health grading, imported snapshot inference, and in-product recommendations.
+- [x] Write the e-commerce monetization engine spec in `docs/specs/ecommerce-monetization-engine.md`.
+- [x] Introduce normalized e-commerce offer types and config metadata without changing existing software behavior.
+- [x] Implement `ecommerce_one_time_product` first as the conservative throughput baseline for e-commerce.
+- [x] Implement `ecommerce_repeat_purchase_product` next with explicit repeat-purchase inputs and honest lifetime assumptions.
+- [x] Implement `ecommerce_subscription_replenishment` on the recurring path with retention/churn semantics that match replenishment offers.
+- [ ] Keep `ecommerce_bundle_offer` staged until product grouping and AOV/bundle attribution rules are specified cleanly.
 - [ ] Ship the first e-commerce path after software is mature, starting with one-time, repeat-purchase, subscription/replenishment, and bundle-oriented offer templates.
 - [ ] Ship online education after e-commerce, starting with course, cohort, membership, and upsell-ladder templates.
 - [ ] Ship service businesses last, only after labor-heavy delivery-cost modeling and onboarding are honest enough to avoid misleading margin outputs.
@@ -22,6 +28,10 @@
 - [x] Implement `software_hybrid_platform_usage` on top of the normalized internal layer.
 - [x] Implement `software_implementation_plus_subscription` on top of the normalized internal layer.
 - [x] Add regression coverage for each step so legacy math and current `software_subscription` behavior do not drift.
+- [x] Add e-commerce industry types, picker options, and staged UI metadata behind the current software-first selector.
+- [ ] Add e-commerce onboarding question flow for one product first, starting with one-time product and repeat-purchase product.
+- [ ] Define e-commerce health thresholds with `LTGP:CAC` weighted first, plus repeat purchase, refund drag, gross margin, and payback.
+- [ ] Define imported-data heuristics for suggesting e-commerce product lines from Stripe/accounting data before making the industry selectable.
 
 ## Intelligence Layer
 - [ ] Add an onboarding flow that helps a new user set up one product first: select business type, answer the key questions one by one, then land on results with auto-generated recommendations.
@@ -102,4 +112,5 @@
 - A sample Stripe-style import path now exists for local/demo use, so the imported analytics dashboard can be populated through the real integrations pipeline without live credentials.
 - Software-first health scoring is now implemented with explicit weighted signals for `LTGP:CAC`, payback, churn, and margin quality, and the current scenario output now surfaces health status plus a deterministic best-next-move summary ahead of the full onboarding wizard.
 - The offer workspace now supports a software-first guided onboarding flow with a guided/manual mode switch, stepwise setup, and automatic routing into `Reports` after a successful guided run.
+- E-commerce is now actionable in the industry selector with manual one-time, repeat-purchase, and subscription/replenishment input paths, while future industries stay compactly staged in a dropdown instead of occupying fixed dashboard space.
 - Verification baseline for the current MVP remains `npm test`, `npm run lint`, and `npm run build`.

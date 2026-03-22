@@ -3,6 +3,9 @@
 import { useMemo } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type {
+  EcommerceOneTimeProductInput,
+  EcommerceRepeatPurchaseProductInput,
+  EcommerceSubscriptionReplenishmentInput,
   GrossProfitInputMode,
   RetentionInputMode,
   SoftwareHybridPlatformUsageInput,
@@ -11,7 +14,12 @@ import type {
   SoftwareTokenPricingInput,
   SubscriptionOfferInput,
 } from "@/features/kpi/types";
-import type { KpiInputPanelProps, KPIInputState, SupportedSoftwareOfferType } from "./types";
+import type {
+  KpiInputPanelProps,
+  KPIInputState,
+  SupportedIndustry,
+  SupportedOfferType,
+} from "./types";
 import {
   ChoiceCard,
   FieldBlock,
@@ -23,7 +31,11 @@ import {
 import { parsePercentInput, percentInputValue, percentText } from "./percent";
 import OfferModeSwitch from "./OfferModeSwitch";
 import OfferTypePills from "./OfferTypePills";
-import { createDefaultOfferInput } from "./types";
+import {
+  createDefaultOfferInput,
+  defaultOfferTypeByIndustry,
+  getIndustryFromOffer,
+} from "./types";
 
 const KpiInputPanel = ({
   value,
@@ -40,6 +52,12 @@ const KpiInputPanel = ({
   const isHybrid = value.offerType === "software_hybrid_platform_usage";
   const isImplementation =
     value.offerType === "software_implementation_plus_subscription";
+  const isEcommerceOneTime = value.offerType === "ecommerce_one_time_product";
+  const isEcommerceRepeat =
+    value.offerType === "ecommerce_repeat_purchase_product";
+  const isEcommerceReplenishment =
+    value.offerType === "ecommerce_subscription_replenishment";
+  const activeIndustry = getIndustryFromOffer(value);
   const calculatorMode =
     isSubscription ? value.calculatorMode ?? "business_metrics" : null;
   const cacInputMode = value.cacInputMode ?? "derived";
@@ -100,7 +118,9 @@ const KpiInputPanel = ({
       name === "grossMargin" ||
       name === "directChurnRatePerPeriod" ||
       name === "pilotGrossMargin" ||
-      name === "implementationGrossMargin"
+      name === "implementationGrossMargin" ||
+      name === "refundsRatePerOrder" ||
+      name === "refundsRatePerPeriod"
     ) {
       setValue({ [name]: parsePercentInput(nextValue) } as Partial<KPIInputState>);
       return;
@@ -111,8 +131,16 @@ const KpiInputPanel = ({
     }
   };
 
-  const setOfferType = (offerType: SupportedSoftwareOfferType) => {
+  const setOfferType = (offerType: SupportedOfferType) => {
     const next = createDefaultOfferInput(offerType);
+    next.analysisPeriod = value.analysisPeriod;
+    preserveScrollDuring(() => {
+      onChange(next);
+    });
+  };
+
+  const setIndustry = (industry: SupportedIndustry) => {
+    const next = createDefaultOfferInput(defaultOfferTypeByIndustry[industry]);
     next.analysisPeriod = value.analysisPeriod;
     preserveScrollDuring(() => {
       onChange(next);
@@ -204,7 +232,7 @@ const KpiInputPanel = ({
   };
 
   const setRecurringRetentionMode = (mode: RetentionInputMode) => {
-    if (!isTokenPricing && !isHybrid && !isImplementation) {
+    if (!isTokenPricing && !isHybrid && !isImplementation && !isEcommerceReplenishment) {
       return;
     }
     preserveScrollDuring(() => {
@@ -334,7 +362,8 @@ const KpiInputPanel = ({
     current:
       | SoftwareTokenPricingInput
       | SoftwareHybridPlatformUsageInput
-      | SoftwareImplementationPlusSubscriptionInput,
+      | SoftwareImplementationPlusSubscriptionInput
+      | EcommerceSubscriptionReplenishmentInput,
   ) => (
     <>
       <div className={panelClass}>
@@ -1070,6 +1099,350 @@ const KpiInputPanel = ({
     );
   };
 
+  const renderEcommerceOrderProfitMode = (
+    current: EcommerceOneTimeProductInput | EcommerceRepeatPurchaseProductInput,
+  ) => {
+    const orderProfitMode =
+      current.grossProfitPerOrder != null || current.grossMargin == null
+        ? "gross_profit"
+        : "margin";
+
+    return (
+      <>
+        <div className={panelClass}>
+          <p className="font-medium">Gross profit input</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={orderProfitMode === "gross_profit"}
+              title="Use gross profit per order"
+              description="Best when you know contribution dollars after fulfillment and product cost."
+              onSelect={() =>
+                preserveScrollDuring(() => {
+                  setValue({
+                    grossProfitPerOrder:
+                      "grossProfitPerOrder" in value ? value.grossProfitPerOrder : undefined,
+                    grossMargin: undefined,
+                  });
+                })
+              }
+            />
+            <ChoiceCard
+              checked={orderProfitMode === "margin"}
+              title="Use gross margin %"
+              description="Best when you know margin faster than per-order contribution."
+              onSelect={() =>
+                preserveScrollDuring(() => {
+                  setValue({
+                    grossProfitPerOrder: undefined,
+                    grossMargin: "grossMargin" in value ? value.grossMargin : undefined,
+                  });
+                })
+              }
+            />
+          </div>
+        </div>
+
+        {orderProfitMode === "gross_profit" ? (
+          <FieldBlock
+            label="Gross profit per order"
+            helper={`Formatted: ${displayMoney(current.grossProfitPerOrder)}`}
+          >
+            <input
+              type="number"
+              name="grossProfitPerOrder"
+              value={current.grossProfitPerOrder ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        ) : (
+          <FieldBlock
+            label="Gross margin (%)"
+            helper={`Formatted: ${percentText(current.grossMargin)}`}
+          >
+            <input
+              type="number"
+              name="grossMargin"
+              value={percentInputValue(current.grossMargin)}
+              step="0.1"
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        )}
+      </>
+    );
+  };
+
+  const renderEcommerceOneTimeFields = (current: EcommerceOneTimeProductInput) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">One-time product model</p>
+        <p className="mt-1 text-sm text-white/58">
+          Model a single-order product using order value, refund drag, gross
+          profit, and acquisition cost.
+        </p>
+      </div>
+
+      <FieldBlock
+        label={`New customers / orders (per ${periodLabel})`}
+        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="newCustomersPerPeriod"
+          value={current.newCustomersPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock
+          label="Average order value"
+          helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+        >
+          <input
+            type="number"
+            name="averageOrderValue"
+            value={current.averageOrderValue ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label="Refund rate per order (%)"
+          helper={`Formatted: ${percentText(current.refundsRatePerOrder)}`}
+        >
+          <input
+            type="number"
+            name="refundsRatePerOrder"
+            value={percentInputValue(current.refundsRatePerOrder)}
+            step="0.1"
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      {renderEcommerceOrderProfitMode(current)}
+      {renderCacSection()}
+    </>
+  );
+
+  const renderEcommerceRepeatFields = (
+    current: EcommerceRepeatPurchaseProductInput,
+  ) => (
+    <>
+      <div className={panelClass}>
+        <p className="font-medium">Repeat-purchase product model</p>
+        <p className="mt-1 text-sm text-white/58">
+          Keep the first-order economics explicit, then layer in the expected
+          lifetime order count for each acquired customer.
+        </p>
+      </div>
+
+      <FieldBlock
+        label={`New customers / first orders (per ${periodLabel})`}
+        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+      >
+        <input
+          type="number"
+          name="newCustomersPerPeriod"
+          value={current.newCustomersPerPeriod ?? ""}
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldBlock
+          label="Average order value"
+          helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+        >
+          <input
+            type="number"
+            name="averageOrderValue"
+            value={current.averageOrderValue ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+        <FieldBlock
+          label="Expected orders per customer"
+          helper={`Formatted: ${displayInt(current.expectedOrdersPerCustomer)}`}
+        >
+          <input
+            type="number"
+            name="expectedOrdersPerCustomer"
+            value={current.expectedOrdersPerCustomer ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+      </div>
+
+      <FieldBlock
+        label="Refund rate per order (%)"
+        helper={`Formatted: ${percentText(current.refundsRatePerOrder)}`}
+      >
+        <input
+          type="number"
+          name="refundsRatePerOrder"
+          value={percentInputValue(current.refundsRatePerOrder)}
+          step="0.1"
+          onChange={handleChange}
+          className={fieldClass}
+        />
+      </FieldBlock>
+
+      {renderEcommerceOrderProfitMode(current)}
+      {renderCacSection()}
+    </>
+  );
+
+  const renderEcommerceReplenishmentFields = (
+    current: EcommerceSubscriptionReplenishmentInput,
+  ) => {
+    const recurringProfitMode =
+      current.grossProfitPerSubscriberPerPeriod != null || current.grossMargin == null
+        ? "gross_profit"
+        : "margin";
+
+    return (
+      <>
+        <div className={panelClass}>
+          <p className="font-medium">Subscription / replenishment model</p>
+          <p className="mt-1 text-sm text-white/58">
+            Use this for consumable products with recurring replenishment, churn,
+            and steady-state customer-base dynamics.
+          </p>
+        </div>
+
+        <FieldBlock
+          label={`New subscribers (per ${periodLabel})`}
+          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="newCustomersPerPeriod"
+            value={current.newCustomersPerPeriod ?? ""}
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        {renderCacSection()}
+        {renderRetentionSection(current)}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FieldBlock
+            label="Average order value"
+            helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+          >
+            <input
+              type="number"
+              name="averageOrderValue"
+              value={current.averageOrderValue ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+          <FieldBlock
+            label={`Orders per subscriber (per ${periodLabel}, optional)`}
+            helper={`Formatted: ${displayInt(current.ordersPerSubscriberPerPeriod)}`}
+          >
+            <input
+              type="number"
+              name="ordersPerSubscriberPerPeriod"
+              value={current.ordersPerSubscriberPerPeriod ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        </div>
+
+        <FieldBlock
+          label={`Refund rate per ${periodLabel} (%)`}
+          helper={`Formatted: ${percentText(current.refundsRatePerPeriod)}`}
+        >
+          <input
+            type="number"
+            name="refundsRatePerPeriod"
+            value={percentInputValue(current.refundsRatePerPeriod)}
+            step="0.1"
+            onChange={handleChange}
+            className={fieldClass}
+          />
+        </FieldBlock>
+
+        <div className={panelClass}>
+          <p className="font-medium">Gross profit input</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <ChoiceCard
+              checked={recurringProfitMode === "gross_profit"}
+              title="Use gross profit per subscriber period"
+              description="Best when you know contribution dollars after fulfillment for each subscriber."
+              onSelect={() =>
+                preserveScrollDuring(() => {
+                  setValue({
+                    grossProfitPerSubscriberPerPeriod:
+                      "grossProfitPerSubscriberPerPeriod" in value
+                        ? value.grossProfitPerSubscriberPerPeriod
+                        : undefined,
+                    grossMargin: undefined,
+                  });
+                })
+              }
+            />
+            <ChoiceCard
+              checked={recurringProfitMode === "margin"}
+              title="Use gross margin %"
+              description="Best when you know recurring margin but not subscriber-level contribution dollars."
+              onSelect={() =>
+                preserveScrollDuring(() => {
+                  setValue({
+                    grossProfitPerSubscriberPerPeriod: undefined,
+                    grossMargin: "grossMargin" in value ? value.grossMargin : undefined,
+                  });
+                })
+              }
+            />
+          </div>
+        </div>
+
+        {recurringProfitMode === "gross_profit" ? (
+          <FieldBlock
+            label={`Gross profit per subscriber (per ${periodLabel})`}
+            helper={`Formatted: ${displayMoney(current.grossProfitPerSubscriberPerPeriod)}`}
+          >
+            <input
+              type="number"
+              name="grossProfitPerSubscriberPerPeriod"
+              value={current.grossProfitPerSubscriberPerPeriod ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        ) : (
+          <FieldBlock
+            label="Gross margin (%)"
+            helper={`Formatted: ${percentText(current.grossMargin)}`}
+          >
+            <input
+              type="number"
+              name="grossMargin"
+              value={percentInputValue(current.grossMargin)}
+              step="0.1"
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        )}
+      </>
+    );
+  };
+
   return (
     <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
@@ -1097,7 +1470,12 @@ const KpiInputPanel = ({
         </FieldBlock>
       </div>
 
-      <OfferTypePills value={value.offerType} onChange={setOfferType} />
+      <OfferTypePills
+        industry={activeIndustry}
+        value={value.offerType}
+        onIndustryChange={setIndustry}
+        onChange={setOfferType}
+      />
 
       <FieldBlock label="Analysis period">
         <SelectField
@@ -1116,6 +1494,9 @@ const KpiInputPanel = ({
       {isTokenPricing && renderTokenFields(value)}
       {isHybrid && renderHybridFields(value)}
       {isImplementation && renderImplementationFields(value)}
+      {isEcommerceOneTime && renderEcommerceOneTimeFields(value)}
+      {isEcommerceRepeat && renderEcommerceRepeatFields(value)}
+      {isEcommerceReplenishment && renderEcommerceReplenishmentFields(value)}
 
       <div className="flex gap-3">
         <button
