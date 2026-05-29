@@ -4,6 +4,10 @@ import { useMemo } from "react";
 import { buildFallbackAiOpportunitySummary } from "@/features/kpi/analysis-ai";
 import { buildAnalysisReport } from "@/features/kpi/analysis";
 import { buildHealthAssessment } from "@/features/kpi/health";
+import {
+  buildPricingExplorerReport,
+  priceRecommendationLevers,
+} from "@/features/kpi/pricing-explorer";
 import type { KpiEvaluation } from "@/features/kpi/types";
 
 const statusStyles: Record<
@@ -31,6 +35,17 @@ const humanizeStatus = (
   return "Healthy";
 };
 
+const formatScenarioDelta = (value: number) =>
+  `${value > 0 ? "+" : ""}${(value * 100).toFixed(0)}%`;
+
+const formatPercentValue = (value: number | null) =>
+  value == null ? "n/a" : `${(value * 100).toFixed(1)}%`;
+
+const formatVelocity = (value: number | null) =>
+  value == null
+    ? "n/a"
+    : `${value.toLocaleString("en-US", { maximumFractionDigits: 1 })}/mo`;
+
 const HealthSummaryCard = ({
   evaluation,
 }: {
@@ -49,6 +64,35 @@ const HealthSummaryCard = ({
       },
     );
   }, [evaluation]);
+  const pricingReport = useMemo(
+    () => buildPricingExplorerReport({ evaluation }),
+    [evaluation],
+  );
+  const pricingCaveat = useMemo(() => {
+    if (
+      recommendation.recommendedLever == null ||
+      !priceRecommendationLevers.has(recommendation.recommendedLever) ||
+      !pricingReport.eligible
+    ) {
+      return null;
+    }
+    const best = pricingReport.bestScenario;
+    if (!best) {
+      return null;
+    }
+    if (best.isBaseline) {
+      return "Pricing caveat: under base sensitivity assumptions, no tested price change beats the current baseline.";
+    }
+    return `Pricing caveat: under base sensitivity assumptions, ${formatScenarioDelta(
+      best.priceDelta,
+    )} price is strongest only if churn is about ${formatPercentValue(
+      best.churnRate,
+    )} and stays below the ${formatPercentValue(
+      best.breakEvenChurnRate,
+    )} break-even threshold, with sales velocity around ${formatVelocity(
+      best.salesVelocityPerMonth,
+    )}.`;
+  }, [pricingReport, recommendation.recommendedLever]);
 
   return (
     <section
@@ -108,6 +152,11 @@ const HealthSummaryCard = ({
           </p>
           <p className="mt-3 text-base font-semibold">{recommendation.headline}</p>
           <p className="mt-2 text-sm opacity-85">{recommendation.recommendation}</p>
+          {pricingCaveat ? (
+            <p className="mt-3 rounded-[14px] border border-white/10 bg-black/15 px-3 py-2 text-sm opacity-85">
+              {pricingCaveat}
+            </p>
+          ) : null}
 
           {recommendation.expectedImpact ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">

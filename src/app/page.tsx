@@ -8,6 +8,7 @@ import DecisionCards from "@/components/home/DecisionCards";
 import HealthSummaryCard from "@/components/home/HealthSummaryCard";
 import HeroSection from "@/components/home/HeroSection";
 import OfferWorkspace from "@/components/home/OfferWorkspace";
+import PricingExplorerCard from "@/components/home/PricingExplorerCard";
 import ReportsDashboard from "@/components/home/ReportsDashboard";
 import ResultsSections from "@/components/home/ResultsSections";
 import SaveReportCard from "@/components/home/SaveReportCard";
@@ -446,6 +447,7 @@ export default function Home() {
                 <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
                   <div className="space-y-5">
                     <HealthSummaryCard evaluation={evaluation} />
+                    <PricingExplorerCard evaluation={evaluation} />
                     <DecisionCards
                       results={evaluation.results}
                       period={evaluation.inputs.analysisPeriod}

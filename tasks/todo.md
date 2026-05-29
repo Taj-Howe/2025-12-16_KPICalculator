@@ -1,6 +1,20 @@
 # KPI Calculator Roadmap
 
-## Active Task: Sales Velocity And Base-Customer Logic Repair
+## Active Task: Pricing Explorer With Churn Tradeoff
+- [x] Add a coupled pricing-analysis module with price, churn, and sales-velocity scenario generation.
+- [x] Add sensitivity presets plus editable manual assumptions in the current decision output.
+- [x] Surface break-even churn thresholds and a best-under-assumptions verdict.
+- [x] Contextualize price recommendations with churn/sales-velocity caveats without replacing the existing best-lever ranking.
+- [x] Add unit/regression tests for coupled pricing scenarios and existing independent ranking.
+- [x] Verify with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+### Active Task Review
+- Added a dedicated Pricing Explorer that compares price changes against coupled churn and sales-velocity assumptions while leaving saved report/API shapes unchanged.
+- Added low/base/high presets plus manual sensitivity inputs, scenario verdicts, break-even churn, and best-under-assumptions highlighting in the decision output.
+- Price recommendations now include a base-sensitivity caveat when the independent analysis ranks price as the best next move.
+- Verification passed with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+## Previous Active Task: Sales Velocity And Base-Customer Logic Repair
 - [x] Confirm where software and e-commerce flows collect sales velocity and starting customer base.
 - [x] Make sales velocity explicit as new customers per month while preserving the internal per-period field used by CAC and projection formulas.
 - [x] Ask for starting active customers in recurring software subscription unit-economics flows.
