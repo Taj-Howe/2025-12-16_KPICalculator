@@ -46,7 +46,9 @@ Every number you enter must match the selected period:
 - **quarterly**
 - **yearly**
 
-If you pick **quarterly**, then ARPC is *per quarter*, churn is *per quarter*, CAC is *per quarter*, etc. No hidden conversions. No “monthly churn + yearly revenue” chaos.
+If you pick **quarterly**, then ARPC is *per quarter*, churn is *per quarter*, CAC spend is *per quarter*, etc.
+
+Sales velocity is the one deliberate exception in the product UI: users enter and see it as **new customers per month**. The calculator converts that monthly velocity into the selected period’s new-customer count before applying CAC and projection formulas.
 
 ### Offer-first modeling
 The app is moving to an offer-first model so inputs map to how a product actually monetizes.
@@ -63,7 +65,7 @@ The app is moving to an offer-first model so inputs map to how a product actuall
 - **LTGP** (Lifetime Gross Profit; lifetime gross profit per customer)
 - **Churn** (subscription) or retention proxy (transactional)
 - **ARPC** (Average Revenue Per Customer, per selected period)
-- **CAR** (Customer Acquisition Rate)
+- **Sales Velocity** (new customers per month; stored as period acquisition count for formulas)
 - **Hypothetical Max Revenue / Year** (annualized from selected period)
 - **Hypothetical Max Profit / Year** (annualized from selected period)
 

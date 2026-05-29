@@ -137,7 +137,7 @@ export type SoftwareOfferInputBase = {
 ```
 
 Shared meaning:
-- `newCustomersPerPeriod`: sales velocity / new logos acquired in the analysis period
+- `newCustomersPerPeriod`: internal acquisition count for the analysis period; UI sales velocity is shown as new logos per month and converted into this field
 - `marketingSpendPerPeriod` or `directCac`: acquisition input
 - `softwareConfig`: software-native metadata used by the UI and report layer
 

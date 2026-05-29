@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { evaluateKpis } from "../src/features/kpi/service";
+import {
+  monthlySalesVelocity,
+  newCustomersPerPeriodFromMonthlyVelocity,
+} from "../src/features/kpi/formulas";
 import { mapSnapshotToCalculatorInput } from "../src/features/integrations/service";
 import type { NormalizedOfferPeriodSnapshot } from "../src/features/integrations/types";
 import type {
@@ -40,6 +44,45 @@ const ecommerceConfig = {
   industryPreset: "ecommerce" as const,
   monetizationModel: "one_time_product" as const,
 };
+
+test("math contract: sales velocity is monthly display over period acquisition count", () => {
+  assert.equal(monthlySalesVelocity(10, "monthly"), 10);
+  assert.equal(monthlySalesVelocity(30, "quarterly"), 10);
+  assert.equal(monthlySalesVelocity(120, "yearly"), 10);
+
+  assert.equal(newCustomersPerPeriodFromMonthlyVelocity(10, "monthly"), 10);
+  assert.equal(newCustomersPerPeriodFromMonthlyVelocity(10, "quarterly"), 30);
+  assert.equal(newCustomersPerPeriodFromMonthlyVelocity(10, "yearly"), 120);
+});
+
+test("math contract: CAC uses the selected-period cohort after monthly sales velocity conversion", () => {
+  const input: SubscriptionOfferInput = {
+    offerId: "quarterly-subscription",
+    offerName: "Quarterly Subscription",
+    offerType: "software_subscription",
+    analysisPeriod: "quarterly",
+    revenueInputMode: "direct_arpc",
+    directArpc: 100,
+    grossProfitInputMode: "margin",
+    grossMargin: 0.5,
+    cacInputMode: "derived",
+    marketingSpendPerPeriod: 3_000,
+    retentionInputMode: "rate",
+    directChurnRatePerPeriod: 0.1,
+    newCustomersPerPeriod: newCustomersPerPeriodFromMonthlyVelocity(
+      10,
+      "quarterly",
+    )!,
+    activeCustomersStart: 100,
+    softwareConfig,
+  };
+
+  const evaluation = evaluateKpis(input);
+
+  assert.equal(evaluation.results.car, 30);
+  assert.equal(evaluation.results.cac, 100);
+  assert.equal(monthlySalesVelocity(evaluation.results.car, "quarterly"), 10);
+});
 
 test("math contract: legacy subscription separates LTV revenue from LTGP", () => {
   const input: KPIInput = {

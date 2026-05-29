@@ -1,6 +1,21 @@
 # KPI Calculator Roadmap
 
-## Active Task: Whole-App KPI Math Audit And Repair
+## Active Task: Sales Velocity And Base-Customer Logic Repair
+- [x] Confirm where software and e-commerce flows collect sales velocity and starting customer base.
+- [x] Make sales velocity explicit as new customers per month while preserving the internal per-period field used by CAC and projection formulas.
+- [x] Ask for starting active customers in recurring software subscription unit-economics flows.
+- [x] Ask paid-pilot guided onboarding for new pilots sold instead of relying on defaults.
+- [x] Update result surfaces so sales velocity is displayed as a monthly value, with per-period cohort math still visible where useful.
+- [x] Add focused math helper tests for monthly sales velocity conversion.
+- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
+
+### Active Task Review
+- Manual software/e-commerce inputs and guided software onboarding now collect monthly sales velocity and convert it to the existing `newCustomersPerPeriod` contract for formulas.
+- Software subscription unit-economics mode now asks for starting active customers, and paid-pilot guided onboarding now asks for new pilots sold.
+- Decision cards, result customer bridge, and saved-report details now display sales velocity as a monthly value while still showing per-period cohort movement where relevant.
+- Verification passed with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+## Previous Active Task: Whole-App KPI Math Audit And Repair
 - [x] Lock the metric contract in code/docs: LTV is lifetime revenue, LTGP is lifetime gross profit, ARPC is recurring revenue per active customer per selected period.
 - [x] Fix shared formula helpers so lifetime revenue and lifetime gross profit are calculated separately.
 - [x] Repair legacy, software/tech, e-commerce, mixed-offer, analysis, and import paths that rely on the old LTV/LTGP semantics.

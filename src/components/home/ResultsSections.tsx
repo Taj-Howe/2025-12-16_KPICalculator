@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { KPIResult } from "@/features/kpi/types";
+import { monthlySalesVelocity } from "@/features/kpi/formulas";
 import type { KPIInputState } from "./types";
 import { formatMoney, formatPercent, formatRatio } from "./formatters";
 import { panelClassName } from "./form-primitives";
@@ -17,6 +18,13 @@ const countFormatter = new Intl.NumberFormat("en-US", {
 
 const formatCount = (value: number | null) =>
   value == null ? "—" : countFormatter.format(value);
+
+const velocityFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+});
+
+const formatVelocity = (value: number | null) =>
+  value == null ? "—" : `${velocityFormatter.format(value)}/mo`;
 
 const formatPeriods = (value: number | null) =>
   value == null ? "—" : `${value.toFixed(2)} periods`;
@@ -64,6 +72,7 @@ const CustomerBridge = ({
   }
   const start = inputs.activeCustomersStart ?? null;
   const newCustomers = inputs.newCustomersPerPeriod ?? null;
+  const velocity = monthlySalesVelocity(newCustomers, inputs.analysisPeriod);
   const derivedChurned =
     inputs.churnedCustomersPerPeriod != null
       ? inputs.churnedCustomersPerPeriod
@@ -85,7 +94,11 @@ const CustomerBridge = ({
       </p>
       <div className="mt-3 space-y-2">
         <MetricRow label="Start customers" value={formatCount(start)} />
-        <MetricRow label="+ New customers" value={formatCount(newCustomers)} />
+        <MetricRow label="Sales velocity" value={formatVelocity(velocity)} />
+        <MetricRow
+          label={`+ New customers in ${inputs.analysisPeriod} period`}
+          value={formatCount(newCustomers)}
+        />
         <MetricRow
           label="- Churned customers (derived)"
           value={formatCount(derivedChurned)}

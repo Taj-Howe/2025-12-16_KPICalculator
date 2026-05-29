@@ -1,16 +1,27 @@
 "use client";
 
-import type { KPIResult } from "@/features/kpi/types";
+import { monthlySalesVelocity } from "@/features/kpi/formulas";
+import type { KPIResult, KpiPeriod } from "@/features/kpi/types";
 import { formatPercent, formatRatio } from "./formatters";
 import { StatCard } from "./form-primitives";
 
 const formatPeriods = (value: number | null) =>
   value == null ? "—" : `${value.toFixed(2)} periods`;
 
-const formatCount = (value: number | null) =>
-  value == null ? "—" : value.toLocaleString("en-US");
+const formatVelocity = (value: number | null) =>
+  value == null
+    ? "—"
+    : `${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}/mo`;
 
-const DecisionCards = ({ results }: { results: KPIResult | null }) => {
+const DecisionCards = ({
+  results,
+  period,
+}: {
+  results: KPIResult | null;
+  period: KpiPeriod;
+}) => {
+  const velocity = monthlySalesVelocity(results?.car ?? null, period);
+
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
@@ -25,8 +36,8 @@ const DecisionCards = ({ results }: { results: KPIResult | null }) => {
       />
       <StatCard
         eyebrow="Sales velocity"
-        value={formatCount(results?.car ?? null)}
-        caption="New customers per period"
+        value={formatVelocity(velocity)}
+        caption="New customers per month"
       />
       <StatCard
         eyebrow="Churn"

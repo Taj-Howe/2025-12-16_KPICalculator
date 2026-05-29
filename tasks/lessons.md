@@ -28,3 +28,4 @@
 - Keep planning artifacts scoped to the current repo. If the user references a different project, do not add roadmap items or specs here until the target project is explicitly confirmed.
 
 - When Next/Turbopack reports a local module as missing after branch switches or merges, verify the file and import path first; if build passes, treat it as a stale dev cache/server state before changing code.
+- Recurring and throughput onboarding must ask for both sides of the growth model. Do not let direct unit-economics paths hide starting active customers or sales velocity just because defaults or optional schema fields let calculations run.

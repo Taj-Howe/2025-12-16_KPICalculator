@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import LineChart from "@/components/LineChart";
 import Sparkline from "@/components/Sparkline";
+import { monthlySalesVelocity } from "@/features/kpi/formulas";
+import type { KpiPeriod } from "@/features/kpi/types";
 import type { ReportsPanelProps } from "./types";
 import ImportedAnalyticsPanel from "./ImportedAnalyticsPanel";
 import {
@@ -38,6 +40,21 @@ const ReportsDashboard = ({
   const selected = selectedReport ?? (hasReports ? reports[0] ?? null : null);
   const result = selected?.resultJson;
   const warnings = selected?.warningsJson ?? [];
+  const selectedPeriod =
+    selected?.period === "monthly" ||
+    selected?.period === "quarterly" ||
+    selected?.period === "yearly"
+      ? (selected.period as KpiPeriod)
+      : null;
+  const selectedSalesVelocity =
+    selected != null &&
+    selectedPeriod != null &&
+    "newCustomersPerPeriod" in selected.inputJson
+      ? monthlySalesVelocity(
+          selected.inputJson.newCustomersPerPeriod,
+          selectedPeriod,
+        )
+      : null;
   const selectedLabelInput =
     selected?.offerType != null
       ? { offerType: selected.offerType }
@@ -85,6 +102,10 @@ const ReportsDashboard = ({
         return value.toFixed(2);
     }
   };
+  const formatVelocity = (value: number | null) =>
+    value == null
+      ? "—"
+      : `${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}/mo`;
 
   const describeReport = (report: (typeof reports)[number]) =>
     report.offerName?.trim() || report.title?.trim() || "Untitled";
@@ -247,6 +268,7 @@ const ReportsDashboard = ({
                   <MetricDetail label="LTGP:CAC" value={formatRatio(result?.ltgpToCacRatio ?? null)} />
                   <MetricDetail label="CAC payback" value={formatValue(result?.cacPaybackPeriods ?? null, "periods")} />
                   <MetricDetail label="CAC" value={formatMoney(result?.cac ?? null)} />
+                  <MetricDetail label="Sales velocity" value={formatVelocity(selectedSalesVelocity)} />
                   <MetricDetail label={getRevenueDriverLabel(selectedLabelInput)} value={formatMoney(result?.arpc ?? null)} />
                   <MetricDetail label={getLtvLabel(selectedLabelInput)} value={formatMoney(result?.ltv ?? null)} />
                   <MetricDetail label="Churn" value={formatPercent(result?.churnRate ?? null)} />

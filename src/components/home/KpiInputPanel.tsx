@@ -14,6 +14,10 @@ import type {
   SoftwareTokenPricingInput,
   SubscriptionOfferInput,
 } from "@/features/kpi/types";
+import {
+  monthlySalesVelocity,
+  newCustomersPerPeriodFromMonthlyVelocity,
+} from "@/features/kpi/formulas";
 import type {
   KpiInputPanelProps,
   KPIInputState,
@@ -69,9 +73,36 @@ const KpiInputPanel = ({
     () => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }),
     [],
   );
+  const velocityFormatter = useMemo(
+    () => new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }),
+    [],
+  );
 
   const displayMoney = (val?: number) => (val == null ? "-" : usd.format(val));
   const displayInt = (val?: number) => (val == null ? "-" : intFormatter.format(val));
+  const displayVelocity = (val?: number | null) =>
+    val == null ? "-" : velocityFormatter.format(val);
+  const salesVelocityInputValue = (newCustomersPerPeriod?: number) => {
+    const monthly = monthlySalesVelocity(newCustomersPerPeriod, value.analysisPeriod);
+    if (monthly == null) {
+      return "";
+    }
+    return Number.isInteger(monthly)
+      ? String(monthly)
+      : String(Number(monthly.toFixed(4)));
+  };
+  const salesVelocityHelper = (newCustomersPerPeriod?: number) => {
+    const monthly = monthlySalesVelocity(newCustomersPerPeriod, value.analysisPeriod);
+    if (monthly == null) {
+      return "Formatted: -";
+    }
+    if (value.analysisPeriod === "monthly") {
+      return `Formatted: ${displayVelocity(monthly)}/month`;
+    }
+    return `Formatted: ${displayVelocity(monthly)}/month (${displayVelocity(
+      newCustomersPerPeriod,
+    )} per ${periodLabel})`;
+  };
 
   const setValue = (patch: Partial<KPIInputState>) => {
     onChange({ ...value, ...patch } as KPIInputState);
@@ -105,7 +136,24 @@ const KpiInputPanel = ({
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
-    const stringFields = new Set(["analysisPeriod", "offerName", "offerId", "calculatorMode"]);
+    if (name === "analysisPeriod") {
+      const nextPeriod = nextValue as KPIInputState["analysisPeriod"];
+      const currentMonthlyVelocity = monthlySalesVelocity(
+        value.newCustomersPerPeriod,
+        value.analysisPeriod,
+      );
+      setValue({
+        analysisPeriod: nextPeriod,
+        newCustomersPerPeriod:
+          newCustomersPerPeriodFromMonthlyVelocity(
+            currentMonthlyVelocity,
+            nextPeriod,
+          ) ?? value.newCustomersPerPeriod,
+      } as Partial<KPIInputState>);
+      return;
+    }
+
+    const stringFields = new Set(["offerName", "offerId", "calculatorMode"]);
     if (stringFields.has(name)) {
       setValue({ [name]: nextValue } as Partial<KPIInputState>);
       return;
@@ -130,6 +178,45 @@ const KpiInputPanel = ({
       setValue({ [name]: numeric } as Partial<KPIInputState>);
     }
   };
+
+  const handleSalesVelocityChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { value: nextValue } = event.target;
+    if (nextValue === "") {
+      setValue({ newCustomersPerPeriod: undefined } as Partial<KPIInputState>);
+      return;
+    }
+    const monthly = Number(nextValue);
+    if (!Number.isNaN(monthly)) {
+      setValue({
+        newCustomersPerPeriod:
+          newCustomersPerPeriodFromMonthlyVelocity(
+            monthly,
+            value.analysisPeriod,
+          ) ?? undefined,
+      } as Partial<KPIInputState>);
+    }
+  };
+
+  const renderSalesVelocityField = (
+    current: { newCustomersPerPeriod?: number },
+    label: string,
+  ) => (
+    <FieldBlock
+      label={label}
+      helper={salesVelocityHelper(current.newCustomersPerPeriod)}
+    >
+      <input
+        type="number"
+        name="newCustomersPerMonth"
+        value={salesVelocityInputValue(current.newCustomersPerPeriod)}
+        step="0.01"
+        onChange={handleSalesVelocityChange}
+        className={fieldClass}
+      />
+    </FieldBlock>
+  );
 
   const setOfferType = (offerType: SupportedOfferType) => {
     const next = createDefaultOfferInput(offerType);
@@ -486,37 +573,23 @@ const KpiInputPanel = ({
         </FieldBlock>
       )}
 
+      {renderSalesVelocityField(
+        current,
+        "Sales velocity / new customers per month",
+      )}
+
       <FieldBlock
-        label={
-          calculatorMode === "unit_economics"
-            ? `Sales velocity / new customers (per ${periodLabel})`
-            : `New customers (per ${periodLabel})`
-        }
-        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
+        label="Starting customer base"
+        helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
       >
         <input
           type="number"
-          name="newCustomersPerPeriod"
-          value={current.newCustomersPerPeriod ?? ""}
+          name="activeCustomersStart"
+          value={current.activeCustomersStart ?? ""}
           onChange={handleChange}
           className={fieldClass}
         />
       </FieldBlock>
-
-      {calculatorMode === "business_metrics" && (
-        <FieldBlock
-          label="Starting customer base"
-          helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
-        >
-          <input
-            type="number"
-            name="activeCustomersStart"
-            value={current.activeCustomersStart ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
-      )}
 
       <div className={panelClass}>
         <p className="font-medium">Gross profit input</p>
@@ -662,18 +735,10 @@ const KpiInputPanel = ({
           </p>
         </div>
 
-        <FieldBlock
-          label={`New pilots sold (per ${periodLabel})`}
-          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-        >
-          <input
-            type="number"
-            name="newCustomersPerPeriod"
-            value={current.newCustomersPerPeriod ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
+        {renderSalesVelocityField(
+          current,
+          "Sales velocity / new pilots per month",
+        )}
 
         <FieldBlock
           label="Pilot fee per new customer"
@@ -750,18 +815,10 @@ const KpiInputPanel = ({
         </p>
       </div>
 
-      <FieldBlock
-        label={`New customers (per ${periodLabel})`}
-        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-      >
-        <input
-          type="number"
-          name="newCustomersPerPeriod"
-          value={current.newCustomersPerPeriod ?? ""}
-          onChange={handleChange}
-          className={fieldClass}
-        />
-      </FieldBlock>
+      {renderSalesVelocityField(
+        current,
+        "Sales velocity / new customers per month",
+      )}
 
       {renderCacSection()}
       {renderRetentionSection(current)}
@@ -831,18 +888,10 @@ const KpiInputPanel = ({
         </p>
       </div>
 
-      <FieldBlock
-        label={`New customers (per ${periodLabel})`}
-        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-      >
-        <input
-          type="number"
-          name="newCustomersPerPeriod"
-          value={current.newCustomersPerPeriod ?? ""}
-          onChange={handleChange}
-          className={fieldClass}
-        />
-      </FieldBlock>
+      {renderSalesVelocityField(
+        current,
+        "Sales velocity / new customers per month",
+      )}
 
       {renderCacSection()}
       {renderRetentionSection(current)}
@@ -946,18 +995,10 @@ const KpiInputPanel = ({
           </p>
         </div>
 
-        <FieldBlock
-          label={`New customers (per ${periodLabel})`}
-          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-        >
-          <input
-            type="number"
-            name="newCustomersPerPeriod"
-            value={current.newCustomersPerPeriod ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
+        {renderSalesVelocityField(
+          current,
+          "Sales velocity / new customers per month",
+        )}
 
         {renderCacSection()}
         {renderRetentionSection(current)}
@@ -1184,18 +1225,10 @@ const KpiInputPanel = ({
         </p>
       </div>
 
-      <FieldBlock
-        label={`New customers / orders (per ${periodLabel})`}
-        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-      >
-        <input
-          type="number"
-          name="newCustomersPerPeriod"
-          value={current.newCustomersPerPeriod ?? ""}
-          onChange={handleChange}
-          className={fieldClass}
-        />
-      </FieldBlock>
+      {renderSalesVelocityField(
+        current,
+        "Sales velocity / new customers per month",
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <FieldBlock
@@ -1242,18 +1275,10 @@ const KpiInputPanel = ({
         </p>
       </div>
 
-      <FieldBlock
-        label={`New customers / first orders (per ${periodLabel})`}
-        helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-      >
-        <input
-          type="number"
-          name="newCustomersPerPeriod"
-          value={current.newCustomersPerPeriod ?? ""}
-          onChange={handleChange}
-          className={fieldClass}
-        />
-      </FieldBlock>
+      {renderSalesVelocityField(
+        current,
+        "Sales velocity / first-time customers per month",
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <FieldBlock
@@ -1319,18 +1344,10 @@ const KpiInputPanel = ({
           </p>
         </div>
 
-        <FieldBlock
-          label={`New subscribers (per ${periodLabel})`}
-          helper={`Formatted: ${displayInt(current.newCustomersPerPeriod)}`}
-        >
-          <input
-            type="number"
-            name="newCustomersPerPeriod"
-            value={current.newCustomersPerPeriod ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
+        {renderSalesVelocityField(
+          current,
+          "Sales velocity / new subscribers per month",
+        )}
 
         {renderCacSection()}
         {renderRetentionSection(current)}

@@ -9,6 +9,10 @@ import type {
   SoftwareTokenPricingInput,
   SubscriptionOfferInput,
 } from "@/features/kpi/types";
+import {
+  monthlySalesVelocity,
+  newCustomersPerPeriodFromMonthlyVelocity,
+} from "@/features/kpi/formulas";
 import type {
   SupportedIndustry,
   SupportedSoftwareOfferType,
@@ -133,10 +137,13 @@ const isStepComplete = (
       if ((value.calculatorMode ?? "business_metrics") === "business_metrics") {
         return value.revenuePerPeriod != null && value.activeCustomersStart != null;
       }
-      return value.directArpc != null;
+      return value.directArpc != null && value.activeCustomersStart != null;
     }
     if (isPaidPilot(value)) {
-      return value.pilotFeePerNewCustomer != null;
+      return (
+        value.pilotFeePerNewCustomer != null &&
+        value.newCustomersPerPeriod != null
+      );
     }
     if (isTokenPricing(value)) {
       return (
@@ -265,6 +272,10 @@ const SoftwareOnboardingFlow = ({
     () => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }),
     [],
   );
+  const velocityFormatter = useMemo(
+    () => new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }),
+    [],
+  );
 
   const periodLabel = `${value.analysisPeriod} period`;
   const fieldClass = fieldClassName;
@@ -308,7 +319,24 @@ const SoftwareOnboardingFlow = ({
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value: nextValue } = event.target;
-    if (["offerName", "offerId", "analysisPeriod"].includes(name)) {
+    if (name === "analysisPeriod") {
+      const nextPeriod = nextValue as SoftwareKPIInputState["analysisPeriod"];
+      const currentMonthlyVelocity = monthlySalesVelocity(
+        value.newCustomersPerPeriod,
+        value.analysisPeriod,
+      );
+      setValue({
+        analysisPeriod: nextPeriod,
+        newCustomersPerPeriod:
+          newCustomersPerPeriodFromMonthlyVelocity(
+            currentMonthlyVelocity,
+            nextPeriod,
+          ) ?? value.newCustomersPerPeriod,
+      } as Partial<SoftwareKPIInputState>);
+      return;
+    }
+
+    if (["offerName", "offerId"].includes(name)) {
       setValue({ [name]: nextValue } as Partial<SoftwareKPIInputState>);
       return;
     }
@@ -333,6 +361,26 @@ const SoftwareOnboardingFlow = ({
     }
   };
 
+  const handleSalesVelocityChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { value: nextValue } = event.target;
+    if (nextValue === "") {
+      setValue({ newCustomersPerPeriod: undefined } as Partial<SoftwareKPIInputState>);
+      return;
+    }
+    const monthly = Number(nextValue);
+    if (!Number.isNaN(monthly)) {
+      setValue({
+        newCustomersPerPeriod:
+          newCustomersPerPeriodFromMonthlyVelocity(
+            monthly,
+            value.analysisPeriod,
+          ) ?? undefined,
+      } as Partial<SoftwareKPIInputState>);
+    }
+  };
+
   const setOfferType = (offerType: SupportedSoftwareOfferType) => {
     const next = createDefaultOfferInput(offerType) as SoftwareKPIInputState;
     next.analysisPeriod = value.analysisPeriod;
@@ -344,6 +392,47 @@ const SoftwareOnboardingFlow = ({
 
   const formatMoney = (input?: number) => (input == null ? "—" : money.format(input));
   const formatInt = (input?: number) => (input == null ? "—" : integer.format(input));
+  const formatVelocity = (input?: number | null) =>
+    input == null ? "—" : velocityFormatter.format(input);
+  const salesVelocityInputValue = () => {
+    const monthly = monthlySalesVelocity(
+      value.newCustomersPerPeriod,
+      value.analysisPeriod,
+    );
+    if (monthly == null) {
+      return "";
+    }
+    return Number.isInteger(monthly)
+      ? String(monthly)
+      : String(Number(monthly.toFixed(4)));
+  };
+  const salesVelocitySummary = () => {
+    const monthly = monthlySalesVelocity(
+      value.newCustomersPerPeriod,
+      value.analysisPeriod,
+    );
+    if (monthly == null) {
+      return "—";
+    }
+    if (value.analysisPeriod === "monthly") {
+      return `${formatVelocity(monthly)}/month`;
+    }
+    return `${formatVelocity(monthly)}/month (${formatVelocity(
+      value.newCustomersPerPeriod,
+    )} per ${periodLabel})`;
+  };
+  const renderSalesVelocityField = (label: string) => (
+    <FieldBlock label={label} helper={`Formatted: ${salesVelocitySummary()}`}>
+      <input
+        type="number"
+        name="newCustomersPerMonth"
+        value={salesVelocityInputValue()}
+        step="0.01"
+        onChange={handleSalesVelocityChange}
+        className={fieldClass}
+      />
+    </FieldBlock>
+  );
 
   const goNext = () => {
     if (!isStepComplete(currentStep.id, value)) {
@@ -486,18 +575,32 @@ const SoftwareOnboardingFlow = ({
               </FieldBlock>
             </>
           ) : (
-            <FieldBlock
-              label={`Subscription price / ARPC (per ${periodLabel})`}
-              helper={`Formatted: ${formatMoney(value.directArpc)}`}
-            >
-              <input
-                type="number"
-                name="directArpc"
-                value={value.directArpc ?? ""}
-                onChange={handleChange}
-                className={fieldClass}
-              />
-            </FieldBlock>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FieldBlock
+                label={`Subscription price / ARPC (per ${periodLabel})`}
+                helper={`Formatted: ${formatMoney(value.directArpc)}`}
+              >
+                <input
+                  type="number"
+                  name="directArpc"
+                  value={value.directArpc ?? ""}
+                  onChange={handleChange}
+                  className={fieldClass}
+                />
+              </FieldBlock>
+              <FieldBlock
+                label="Starting customer base"
+                helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+              >
+                <input
+                  type="number"
+                  name="activeCustomersStart"
+                  value={value.activeCustomersStart ?? ""}
+                  onChange={handleChange}
+                  className={fieldClass}
+                />
+              </FieldBlock>
+            </div>
           )}
         </div>
       );
@@ -505,18 +608,21 @@ const SoftwareOnboardingFlow = ({
 
     if (isPaidPilot(value)) {
       return (
-        <FieldBlock
-          label="Pilot fee per new customer"
-          helper={`Formatted: ${formatMoney(value.pilotFeePerNewCustomer)}`}
-        >
-          <input
-            type="number"
-            name="pilotFeePerNewCustomer"
-            value={value.pilotFeePerNewCustomer ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
+        <div className="space-y-4">
+          {renderSalesVelocityField("Sales velocity / new pilots per month")}
+          <FieldBlock
+            label="Pilot fee per new customer"
+            helper={`Formatted: ${formatMoney(value.pilotFeePerNewCustomer)}`}
+          >
+            <input
+              type="number"
+              name="pilotFeePerNewCustomer"
+              value={value.pilotFeePerNewCustomer ?? ""}
+              onChange={handleChange}
+              className={fieldClass}
+            />
+          </FieldBlock>
+        </div>
       );
     }
 
@@ -679,18 +785,7 @@ const SoftwareOnboardingFlow = ({
 
     return (
       <div className="space-y-4">
-        <FieldBlock
-          label={`New customers (per ${periodLabel})`}
-          helper={`Formatted: ${formatInt(value.newCustomersPerPeriod)}`}
-        >
-          <input
-            type="number"
-            name="newCustomersPerPeriod"
-            value={value.newCustomersPerPeriod ?? ""}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </FieldBlock>
+        {renderSalesVelocityField("Sales velocity / new customers per month")}
 
         {!isSubscription(value) || (value.calculatorMode ?? "business_metrics") === "business_metrics" ? (
           <div className={panelClass}>
@@ -1194,7 +1289,7 @@ const SoftwareOnboardingFlow = ({
     const rows = [
       { label: "Offer model", value: value.offerType.replaceAll("_", " ") },
       { label: "Analysis period", value: value.analysisPeriod },
-      { label: "New customers", value: formatInt(value.newCustomersPerPeriod) },
+      { label: "Sales velocity", value: salesVelocitySummary() },
       {
         label: "CAC path",
         value:

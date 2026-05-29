@@ -1,4 +1,4 @@
-import type { KPIInput } from "./types";
+import type { KPIInput, KpiPeriod } from "./types";
 
 // Contract: LTV is lifetime revenue; LTGP is lifetime gross profit.
 // Keep these separate so gross-margin changes do not rewrite revenue lifetime value.
@@ -13,6 +13,39 @@ export const periodsPerYear = (period: KPIInput["period"]): number => {
     default:
       return 1;
   }
+};
+
+export const monthsPerPeriod = (period: KpiPeriod): number => {
+  switch (period) {
+    case "monthly":
+      return 1;
+    case "quarterly":
+      return 3;
+    case "yearly":
+      return 12;
+    default:
+      return 1;
+  }
+};
+
+export const monthlySalesVelocity = (
+  newCustomersPerPeriod: number | null | undefined,
+  period: KpiPeriod,
+): number | null => {
+  if (newCustomersPerPeriod == null) {
+    return null;
+  }
+  return newCustomersPerPeriod / monthsPerPeriod(period);
+};
+
+export const newCustomersPerPeriodFromMonthlyVelocity = (
+  newCustomersPerMonth: number | null | undefined,
+  period: KpiPeriod,
+): number | null => {
+  if (newCustomersPerMonth == null) {
+    return null;
+  }
+  return newCustomersPerMonth * monthsPerPeriod(period);
 };
 
 export const averageActiveCustomers = (

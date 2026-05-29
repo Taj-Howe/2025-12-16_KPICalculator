@@ -65,9 +65,10 @@ Fields by offer type:
 `software_subscription`
 - revenue mode
 - direct ARPC or total revenue
-- starting customer base if required
+- starting customer base
 
 `software_paid_pilot`
+- new pilots sold per month
 - pilot fee per new customer
 
 `software_token_pricing`
@@ -97,16 +98,16 @@ Purpose:
 Fields:
 
 Recurring offers:
-- new customers per period
+- sales velocity / new customers per month
 - retention mode
 - direct churn rate OR retained/churned cohort counts
 
 Throughput-only offers:
-- new customers per period
+- sales velocity / new customers per month
 
 Completion rule:
 - recurring offers must satisfy the current evaluator validation path
-- throughput offers need only `newCustomersPerPeriod`
+- throughput offers need only a valid sales velocity, converted into `newCustomersPerPeriod` for the evaluator
 
 ### Step 4: Acquisition
 

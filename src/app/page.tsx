@@ -446,7 +446,10 @@ export default function Home() {
                 <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
                   <div className="space-y-5">
                     <HealthSummaryCard evaluation={evaluation} />
-                    <DecisionCards results={evaluation.results} />
+                    <DecisionCards
+                      results={evaluation.results}
+                      period={evaluation.inputs.analysisPeriod}
+                    />
                     <ResultsSections
                       results={evaluation.results}
                       warnings={warnings}
@@ -492,7 +495,11 @@ export default function Home() {
           What these metrics mean
         </summary>
         <div className="mt-3 space-y-2 text-sm text-white/64">
-          <p>All values are per selected period (monthly/quarterly/yearly).</p>
+          <p>
+            Most values use the selected period. Sales velocity is shown per
+            month, then converted into the selected period for CAC and projection
+            math.
+          </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>
               <strong>CAC</strong>: Cost to acquire each new customer during the
