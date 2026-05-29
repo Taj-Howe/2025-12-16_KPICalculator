@@ -28,6 +28,19 @@ const uniqueCount = (values: Array<string | null | undefined>) =>
 
 const createId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
 
+const averageActiveCustomerCount = (
+  activeCustomersStart: number | null,
+  activeCustomersEnd: number | null,
+) => {
+  if (activeCustomersStart == null) {
+    return null;
+  }
+  if (activeCustomersEnd == null) {
+    return activeCustomersStart;
+  }
+  return (activeCustomersStart + activeCustomersEnd) / 2;
+};
+
 const buildSoftwareConfig = (offerType: ImportedOfferType): SoftwareTechConfig => {
   if (offerType === "software_paid_pilot") {
     return {
@@ -253,6 +266,10 @@ export const deriveOfferPeriodSnapshots = ({
         .filter((event) => event.customerKey != null)
         .map((event) => event.customerKey),
     );
+    const activeCustomerAverage =
+      startCohort.length > 0 || endCohort.length > 0
+        ? (startCohort.length + endCohort.length) / 2
+        : null;
 
     const grossReceipts = sum(
       mappedRevenue
@@ -363,8 +380,10 @@ export const deriveOfferPeriodSnapshots = ({
         ? (recognizedRevenueApprox - deliveryTotal) / recognizedRevenueApprox
         : null;
     const usageUnitsPerCustomer =
-      totalUsageUnits > 0 && activeCustomersStart != null && activeCustomersStart > 0
-        ? totalUsageUnits / activeCustomersStart
+      totalUsageUnits > 0 &&
+      activeCustomerAverage != null &&
+      activeCustomerAverage > 0
+        ? totalUsageUnits / activeCustomerAverage
         : null;
     const pricePerUsageUnit =
       totalUsageUnits > 0 ? usageRevenue / totalUsageUnits : null;
@@ -647,7 +666,10 @@ export const mapSnapshotToCalculatorInput = (
     ) {
       return { offerInput: null, unmappedFields, assumptionsApplied, warnings };
     }
-    const platformFee = activeStart > 0 ? platformRevenue / activeStart : 0;
+    const activeAverage =
+      averageActiveCustomerCount(activeStart, snapshot.customers.activeCustomersEnd) ??
+      activeStart;
+    const platformFee = activeAverage > 0 ? platformRevenue / activeAverage : 0;
     return {
       offerInput: {
         ...base,
@@ -697,6 +719,10 @@ export const mapSnapshotToCalculatorInput = (
     return { offerInput: null, unmappedFields, assumptionsApplied, warnings };
   }
 
+  const activeAverage =
+    averageActiveCustomerCount(activeStart, snapshot.customers.activeCustomersEnd) ??
+    activeStart;
+
   return {
     offerInput: {
       ...base,
@@ -704,7 +730,7 @@ export const mapSnapshotToCalculatorInput = (
       activeCustomersStart: activeStart,
       retentionInputMode: "counts",
       retainedCustomersFromStartAtEnd: retained,
-      directArpc: activeStart > 0 ? recurringRevenue / activeStart : 0,
+      directArpc: activeAverage > 0 ? recurringRevenue / activeAverage : 0,
       grossProfitInputMode: "margin",
       grossMargin,
       implementationFeePerNewCustomer: implementationRevenue / newCustomers,

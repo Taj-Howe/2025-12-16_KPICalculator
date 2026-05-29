@@ -1,6 +1,7 @@
 import {
   annualizedRevenue,
   ltgpPerCustomer,
+  ltgpSubscription,
   ltvSubscription,
   ratioLtgpToCac,
 } from "./formulas";
@@ -688,17 +689,22 @@ export const evaluateNormalizedRecurringSoftwareEconomics = (
     warnings.push("Payback is long; growth may be cash constrained.");
   }
 
-  const ltv =
+  const ltv = ltvSubscription(
+    arpcValue,
+    normalized.recurring.effectiveGrossMargin ?? 0,
+    churnValue,
+  );
+  const lifetimeGrossProfit =
     grossProfitPerCustomer != null && churnValue != null && churnValue > 0
       ? grossProfitPerCustomer / churnValue
       : normalized.recurring.effectiveGrossMargin != null
-        ? ltvSubscription(
+        ? ltgpSubscription(
             arpcValue,
             normalized.recurring.effectiveGrossMargin,
             churnValue,
           )
         : null;
-  const ltgpValue = ltgpPerCustomer(ltv);
+  const ltgpValue = ltgpPerCustomer(lifetimeGrossProfit);
   const ratio = ratioLtgpToCac(ltgpValue, cacValue);
 
   if (
@@ -842,7 +848,7 @@ export const evaluateNormalizedMixedSoftwareEconomics = (
     grossProfitPerCustomer != null && churnValue != null && churnValue > 0
       ? grossProfitPerCustomer / churnValue
       : normalized.recurring.effectiveGrossMargin != null
-        ? ltvSubscription(
+        ? ltgpSubscription(
             arpcValue,
             normalized.recurring.effectiveGrossMargin,
             churnValue,

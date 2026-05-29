@@ -1,4 +1,10 @@
-import { annualizedRevenue, ltgpPerCustomer, ltvSubscription, ratioLtgpToCac } from "./formulas";
+import {
+  annualizedRevenue,
+  ltgpPerCustomer,
+  ltgpSubscription,
+  ltvSubscription,
+  ratioLtgpToCac,
+} from "./formulas";
 import {
   buildRecurringForecastSummary,
   buildRecurringRetentionModel,
@@ -258,7 +264,12 @@ export const buildEcommerceSubscriptionReplenishmentEvaluation = (
     effectiveGrossMargin,
     retention.churnValue,
   );
-  const ltgp = ltgpPerCustomer(ltv);
+  const lifetimeGrossProfit = ltgpSubscription(
+    netRevenuePerSubscriberPerPeriod,
+    effectiveGrossMargin,
+    retention.churnValue,
+  );
+  const ltgp = ltgpPerCustomer(lifetimeGrossProfit);
   const cacPaybackPeriods =
     acquisition.cacPerNewCustomer != null && grossProfitPerSubscriberPerPeriod > 0
       ? acquisition.cacPerNewCustomer / grossProfitPerSubscriberPerPeriod

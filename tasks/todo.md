@@ -1,5 +1,20 @@
 # KPI Calculator Roadmap
 
+## Active Task: Whole-App KPI Math Audit And Repair
+- [x] Lock the metric contract in code/docs: LTV is lifetime revenue, LTGP is lifetime gross profit, ARPC is recurring revenue per active customer per selected period.
+- [x] Fix shared formula helpers so lifetime revenue and lifetime gross profit are calculated separately.
+- [x] Repair legacy, software/tech, e-commerce, mixed-offer, analysis, and import paths that rely on the old LTV/LTGP semantics.
+- [x] Update result labels so recurring, one-time, repeat-purchase, and mixed offers do not present one shared metric name with the wrong business meaning.
+- [x] Add hand-checkable oracle tests covering every supported calculation family and import mapping semantics.
+- [x] Update golden fixtures only after manually verifying the new expected values.
+- [x] Verify with `npm test`, `npm run lint`, and `npm run build`.
+
+### Active Task Review
+- Implemented the whole-app metric contract: `LTV` now represents lifetime revenue, while `LTGP per customer` remains lifetime gross profit.
+- Added oracle coverage for legacy, software/tech, e-commerce, mixed-offer, and imported mixed-offer calculations.
+- Updated result labels to avoid presenting one-time and mixed revenue drivers as generic recurring `ARPC`.
+- Verification passed with `npm test`, `npm run lint`, and `npm run build`; browser smoke testing was skipped after user direction.
+
 ## Current Product Shape
 - Single-offer profitability calculator, optimized first for software subscriptions.
 - Core math is locked with regression coverage and legacy compatibility.

@@ -47,7 +47,7 @@ test("software hybrid platform + usage evaluates from counts retention and deriv
   assert.equal(evaluation.results.arpc, 900);
   assert.equal(evaluation.results.churnRate, 0.1);
   assert.equal(evaluation.results.retentionRate, 0.9);
-  assert.equal(evaluation.results.ltv, 6_500);
+  assert.equal(evaluation.results.ltv, 9_000);
   assert.equal(evaluation.results.ltgpPerCustomer, 6_500);
   assert.equal(evaluation.results.ltgpToCacRatio, 6_500 / 1_500);
   assert.equal(evaluation.results.cacPaybackPeriods, 1_500 / 650);

@@ -8,6 +8,8 @@ import {
   churnRate,
   churnedFromStart,
   ltgpPerCustomer,
+  ltgpSubscription,
+  ltgpTransactional,
   ltvSubscription,
   ltvTransactional,
   ratioLtgpToCac,
@@ -264,11 +266,12 @@ const finalizeSubscriptionMetrics = (
   }
 
   const ltv = ltvSubscription(arpcValue, grossMargin, derived.churnRate);
+  const ltgp = ltgpSubscription(arpcValue, grossMargin, derived.churnRate);
   return {
     churnRate: derived.churnRate,
     retentionRate: derived.retentionRate,
     ltv,
-    ltgpPerCustomer: ltgpPerCustomer(ltv),
+    ltgpPerCustomer: ltgpPerCustomer(ltgp),
   };
 };
 
@@ -282,11 +285,12 @@ const finalizeTransactionalMetrics = (
   }
 
   const ltv = ltvTransactional(arpcValue, grossMargin, derived.retentionRate ?? undefined);
+  const ltgp = ltgpTransactional(arpcValue, grossMargin, derived.retentionRate ?? undefined);
   return {
     churnRate: derived.churnRate,
     retentionRate: derived.retentionRate,
     ltv,
-    ltgpPerCustomer: ltgpPerCustomer(ltv),
+    ltgpPerCustomer: ltgpPerCustomer(ltgp),
   };
 };
 

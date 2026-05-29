@@ -32,7 +32,7 @@ test("e-commerce replenishment evaluates from counts retention and derived CAC",
   assert.equal(evaluation.results.arpc, 40);
   assert.equal(evaluation.results.churnRate, 0.1);
   assert.equal(evaluation.results.retentionRate, 0.9);
-  assert.equal(evaluation.results.ltv, 180);
+  assert.equal(evaluation.results.ltv, 400);
   assert.equal(evaluation.results.ltgpPerCustomer, 180);
   assert.equal(evaluation.results.ltgpToCacRatio, 3);
   assert.equal(evaluation.results.cacPaybackPeriods, 60 / 18);
@@ -69,7 +69,7 @@ test("e-commerce replenishment supports direct churn rate, direct CAC, direct gr
   assert.equal(evaluation.results.arpc, 54);
   assert.equal(evaluation.results.churnRate, 0.08);
   assert.equal(evaluation.results.retentionRate, 0.92);
-  assert.equal(evaluation.results.ltv, 275);
+  assert.equal(evaluation.results.ltv, 675);
   assert.equal(evaluation.results.ltgpPerCustomer, 275);
   assert.equal(evaluation.results.ltgpToCacRatio, 275 / 45);
   assert.equal(evaluation.results.cacPaybackPeriods, 45 / 22);

@@ -190,7 +190,8 @@ test("subscription offer v2 supports direct CAC and delivery costs", () => {
   assert.equal(evaluation.results.arpc, 3_000);
   assert.equal(evaluation.results.cac, 1_200);
   assert.equal(evaluation.results.churnRate, 0.1);
-  assert.equal(evaluation.results.ltv, 25_500);
+  assert.equal(evaluation.results.ltv, 30_000);
+  assert.equal(evaluation.results.ltgpPerCustomer, 25_500);
   assert.ok(
     evaluation.assumptionsApplied.includes(
       "Derived gross profit from delivery costs per active customer.",
@@ -230,7 +231,8 @@ test("subscription offer v2 supports direct churn rate and sales velocity", () =
   assert.equal(evaluation.results.retentionRate, 0.9);
   assert.equal(evaluation.results.cac, 2_000);
   assert.equal(evaluation.results.arpc, 2727.2727272727275);
-  assert.equal(evaluation.results.ltv, 21818.18181818182);
+  assert.equal(evaluation.results.ltv, 27272.727272727272);
+  assert.equal(evaluation.results.ltgpPerCustomer, 21818.18181818182);
   assert.equal(evaluation.results.hypotheticalMaxCustomers, 30);
   assert.ok(
     Math.abs(

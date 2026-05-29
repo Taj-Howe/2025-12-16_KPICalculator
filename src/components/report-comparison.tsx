@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AnyKpiInput, KPIResult } from "@/features/kpi/types";
+import { getTrendRevenueLabel } from "@/components/home/result-labels";
 
 export type ReportSummary = {
   id: number;
@@ -54,9 +55,10 @@ export const ReportComparison = ({ reports }: { reports: ReportSummary[] }) => {
 
   const metrics = [
     { key: "cac", label: "CAC", format: "money" },
-    { key: "arpc", label: "ARPC", format: "money" },
+    { key: "arpc", label: getTrendRevenueLabel(), format: "money" },
     { key: "churnRate", label: "Churn rate", format: "percent" },
     { key: "retentionRate", label: "Retention rate", format: "percent" },
+    { key: "ltv", label: "LTV (revenue)", format: "money" },
     {
       key: "ltgpPerCustomer",
       label: "LTGP per customer",

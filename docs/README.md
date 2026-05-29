@@ -58,9 +58,9 @@ The app is moving to an offer-first model so inputs map to how a product actuall
 
 ### KPIs (v1)
 - **CAC** (Customer Acquisition Cost)
-- **LTGP** (Lifetime Gross Profit)
 - **LTGP:CAC** (primary growth ratio)
-- **LTV** (Lifetime Value; computed in a model-aware way)
+- **LTV** (Lifetime Value; lifetime revenue per customer)
+- **LTGP** (Lifetime Gross Profit; lifetime gross profit per customer)
 - **Churn** (subscription) or retention proxy (transactional)
 - **ARPC** (Average Revenue Per Customer, per selected period)
 - **CAR** (Customer Acquisition Rate)
@@ -71,6 +71,12 @@ The app is moving to an offer-first model so inputs map to how a product actuall
 - **LTGP:CAC (growth lens)**
   - Interpretation: how many dollars of lifetime gross profit you generate per $1 spent acquiring a customer.
   - Higher ratio → more reinvestable gross profit → faster growth potential.
+
+- **LTV vs. LTGP**
+  - `LTV` is lifetime revenue per customer.
+  - `LTGP` is lifetime gross profit per customer.
+  - Recurring offers compute `LTV = ARPC / churn` and `LTGP = gross profit per active customer / churn`.
+  - One-time offers compute `LTV` from revenue per new customer and `LTGP` from gross profit per new customer.
 
 - **Annualized outputs**
   - “Max Revenue/Year” and “Max Profit/Year” are **annualized** using the selected period:

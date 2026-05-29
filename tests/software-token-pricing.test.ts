@@ -40,7 +40,7 @@ test("software token pricing evaluates from counts retention and derived CAC", (
   assert.equal(evaluation.results.arpc, 2_400);
   assert.equal(evaluation.results.churnRate, 0.1);
   assert.equal(evaluation.results.retentionRate, 0.9);
-  assert.equal(evaluation.results.ltv, 18_000);
+  assert.equal(evaluation.results.ltv, 24_000);
   assert.equal(evaluation.results.ltgpPerCustomer, 18_000);
   assert.equal(evaluation.results.ltgpToCacRatio, 9);
   assert.equal(evaluation.results.cacPaybackPeriods, 2_000 / 1_800);

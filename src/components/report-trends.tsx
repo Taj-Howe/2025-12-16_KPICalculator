@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { KpiPeriod } from "@/features/kpi/types";
 import Sparkline from "./Sparkline";
 import LineChart from "./LineChart";
+import { getTrendRevenueLabel } from "./home/result-labels";
 
 type SeriesResponse = {
   series: {
@@ -61,7 +62,7 @@ const metricOptions = [
   },
   {
     key: "arpc",
-    label: "ARPC ($)",
+    label: `${getTrendRevenueLabel()} ($)`,
     formatter: (n: number) => dollar(n),
   },
   {
@@ -303,7 +304,9 @@ export const ReportTrends = () => {
                 <th className="border-b border-white/10 p-2 text-left">
                   Churn
                 </th>
-                <th className="border-b border-white/10 p-2 text-left">ARPC</th>
+                <th className="border-b border-white/10 p-2 text-left">
+                  {getTrendRevenueLabel()}
+                </th>
                 <th className="border-b border-white/10 p-2 text-left">
                   Hypothetical Max Profit / Year
                 </th>

@@ -1,4 +1,9 @@
-import { ltgpPerCustomer, ltvSubscription, ratioLtgpToCac } from "./formulas";
+import {
+  ltgpPerCustomer,
+  ltgpSubscription,
+  ltvSubscription,
+  ratioLtgpToCac,
+} from "./formulas";
 import {
   buildEcommerceOneTimeProductEvaluation,
   buildEcommerceRepeatPurchaseProductEvaluation,
@@ -126,15 +131,16 @@ export const subscriptionOfferEvaluator: OfferEvaluator<SubscriptionOfferInput> 
       warnings.push("Payback is long; growth may be cash constrained.");
     }
 
-    const ltv =
+    const ltv = ltvSubscription(arpcValue, effectiveGrossMargin ?? 0, churnValue);
+    const lifetimeGrossProfit =
       grossProfitPerCustomer != null &&
       churnValue != null &&
       churnValue > 0
         ? grossProfitPerCustomer / churnValue
         : effectiveGrossMargin != null
-          ? ltvSubscription(arpcValue, effectiveGrossMargin, churnValue)
+          ? ltgpSubscription(arpcValue, effectiveGrossMargin, churnValue)
           : null;
-    const ltgpValue = ltgpPerCustomer(ltv);
+    const ltgpValue = ltgpPerCustomer(lifetimeGrossProfit);
     const ratio = ratioLtgpToCac(ltgpValue, cacValue);
     const forecast = buildSubscriptionForecast(input, derived);
 

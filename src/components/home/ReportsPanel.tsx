@@ -10,6 +10,11 @@ import {
 } from "./formatters";
 import Sparkline from "@/components/Sparkline";
 import LineChart from "@/components/LineChart";
+import {
+  getLtvLabel,
+  getRevenueDriverLabel,
+  getTrendRevenueLabel,
+} from "./result-labels";
 
 const ReportsPanel = ({
   isSignedIn,
@@ -32,6 +37,12 @@ const ReportsPanel = ({
     selectedReport ?? (hasReports ? reports[0] ?? null : null);
   const warnings = selected?.warningsJson ?? [];
   const result = selected?.resultJson;
+  const selectedLabelInput =
+    selected?.offerType != null
+      ? { offerType: selected.offerType }
+      : selected != null && "offerType" in selected.inputJson
+        ? selected.inputJson
+        : null;
   const latestTrendIndex =
     series && series.labels.length > 0 ? series.labels.length - 1 : null;
   const metricOptions = useMemo(
@@ -39,7 +50,7 @@ const ReportsPanel = ({
       { key: "ltgpToCacRatio", label: "LTGP:CAC", format: "ratio" },
       { key: "cac", label: "CAC", format: "money" },
       { key: "cacPaybackPeriods", label: "CAC Payback", format: "periods" },
-      { key: "arpc", label: "ARPC", format: "money" },
+      { key: "arpc", label: getTrendRevenueLabel(), format: "money" },
       { key: "churnRate", label: "Churn", format: "percent" },
       { key: "retentionRate", label: "Retention", format: "percent" },
       {
@@ -172,11 +183,11 @@ const ReportsPanel = ({
                     <span>{formatMoney(result?.cac ?? null)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>ARPC</span>
+                    <span>{getRevenueDriverLabel(selectedLabelInput)}</span>
                     <span>{formatMoney(result?.arpc ?? null)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>LTV</span>
+                    <span>{getLtvLabel(selectedLabelInput)}</span>
                     <span>{formatMoney(result?.ltv ?? null)}</span>
                   </div>
                   <div className="flex items-center justify-between">

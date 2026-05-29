@@ -7,6 +7,8 @@ import {
   cac,
   churnRate,
   churnedFromStart,
+  ltgpSubscription,
+  ltgpTransactional,
   ltvSubscription,
   ltvTransactional,
   ltgpPerCustomer,
@@ -33,12 +35,13 @@ test("subscription metrics compute expected values", () => {
   approxEqual(churnRateValue, 0.1);
 
   const ltv = ltvSubscription(arpcValue, 0.7, churnRateValue);
-  approxEqual(ltv, (arpcValue! * 0.7) / 0.1);
+  approxEqual(ltv, arpcValue! / 0.1);
 
   const cacValue = cac(20_000, 20);
   approxEqual(cacValue, 1_000);
 
-  const ltgpValue = ltgpPerCustomer(ltv);
+  const lifetimeGrossProfit = ltgpSubscription(arpcValue, 0.7, churnRateValue);
+  const ltgpValue = ltgpPerCustomer(lifetimeGrossProfit);
   approxEqual(ltgpValue, (arpcValue! * 0.7) / 0.1);
 
   const ratio = ratioLtgpToCac(ltgpValue, cacValue);
@@ -50,7 +53,9 @@ test("transactional metrics compute expected values", () => {
   approxEqual(arpcValue, 250);
 
   const ltv = ltvTransactional(arpcValue, 0.5, 0.6);
-  approxEqual(ltv, 312.5);
+  approxEqual(ltv, 625);
+  const lifetimeGrossProfit = ltgpTransactional(arpcValue, 0.5, 0.6);
+  approxEqual(lifetimeGrossProfit, 312.5);
 
   const churnValue = transactionalChurnRate(0.6);
   approxEqual(churnValue, 0.4);

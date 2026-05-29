@@ -499,14 +499,18 @@ export default function Home() {
               period.
             </li>
             <li>
-              <strong>ARPC</strong>: Average revenue per customer in the period.
+              <strong>ARPC</strong>: Recurring revenue per active customer in the
+              selected period. One-time offers use model-specific revenue-driver
+              labels instead.
             </li>
             <li>
               <strong>Churn rate</strong>: Portion of starting customers lost during the period.
             </li>
             <li>
-              <strong>LTGP per customer</strong>: Lifetime gross profit per
-              customer (gross margin adjusted LTV).
+              <strong>LTV</strong>: Lifetime revenue per customer.
+            </li>
+            <li>
+              <strong>LTGP per customer</strong>: Lifetime gross profit per customer.
             </li>
             <li>
               <strong>LTGP:CAC (Growth Assessment)</strong>: Ratio of LTGP to

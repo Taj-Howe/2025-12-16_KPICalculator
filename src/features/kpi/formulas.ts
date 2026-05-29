@@ -1,5 +1,7 @@
 import type { KPIInput } from "./types";
 
+// Contract: LTV is lifetime revenue; LTGP is lifetime gross profit.
+// Keep these separate so gross-margin changes do not rewrite revenue lifetime value.
 export const periodsPerYear = (period: KPIInput["period"]): number => {
   switch (period) {
     case "monthly":
@@ -82,6 +84,21 @@ export const transactionalChurnRate = (
 
 export const ltvSubscription = (
   avgRevenuePerCustomer: number | null,
+  _grossMargin: number,
+  churnRateValue: number | null,
+): number | null => {
+  if (
+    avgRevenuePerCustomer == null ||
+    churnRateValue == null ||
+    churnRateValue <= 0
+  ) {
+    return null;
+  }
+  return avgRevenuePerCustomer / churnRateValue;
+};
+
+export const ltgpSubscription = (
+  avgRevenuePerCustomer: number | null,
   grossMargin: number,
   churnRateValue: number | null,
 ): number | null => {
@@ -96,6 +113,21 @@ export const ltvSubscription = (
 };
 
 export const ltvTransactional = (
+  avgRevenuePerCustomer: number | null,
+  _grossMargin: number,
+  retentionRatePerPeriod: number | undefined,
+): number | null => {
+  if (
+    avgRevenuePerCustomer == null ||
+    retentionRatePerPeriod == null ||
+    retentionRatePerPeriod >= 1
+  ) {
+    return null;
+  }
+  return avgRevenuePerCustomer / (1 - retentionRatePerPeriod);
+};
+
+export const ltgpTransactional = (
   avgRevenuePerCustomer: number | null,
   grossMargin: number,
   retentionRatePerPeriod: number | undefined,
@@ -114,9 +146,9 @@ export const ltvTransactional = (
 };
 
 export const ltgpPerCustomer = (
-  ltv: number | null,
+  lifetimeGrossProfit: number | null,
 ): number | null => {
-  return ltv ?? null;
+  return lifetimeGrossProfit ?? null;
 };
 
 export const ratioLtgpToCac = (

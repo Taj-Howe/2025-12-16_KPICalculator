@@ -12,6 +12,7 @@ import {
   formatRatio,
 } from "./formatters";
 import { SelectField, StatCard, pillClassName } from "./form-primitives";
+import { getLtvLabel, getRevenueDriverLabel } from "./result-labels";
 
 const ReportsDashboard = ({
   isSignedIn,
@@ -37,6 +38,12 @@ const ReportsDashboard = ({
   const selected = selectedReport ?? (hasReports ? reports[0] ?? null : null);
   const result = selected?.resultJson;
   const warnings = selected?.warningsJson ?? [];
+  const selectedLabelInput =
+    selected?.offerType != null
+      ? { offerType: selected.offerType }
+      : selected != null && "offerType" in selected.inputJson
+        ? selected.inputJson
+        : null;
   const latestTrendIndex =
     series && series.labels.length > 0 ? series.labels.length - 1 : null;
   const metricOptions = useMemo(
@@ -240,7 +247,8 @@ const ReportsDashboard = ({
                   <MetricDetail label="LTGP:CAC" value={formatRatio(result?.ltgpToCacRatio ?? null)} />
                   <MetricDetail label="CAC payback" value={formatValue(result?.cacPaybackPeriods ?? null, "periods")} />
                   <MetricDetail label="CAC" value={formatMoney(result?.cac ?? null)} />
-                  <MetricDetail label="ARPC" value={formatMoney(result?.arpc ?? null)} />
+                  <MetricDetail label={getRevenueDriverLabel(selectedLabelInput)} value={formatMoney(result?.arpc ?? null)} />
+                  <MetricDetail label={getLtvLabel(selectedLabelInput)} value={formatMoney(result?.ltv ?? null)} />
                   <MetricDetail label="Churn" value={formatPercent(result?.churnRate ?? null)} />
                   <MetricDetail label="Retention" value={formatPercent(result?.retentionRate ?? null)} />
                   <MetricDetail label="Projected profit" value={formatMoney(result?.projectedProfitNextYear ?? null)} />

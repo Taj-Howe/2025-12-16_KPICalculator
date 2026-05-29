@@ -5,6 +5,11 @@ import type { KPIResult } from "@/features/kpi/types";
 import type { KPIInputState } from "./types";
 import { formatMoney, formatPercent, formatRatio } from "./formatters";
 import { panelClassName } from "./form-primitives";
+import {
+  getLtvLabel,
+  getRevenueDriverLabel,
+  getUnitEconomicsDescription,
+} from "./result-labels";
 
 const countFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -111,6 +116,13 @@ const ResultsSections = ({
   warnings: string[];
   inputs: KPIInputState;
 }) => {
+  const revenueDriverLabel = getRevenueDriverLabel(inputs);
+  const ltvLabel = getLtvLabel(inputs);
+  const implementationFee =
+    inputs.offerType === "software_implementation_plus_subscription"
+      ? inputs.implementationFeePerNewCustomer
+      : null;
+
   return (
     <div className="space-y-4">
       {warnings.length > 0 && (
@@ -126,12 +138,21 @@ const ResultsSections = ({
 
       <SectionCard
         title="Unit Economics"
-        description="The per-customer and per-period economics of the current offer."
+        description={getUnitEconomicsDescription(inputs)}
       >
         <div className="space-y-3">
           <MetricRow label="CAC" value={formatMoney(results?.cac ?? null)} />
-          <MetricRow label="ARPC" value={formatMoney(results?.arpc ?? null)} />
-          <MetricRow label="LTV" value={formatMoney(results?.ltv ?? null)} />
+          <MetricRow
+            label={revenueDriverLabel}
+            value={formatMoney(results?.arpc ?? null)}
+          />
+          {implementationFee != null && (
+            <MetricRow
+              label="Implementation fee / new customer"
+              value={formatMoney(implementationFee)}
+            />
+          )}
+          <MetricRow label={ltvLabel} value={formatMoney(results?.ltv ?? null)} />
           <MetricRow
             label="LTGP per customer"
             value={formatMoney(results?.ltgpPerCustomer ?? null)}
