@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { buildAnalysisReport } from "../src/features/kpi/analysis";
 import {
+  buildCloseRatePricingSignal,
   buildPricingExplorerReport,
   pricingSensitivityPresets,
 } from "../src/features/kpi/pricing-explorer";
@@ -155,6 +156,40 @@ test("pricing explorer rejects total-revenue subscription mode", () => {
 
   assert.equal(report.eligible, false);
   assert.match(report.ineligibleReason ?? "", /direct ARPC/i);
+});
+
+test("close-rate signal maps Hormozi pricing tiers", () => {
+  const signal = buildCloseRatePricingSignal({
+    closeRate: 0.7,
+    channelContext: "balanced",
+  });
+
+  assert.equal(signal.status, "very_underpriced");
+  assert.deepEqual(signal.priceMultiplierRange, { min: 2, max: 3 });
+  assert.equal(signal.channelFit, "above_channel_range");
+});
+
+test("close-rate signal treats referral conversion against a higher target band", () => {
+  const signal = buildCloseRatePricingSignal({
+    closeRate: 0.45,
+    channelContext: "referral",
+  });
+
+  assert.equal(signal.status, "modestly_underpriced");
+  assert.deepEqual(signal.priceMultiplierRange, { min: 1.25, max: 1.5 });
+  assert.equal(signal.channelFit, "within_channel_range");
+  assert.match(signal.caveat, /40-55% target/);
+});
+
+test("close-rate signal points low cold conversion toward sales diagnosis first", () => {
+  const signal = buildCloseRatePricingSignal({
+    closeRate: 0.18,
+    channelContext: "cold",
+  });
+
+  assert.equal(signal.status, "fix_sales_or_market");
+  assert.deepEqual(signal.priceMultiplierRange, { min: null, max: null });
+  assert.equal(signal.channelFit, "below_channel_range");
 });
 
 test("independent analysis price ranking still leaves churn unchanged", () => {

@@ -1,6 +1,32 @@
 # KPI Calculator Roadmap
 
-## Active Task: Pricing Explorer With Churn Tradeoff
+## Active Task: Input Priority Highlighting
+- [x] Add reusable required/optional field highlighting to the form primitive.
+- [x] Mark the key guided/manual setup fields as required and secondary tuning fields as optional.
+- [x] Add a small motion cue that makes required startup inputs easy to scan without distracting from the form.
+- [x] Verify with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+### Active Task Review
+- Added reusable `Needed` and `Optional` field badges with a simple color treatment and reduced-motion-safe required-field animation.
+- Applied required highlighting to the setup inputs that drive the calculator math: revenue/price, sales velocity, starting customer base, churn, CAC, and gross profit.
+- Applied optional highlighting to secondary tuning inputs such as fixed delivery costs, refund rates, optional churn counts, and pricing-explorer manual assumptions.
+- Verification passed with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+## Concurrent Task: Close-Rate Pricing Signal
+- [x] Verify the Hormozi close-rate pricing heuristic and encode it as a deterministic reference, not a hard recommendation.
+- [x] Add close-rate and channel-context controls to the Pricing Explorer without changing saved report/API contracts.
+- [x] Surface tolerated price-increase guidance beside the existing scenario table, with caveats for cold vs referral-heavy traffic.
+- [x] Add focused tests for close-rate tiers and channel-adjusted interpretation.
+- [x] Verify with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+### Concurrent Task Review
+- Confirmed the close-rate pricing ladder from Alex Hormozi's January 13, 2026 business-math episode: 80%+ close rates imply roughly 3-4x underpricing, 60-80% implies 2-3x, 50-60% implies 1.5-2x, 40-50% implies 1.25-1.5x, 30-40% is generally priced about right, and below 30% points to sales motion or market quality first.
+- Added a deterministic close-rate pricing signal with channel context for cold, mixed/inbound, and WOM/referral leads.
+- Added Pricing Explorer controls for close rate and lead-source context, rendering the heuristic as a caveated signal beside the existing price/churn/sales-velocity scenario table.
+- Added regression tests for tier mapping, referral target ranges, and low cold-traffic conversion diagnosis.
+- Verification passed with `npm test`, `npm run lint`, `npm run build`, and `git diff --check`.
+
+## Previous Active Task: Pricing Explorer With Churn Tradeoff
 - [x] Add a coupled pricing-analysis module with price, churn, and sales-velocity scenario generation.
 - [x] Add sensitivity presets plus editable manual assumptions in the current decision output.
 - [x] Surface break-even churn thresholds and a best-under-assumptions verdict.

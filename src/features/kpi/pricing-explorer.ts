@@ -11,10 +11,42 @@ import type {
 
 export type PricingSensitivityPreset = "low" | "base" | "high" | "manual";
 
+export type CloseRateChannelContext = "cold" | "balanced" | "referral";
+
 export type PricingSensitivityAssumptions = {
   preset: PricingSensitivityPreset;
   churnPpPer10PctPriceChange: number;
   salesVelocityPctPer10PctPriceChange: number;
+};
+
+export type CloseRatePricingSignalStatus =
+  | "fix_sales_or_market"
+  | "priced_about_right"
+  | "modestly_underpriced"
+  | "underpriced"
+  | "very_underpriced"
+  | "severely_underpriced";
+
+export type CloseRateChannelFit =
+  | "below_channel_range"
+  | "within_channel_range"
+  | "above_channel_range";
+
+export type CloseRatePricingSignal = {
+  closeRate: number;
+  channelContext: CloseRateChannelContext;
+  targetRange: {
+    min: number;
+    max: number;
+  };
+  channelFit: CloseRateChannelFit;
+  status: CloseRatePricingSignalStatus;
+  priceMultiplierRange: {
+    min: number | null;
+    max: number | null;
+  };
+  summary: string;
+  caveat: string;
 };
 
 export type PricingScenarioVerdict =
@@ -78,6 +110,15 @@ type PriceConfig = {
 
 const pricingDeltas = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3];
 
+const closeRateChannelTargets: Record<
+  CloseRateChannelContext,
+  CloseRatePricingSignal["targetRange"]
+> = {
+  cold: { min: 0.2, max: 0.35 },
+  balanced: { min: 0.3, max: 0.4 },
+  referral: { min: 0.4, max: 0.55 },
+};
+
 export const pricingSensitivityPresets: Record<
   Exclude<PricingSensitivityPreset, "manual">,
   PricingSensitivityAssumptions
@@ -106,6 +147,96 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 const cloneInput = <T>(input: T): T => structuredClone(input);
+
+const formatPercentRange = (range: { min: number; max: number }) =>
+  `${(range.min * 100).toFixed(0)}-${(range.max * 100).toFixed(0)}%`;
+
+const closeRateStatusFor = (
+  closeRate: number,
+): Pick<
+  CloseRatePricingSignal,
+  "status" | "priceMultiplierRange" | "summary" | "caveat"
+> => {
+  if (closeRate >= 0.8) {
+    return {
+      status: "severely_underpriced",
+      priceMultiplierRange: { min: 3, max: 4 },
+      summary: "Close rate is high enough to suggest the offer may be severely underpriced.",
+      caveat: "Treat this as a test range, not an automatic jump.",
+    };
+  }
+  if (closeRate >= 0.6) {
+    return {
+      status: "very_underpriced",
+      priceMultiplierRange: { min: 2, max: 3 },
+      summary: "Close rate suggests the market may tolerate a much higher price.",
+      caveat: "Validate in steps and watch sales velocity, churn, and payback.",
+    };
+  }
+  if (closeRate >= 0.5) {
+    return {
+      status: "underpriced",
+      priceMultiplierRange: { min: 1.5, max: 2 },
+      summary: "Close rate suggests meaningful pricing room may remain.",
+      caveat: "Use the pricing table to check whether the unit economics still improve.",
+    };
+  }
+  if (closeRate >= 0.4) {
+    return {
+      status: "modestly_underpriced",
+      priceMultiplierRange: { min: 1.25, max: 1.5 },
+      summary: "Close rate suggests a modest price increase may be tolerable.",
+      caveat: "This is usually a smaller test, especially for referral-heavy demand.",
+    };
+  }
+  if (closeRate >= 0.3) {
+    return {
+      status: "priced_about_right",
+      priceMultiplierRange: { min: 1, max: 1 },
+      summary: "Close rate is in the classic priced-about-right band.",
+      caveat: "This assumes qualified leads and a solid pre-call sales motion.",
+    };
+  }
+  return {
+    status: "fix_sales_or_market",
+    priceMultiplierRange: { min: null, max: null },
+    summary: "Close rate points to a sales-motion, qualification, or market-fit issue first.",
+    caveat: "Fix avatar, lead quality, or selling process before using price as the main lever.",
+  };
+};
+
+export const buildCloseRatePricingSignal = ({
+  closeRate,
+  channelContext,
+}: {
+  closeRate: number;
+  channelContext: CloseRateChannelContext;
+}): CloseRatePricingSignal => {
+  const normalizedCloseRate = clamp(closeRate, 0, 1);
+  const targetRange = closeRateChannelTargets[channelContext];
+  const channelFit =
+    normalizedCloseRate < targetRange.min
+      ? "below_channel_range"
+      : normalizedCloseRate > targetRange.max
+        ? "above_channel_range"
+        : "within_channel_range";
+  const signal = closeRateStatusFor(normalizedCloseRate);
+  const channelCaveat =
+    channelFit === "above_channel_range"
+      ? ` It is above the ${formatPercentRange(targetRange)} target for this channel, which strengthens the underpricing signal.`
+      : channelFit === "below_channel_range"
+        ? ` It is below the ${formatPercentRange(targetRange)} target for this channel, so diagnose lead quality and sales motion first.`
+        : ` It sits inside the ${formatPercentRange(targetRange)} target for this channel.`;
+
+  return {
+    closeRate: normalizedCloseRate,
+    channelContext,
+    targetRange,
+    channelFit,
+    ...signal,
+    caveat: `${signal.caveat}${channelCaveat}`,
+  };
+};
 
 const isEligibleOfferInput = (
   input: KpiEvaluation["inputs"],

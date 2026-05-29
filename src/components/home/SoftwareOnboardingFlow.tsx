@@ -422,7 +422,11 @@ const SoftwareOnboardingFlow = ({
     )} per ${periodLabel})`;
   };
   const renderSalesVelocityField = (label: string) => (
-    <FieldBlock label={label} helper={`Formatted: ${salesVelocitySummary()}`}>
+    <FieldBlock
+      label={label}
+      helper={`Formatted: ${salesVelocitySummary()}`}
+      tone="required"
+    >
       <input
         type="number"
         name="newCustomersPerMonth"
@@ -470,7 +474,7 @@ const SoftwareOnboardingFlow = ({
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <FieldBlock label="Offer name">
+        <FieldBlock label="Offer name" tone="required">
           <input
             type="text"
             name="offerName"
@@ -483,6 +487,7 @@ const SoftwareOnboardingFlow = ({
         <FieldBlock
           label="Offer ID"
           helper="Stable key for this offer in saved reports."
+          tone="required"
         >
           <input
             type="text"
@@ -494,7 +499,7 @@ const SoftwareOnboardingFlow = ({
         </FieldBlock>
       </div>
 
-      <FieldBlock label="Analysis period">
+      <FieldBlock label="Analysis period" tone="required">
         <SelectField
           name="analysisPeriod"
           value={value.analysisPeriod}
@@ -552,6 +557,7 @@ const SoftwareOnboardingFlow = ({
               <FieldBlock
                 label={`Current revenue run rate (per ${periodLabel})`}
                 helper={`Formatted: ${formatMoney(value.revenuePerPeriod)}`}
+                tone="required"
               >
                 <input
                   type="number"
@@ -564,6 +570,7 @@ const SoftwareOnboardingFlow = ({
               <FieldBlock
                 label="Starting customer base"
                 helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+                tone="required"
               >
                 <input
                   type="number"
@@ -579,6 +586,7 @@ const SoftwareOnboardingFlow = ({
               <FieldBlock
                 label={`Subscription price / ARPC (per ${periodLabel})`}
                 helper={`Formatted: ${formatMoney(value.directArpc)}`}
+                tone="required"
               >
                 <input
                   type="number"
@@ -591,6 +599,7 @@ const SoftwareOnboardingFlow = ({
               <FieldBlock
                 label="Starting customer base"
                 helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+                tone="required"
               >
                 <input
                   type="number"
@@ -613,6 +622,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Pilot fee per new customer"
             helper={`Formatted: ${formatMoney(value.pilotFeePerNewCustomer)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -632,6 +642,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Starting customer base"
             helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -645,6 +656,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label={`Usage units per customer (per ${periodLabel})`}
               helper={`Formatted: ${formatInt(value.usageUnitsPerCustomerPerPeriod)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -657,6 +669,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label="Price per usage unit"
               helper={`Formatted: ${formatMoney(value.pricePerUsageUnit)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -677,6 +690,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Starting customer base"
             helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -690,6 +704,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label={`Platform fee per customer (per ${periodLabel})`}
               helper={`Formatted: ${formatMoney(value.platformFeePerCustomerPerPeriod)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -702,6 +717,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label={`Usage units per customer (per ${periodLabel})`}
               helper={`Formatted: ${formatInt(value.usageUnitsPerCustomerPerPeriod)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -715,6 +731,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Price per usage unit"
             helper={`Formatted: ${formatMoney(value.pricePerUsageUnit)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -733,6 +750,7 @@ const SoftwareOnboardingFlow = ({
         <FieldBlock
           label="Starting customer base"
           helper={`Formatted: ${formatInt(value.activeCustomersStart)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -746,6 +764,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label={`Recurring subscription ARPC (per ${periodLabel})`}
             helper={`Formatted: ${formatMoney(value.directArpc)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -758,6 +777,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Implementation fee per new customer"
             helper={`Formatted: ${formatMoney(value.implementationFeePerNewCustomer)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -821,6 +841,7 @@ const SoftwareOnboardingFlow = ({
             helper={`Formatted: ${percentText(
               "directChurnRatePerPeriod" in value ? value.directChurnRatePerPeriod : undefined,
             )}`}
+            tone="required"
           >
             <input
               type="number"
@@ -844,6 +865,7 @@ const SoftwareOnboardingFlow = ({
                   ? value.retainedCustomersFromStartAtEnd
                   : undefined,
               )}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -864,6 +886,7 @@ const SoftwareOnboardingFlow = ({
                   ? value.churnedCustomersPerPeriod
                   : undefined,
               )}`}
+              tone="optional"
             >
               <input
                 type="number"
@@ -910,6 +933,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label={`Customer acquisition spend (per ${periodLabel})`}
             helper={`Formatted: ${formatMoney(value.marketingSpendPerPeriod)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -923,6 +947,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Direct CAC"
             helper={`Formatted: ${formatMoney(value.directCac)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -964,6 +989,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label="Gross margin (%)"
               helper={`Formatted: ${percentText(value.grossMargin)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -981,6 +1007,7 @@ const SoftwareOnboardingFlow = ({
                 helper={`Formatted: ${formatMoney(
                   value.deliveryCostPerCustomerPerPeriod,
                 )}`}
+                tone="required"
               >
                 <input
                   type="number"
@@ -993,6 +1020,7 @@ const SoftwareOnboardingFlow = ({
               <FieldBlock
                 label={`Fixed delivery cost (optional, per ${periodLabel})`}
                 helper={`Formatted: ${formatMoney(value.fixedDeliveryCostPerPeriod)}`}
+                tone="optional"
               >
                 <input
                   type="number"
@@ -1047,6 +1075,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label="Pilot gross margin (%)"
               helper={`Formatted: ${percentText(value.pilotGrossMargin)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -1061,6 +1090,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label="Pilot delivery cost per new customer"
               helper={`Formatted: ${formatMoney(value.pilotDeliveryCostPerNewCustomer)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -1081,6 +1111,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Cost per usage unit"
             helper={`Formatted: ${formatMoney(value.costPerUsageUnit)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1093,6 +1124,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label={`Fixed delivery cost (optional, per ${periodLabel})`}
             helper={`Formatted: ${formatMoney(value.fixedDeliveryCostPerPeriod)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -1114,6 +1146,7 @@ const SoftwareOnboardingFlow = ({
             helper={`Formatted: ${formatMoney(
               value.platformDeliveryCostPerCustomerPerPeriod,
             )}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -1126,6 +1159,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Cost per usage unit (optional)"
             helper={`Formatted: ${formatMoney(value.costPerUsageUnit)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -1138,6 +1172,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label={`Fixed delivery cost (optional, per ${periodLabel})`}
             helper={`Formatted: ${formatMoney(value.fixedDeliveryCostPerPeriod)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -1182,6 +1217,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Recurring gross margin (%)"
             helper={`Formatted: ${percentText(value.grossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1199,6 +1235,7 @@ const SoftwareOnboardingFlow = ({
               helper={`Formatted: ${formatMoney(
                 value.deliveryCostPerCustomerPerPeriod,
               )}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -1211,6 +1248,7 @@ const SoftwareOnboardingFlow = ({
             <FieldBlock
               label={`Fixed delivery cost (optional, per ${periodLabel})`}
               helper={`Formatted: ${formatMoney(value.fixedDeliveryCostPerPeriod)}`}
+              tone="optional"
             >
               <input
                 type="number"
@@ -1255,6 +1293,7 @@ const SoftwareOnboardingFlow = ({
           <FieldBlock
             label="Implementation gross margin (%)"
             helper={`Formatted: ${percentText(value.implementationGrossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1271,6 +1310,7 @@ const SoftwareOnboardingFlow = ({
             helper={`Formatted: ${formatMoney(
               value.implementationDeliveryCostPerNewCustomer,
             )}`}
+            tone="required"
           >
             <input
               type="number"

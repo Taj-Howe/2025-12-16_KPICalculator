@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
+  buildCloseRatePricingSignal,
   buildPricingExplorerReport,
   pricingSensitivityPresets,
+  type CloseRateChannelContext,
+  type CloseRatePricingSignal,
   type PricingExplorerReport,
   type PricingSensitivityAssumptions,
   type PricingSensitivityPreset,
@@ -26,6 +29,12 @@ const presetOptions: PricingSensitivityPreset[] = [
   "manual",
 ];
 
+const closeRateChannelOptions: CloseRateChannelContext[] = [
+  "cold",
+  "balanced",
+  "referral",
+];
+
 const presetLabel = (preset: PricingSensitivityPreset) => {
   switch (preset) {
     case "low":
@@ -36,6 +45,34 @@ const presetLabel = (preset: PricingSensitivityPreset) => {
       return "Manual";
     default:
       return "Base sensitivity";
+  }
+};
+
+const closeRateChannelLabel = (channel: CloseRateChannelContext) => {
+  switch (channel) {
+    case "cold":
+      return "Cold traffic";
+    case "referral":
+      return "WOM / referrals";
+    default:
+      return "Mixed / inbound";
+  }
+};
+
+const closeRateStatusLabel = (signal: CloseRatePricingSignal) => {
+  switch (signal.status) {
+    case "severely_underpriced":
+      return "Severely underpriced";
+    case "very_underpriced":
+      return "Very underpriced";
+    case "underpriced":
+      return "Underpriced";
+    case "modestly_underpriced":
+      return "Modestly underpriced";
+    case "priced_about_right":
+      return "Priced about right";
+    default:
+      return "Fix sales or market";
   }
 };
 
@@ -74,6 +111,20 @@ const formatPercentPoints = (value: number) => (value * 100).toFixed(2);
 
 const formatVelocityChange = (value: number) => (value * 100).toFixed(1);
 
+const formatMultiplierRange = (
+  range: CloseRatePricingSignal["priceMultiplierRange"],
+) => {
+  if (range.min == null || range.max == null) {
+    return "No price raise signal";
+  }
+  if (range.min === range.max) {
+    return `${range.min.toFixed(0)}x`;
+  }
+  return `${range.min.toFixed(2).replace(/\.?0+$/, "")}x-${range.max
+    .toFixed(2)
+    .replace(/\.?0+$/, "")}x`;
+};
+
 const bestSummary = (report: PricingExplorerReport) => {
   const best = report.bestScenario;
   if (!best) {
@@ -92,10 +143,21 @@ const PricingExplorerCard = ({
 }) => {
   const [assumptions, setAssumptions] =
     useState<PricingSensitivityAssumptions>(pricingSensitivityPresets.base);
+  const [closeRatePercent, setCloseRatePercent] = useState(45);
+  const [closeRateChannel, setCloseRateChannel] =
+    useState<CloseRateChannelContext>("balanced");
 
   const report = useMemo(
     () => buildPricingExplorerReport({ evaluation, assumptions }),
     [evaluation, assumptions],
+  );
+  const closeRateSignal = useMemo(
+    () =>
+      buildCloseRatePricingSignal({
+        closeRate: closeRatePercent / 100,
+        channelContext: closeRateChannel,
+      }),
+    [closeRateChannel, closeRatePercent],
   );
 
   const handlePresetChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -129,6 +191,17 @@ const PricingExplorerCard = ({
         salesVelocityPctPer10PctPriceChange: nextValue / 100,
       }));
     }
+  };
+
+  const updateCloseRate = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number(event.target.value);
+    if (!Number.isNaN(nextValue)) {
+      setCloseRatePercent(Math.min(100, Math.max(0, nextValue)));
+    }
+  };
+
+  const updateCloseRateChannel = (event: ChangeEvent<HTMLSelectElement>) => {
+    setCloseRateChannel(event.target.value as CloseRateChannelContext);
   };
 
   return (
@@ -174,6 +247,7 @@ const PricingExplorerCard = ({
             <FieldBlock
               label="Churn change per +10% price"
               helper="Percentage points"
+              tone="optional"
             >
               <input
                 type="number"
@@ -188,6 +262,7 @@ const PricingExplorerCard = ({
             <FieldBlock
               label="Sales velocity change per +10% price"
               helper="Percent change"
+              tone="optional"
             >
               <input
                 type="number"
@@ -206,6 +281,51 @@ const PricingExplorerCard = ({
               {report.grossProfitAssumption}
             </p>
           )}
+
+          <div className="mt-4 grid gap-3 rounded-[18px] border border-white/10 bg-black/15 p-4 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FieldBlock
+                label="Sales close rate"
+                helper="Qualified sales conversations"
+              >
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={closeRatePercent}
+                  step="1"
+                  onChange={updateCloseRate}
+                  className={fieldClassName}
+                />
+              </FieldBlock>
+              <FieldBlock label="Lead source context">
+                <SelectField
+                  value={closeRateChannel}
+                  onChange={updateCloseRateChannel}
+                >
+                  {closeRateChannelOptions.map((channel) => (
+                    <option key={channel} value={channel}>
+                      {closeRateChannelLabel(channel)}
+                    </option>
+                  ))}
+                </SelectField>
+              </FieldBlock>
+            </div>
+            <div className="grid gap-2 rounded-[14px] border border-emerald-300/15 bg-emerald-300/[0.06] p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <p className="text-sm font-medium text-white">
+                  {closeRateStatusLabel(closeRateSignal)}
+                </p>
+                <p className="text-lg font-semibold text-emerald-100">
+                  {formatMultiplierRange(closeRateSignal.priceMultiplierRange)}
+                </p>
+              </div>
+              <p className="text-sm text-white/68">{closeRateSignal.summary}</p>
+              <p className="text-xs leading-5 text-white/46">
+                {closeRateSignal.caveat}
+              </p>
+            </div>
+          </div>
 
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-[980px] w-full border-separate border-spacing-0 text-left text-sm">

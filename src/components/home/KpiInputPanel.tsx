@@ -206,6 +206,7 @@ const KpiInputPanel = ({
     <FieldBlock
       label={label}
       helper={salesVelocityHelper(current.newCustomersPerPeriod)}
+      tone="required"
     >
       <input
         type="number"
@@ -418,6 +419,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label={`Customer acquisition spend (per ${periodLabel})`}
             helper={`Formatted: ${displayMoney(value.marketingSpendPerPeriod)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -431,6 +433,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Direct CAC"
             helper={`Formatted: ${displayMoney(value.directCac)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -474,6 +477,7 @@ const KpiInputPanel = ({
       <FieldBlock
         label="Starting customer base"
         helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
+        tone="required"
       >
         <input
           type="number"
@@ -488,6 +492,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Churn rate per ${periodLabel} (%)`}
           helper={`Formatted: ${percentText(current.directChurnRatePerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -503,6 +508,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Customers from start still active at end"
             helper={`Formatted: ${displayInt(current.retainedCustomersFromStartAtEnd)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -516,6 +522,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Churned customers per period (optional)"
             helper={`Formatted: ${displayInt(current.churnedCustomersPerPeriod)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -549,6 +556,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Current revenue run rate (per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.revenuePerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -562,6 +570,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Subscription price / ARPC (per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.directArpc)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -581,6 +590,7 @@ const KpiInputPanel = ({
       <FieldBlock
         label="Starting customer base"
         helper={`Formatted: ${displayInt(current.activeCustomersStart)}`}
+        tone="required"
       >
         <input
           type="number"
@@ -613,6 +623,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Gross margin (%)"
           helper={`Formatted: ${percentText(current.grossMargin)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -628,6 +639,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label={`Delivery cost per active customer (per ${periodLabel})`}
             helper={`Formatted: ${displayMoney(current.deliveryCostPerCustomerPerPeriod)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -640,6 +652,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label={`Fixed delivery cost (optional, per ${periodLabel})`}
             helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -658,6 +671,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Churn rate per ${periodLabel} (%)`}
           helper={`Formatted: ${percentText(current.directChurnRatePerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -692,6 +706,7 @@ const KpiInputPanel = ({
             <FieldBlock
               label="Customers from start still active at end"
               helper={`Formatted: ${displayInt(current.retainedCustomersFromStartAtEnd)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -705,6 +720,7 @@ const KpiInputPanel = ({
             <FieldBlock
               label="Churned customers per period"
               helper={`Formatted: ${displayInt(current.churnedCustomersPerPeriod)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -743,6 +759,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Pilot fee per new customer"
           helper={`Formatted: ${displayMoney(current.pilotFeePerNewCustomer)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -775,6 +792,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Pilot gross margin (%)"
             helper={`Formatted: ${percentText(current.pilotGrossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -789,6 +807,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Pilot delivery cost per new customer"
             helper={`Formatted: ${displayMoney(current.pilotDeliveryCostPerNewCustomer)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -827,6 +846,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Usage units per customer (per ${periodLabel})`}
           helper={`Formatted: ${displayInt(current.usageUnitsPerCustomerPerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -839,6 +859,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Price per usage unit"
           helper={`Formatted: ${displayMoney(current.pricePerUsageUnit)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -854,6 +875,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Cost per usage unit"
           helper={`Formatted: ${displayMoney(current.costPerUsageUnit)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -866,6 +888,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Fixed delivery cost (optional, per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+          tone="optional"
         >
           <input
             type="number"
@@ -900,6 +923,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Platform fee per customer (per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.platformFeePerCustomerPerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -912,6 +936,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Platform delivery cost per customer (optional, per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.platformDeliveryCostPerCustomerPerPeriod)}`}
+          tone="optional"
         >
           <input
             type="number"
@@ -927,6 +952,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Usage units per customer (per ${periodLabel})`}
           helper={`Formatted: ${displayInt(current.usageUnitsPerCustomerPerPeriod)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -939,6 +965,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Price per usage unit"
           helper={`Formatted: ${displayMoney(current.pricePerUsageUnit)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -951,6 +978,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Cost per usage unit (optional)"
           helper={`Formatted: ${displayMoney(current.costPerUsageUnit)}`}
+          tone="optional"
         >
           <input
             type="number"
@@ -965,6 +993,7 @@ const KpiInputPanel = ({
       <FieldBlock
         label={`Fixed delivery cost (optional, per ${periodLabel})`}
         helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+        tone="optional"
       >
         <input
           type="number"
@@ -1006,6 +1035,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Recurring subscription ARPC (per ${periodLabel})`}
           helper={`Formatted: ${displayMoney(current.directArpc)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -1038,6 +1068,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Recurring gross margin (%)"
             helper={`Formatted: ${percentText(current.grossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1053,6 +1084,7 @@ const KpiInputPanel = ({
             <FieldBlock
               label={`Recurring delivery cost per active customer (per ${periodLabel})`}
               helper={`Formatted: ${displayMoney(current.deliveryCostPerCustomerPerPeriod)}`}
+              tone="required"
             >
               <input
                 type="number"
@@ -1065,6 +1097,7 @@ const KpiInputPanel = ({
             <FieldBlock
               label={`Fixed delivery cost (optional, per ${periodLabel})`}
               helper={`Formatted: ${displayMoney(current.fixedDeliveryCostPerPeriod)}`}
+              tone="optional"
             >
               <input
                 type="number"
@@ -1080,6 +1113,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Implementation fee per new customer"
           helper={`Formatted: ${displayMoney(current.implementationFeePerNewCustomer)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -1112,6 +1146,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Implementation gross margin (%)"
             helper={`Formatted: ${percentText(current.implementationGrossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1126,6 +1161,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Implementation delivery cost per new customer"
             helper={`Formatted: ${displayMoney(current.implementationDeliveryCostPerNewCustomer)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1187,6 +1223,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Gross profit per order"
             helper={`Formatted: ${displayMoney(current.grossProfitPerOrder)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1200,6 +1237,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Gross margin (%)"
             helper={`Formatted: ${percentText(current.grossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1234,6 +1272,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Average order value"
           helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -1246,6 +1285,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Refund rate per order (%)"
           helper={`Formatted: ${percentText(current.refundsRatePerOrder)}`}
+          tone="optional"
         >
           <input
             type="number"
@@ -1284,6 +1324,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Average order value"
           helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -1296,6 +1337,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Expected orders per customer"
           helper={`Formatted: ${displayInt(current.expectedOrdersPerCustomer)}`}
+          tone="required"
         >
           <input
             type="number"
@@ -1310,6 +1352,7 @@ const KpiInputPanel = ({
       <FieldBlock
         label="Refund rate per order (%)"
         helper={`Formatted: ${percentText(current.refundsRatePerOrder)}`}
+        tone="optional"
       >
         <input
           type="number"
@@ -1356,6 +1399,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Average order value"
             helper={`Formatted: ${displayMoney(current.averageOrderValue)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1368,6 +1412,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label={`Orders per subscriber (per ${periodLabel}, optional)`}
             helper={`Formatted: ${displayInt(current.ordersPerSubscriberPerPeriod)}`}
+            tone="optional"
           >
             <input
               type="number"
@@ -1382,6 +1427,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label={`Refund rate per ${periodLabel} (%)`}
           helper={`Formatted: ${percentText(current.refundsRatePerPeriod)}`}
+          tone="optional"
         >
           <input
             type="number"
@@ -1432,6 +1478,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label={`Gross profit per subscriber (per ${periodLabel})`}
             helper={`Formatted: ${displayMoney(current.grossProfitPerSubscriberPerPeriod)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1445,6 +1492,7 @@ const KpiInputPanel = ({
           <FieldBlock
             label="Gross margin (%)"
             helper={`Formatted: ${percentText(current.grossMargin)}`}
+            tone="required"
           >
             <input
               type="number"
@@ -1463,7 +1511,7 @@ const KpiInputPanel = ({
   return (
     <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
-        <FieldBlock label="Offer name">
+        <FieldBlock label="Offer name" tone="required">
           <input
             type="text"
             name="offerName"
@@ -1476,6 +1524,7 @@ const KpiInputPanel = ({
         <FieldBlock
           label="Offer ID"
           helper="Stable key for this offer in saved reports."
+          tone="required"
         >
           <input
             type="text"
@@ -1494,7 +1543,7 @@ const KpiInputPanel = ({
         onChange={setOfferType}
       />
 
-      <FieldBlock label="Analysis period">
+      <FieldBlock label="Analysis period" tone="required">
         <SelectField
           name="analysisPeriod"
           value={value.analysisPeriod}

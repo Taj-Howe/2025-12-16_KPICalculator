@@ -6,19 +6,30 @@ export const fieldClassName = "input-shell px-3 py-2.5 text-base sm:text-sm";
 export const panelClassName = "panel-subtle rounded-[22px] p-4";
 export const pillClassName = "pill-action rounded-full px-3 py-1.5 text-sm";
 
+type FieldTone = "required" | "optional";
+
 export const FieldBlock = ({
   label,
   helper,
+  tone,
   children,
 }: {
   label: string;
   helper?: ReactNode;
+  tone?: FieldTone;
   children: ReactNode;
 }) => {
   return (
-    <div className="field-block">
-      <span className="text-[13px] font-medium tracking-[0.01em] text-white/82">
-        {label}
+    <div className="field-block" data-tone={tone}>
+      <span className="flex items-center justify-between gap-2">
+        <span className="min-w-0 text-[13px] font-medium tracking-[0.01em] text-white/82">
+          {label}
+        </span>
+        {tone ? (
+          <span className="field-tone-badge">
+            {tone === "required" ? "Needed" : "Optional"}
+          </span>
+        ) : null}
       </span>
       {children}
       {helper ? <span className="text-xs text-white/54">{helper}</span> : null}
